@@ -1512,6 +1512,7 @@ juce::StringArray MillstoneEditor::layoutProblems() {
         const auto label = item.str("label"), name = item.kind + " " + (item.str("key").isNotEmpty() ? item.str("key") : label);
         if (item.kind == "frame") {
             frames.push_back({ (float)item.num("x"), (float)item.num("y"), (float)item.num("w"), (float)item.num("h") });
+            parts.push_back({ "title " + item.str("title"), { (float)item.num("x"), (float)item.num("y"), juce::GlyphArrangement::getStringWidth(printFont(11.5f, true, 0.20f), item.str("title")) + 22.0f, 19.0f }, &item, false });
         } else if (item.kind == "knob") {
             const float r = (float)item.num("r", 20);
             parts.push_back({ name, juce::Rectangle<float>(2 * (r + 8.5f), 2 * (r + 8.5f)).withCentre({ cx, cy }), &item, true, true });

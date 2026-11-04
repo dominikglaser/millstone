@@ -245,13 +245,16 @@
     {"key": "e_bright", "name": "ELEMENTS BRIGHTNESS", "min": 0, "max": 100, "default": 50},
     {"key": "e_damp", "name": "ELEMENTS DAMPING", "min": 0, "max": 100, "default": 25},
     {"key": "e_pos", "name": "ELEMENTS POSITION", "min": 0, "max": 100, "default": 30},
-    {"key": "e_space", "name": "ELEMENTS SPACE", "min": 0, "max": 100, "default": 30}
+    {"key": "e_space", "name": "ELEMENTS SPACE", "min": 0, "max": 100, "default": 30},
+    {"key": "o1_amp", "name": "OSC1 AMP", "options": ["AUTO", "ENV", "LPG"], "default": "AUTO"},
+    {"key": "o2_amp", "name": "OSC2 AMP", "options": ["AUTO", "ENV", "LPG"], "default": "AUTO"},
+    {"key": "o3_amp", "name": "OSC3 AMP", "options": ["AUTO", "ENV", "LPG"], "default": "AUTO"}
   ],
   "sections": [
     {"label": "VOICE", "keys": ["voices", "voice_mode", "glide", "vibrato", "noise", "lpg_decay", "lpg_colour"]},
-    {"label": "OSC 1", "keys": ["o1_on", "o1_engine", "o1_harm", "o1_timbre", "o1_morph", "o1_fm", "o1_timbre_mod", "o1_morph_mod", "o1_cv_src", "o1_oct", "o1_semi", "o1_fine", "o1_level", "o1_mix"]},
-    {"label": "OSC 2", "keys": ["o2_on", "o2_engine", "o2_harm", "o2_timbre", "o2_morph", "o2_fm", "o2_timbre_mod", "o2_morph_mod", "o2_cv_src", "o2_oct", "o2_semi", "o2_fine", "o2_level", "o2_mix"]},
-    {"label": "OSC 3", "keys": ["o3_on", "o3_engine", "o3_harm", "o3_timbre", "o3_morph", "o3_fm", "o3_timbre_mod", "o3_morph_mod", "o3_cv_src", "o3_oct", "o3_semi", "o3_fine", "o3_level", "o3_mix"]},
+    {"label": "OSC 1", "keys": ["o1_on", "o1_engine", "o1_harm", "o1_timbre", "o1_morph", "o1_fm", "o1_timbre_mod", "o1_morph_mod", "o1_cv_src", "o1_amp", "o1_oct", "o1_semi", "o1_fine", "o1_level", "o1_mix"]},
+    {"label": "OSC 2", "keys": ["o2_on", "o2_engine", "o2_harm", "o2_timbre", "o2_morph", "o2_fm", "o2_timbre_mod", "o2_morph_mod", "o2_cv_src", "o2_amp", "o2_oct", "o2_semi", "o2_fine", "o2_level", "o2_mix"]},
+    {"label": "OSC 3", "keys": ["o3_on", "o3_engine", "o3_harm", "o3_timbre", "o3_morph", "o3_fm", "o3_timbre_mod", "o3_morph_mod", "o3_cv_src", "o3_amp", "o3_oct", "o3_semi", "o3_fine", "o3_level", "o3_mix"]},
     {"label": "FILTER", "keys": ["cutoff", "reso", "f_mode", "f_mod", "f_src", "keytrack", "drive"]},
     {"label": "ENV / VCA", "keys": ["attack", "decay", "sustain", "release", "m_attack", "m_decay", "m_sustain", "m_release", "vca_mode", "volume", "vel_amp", "vel_filt"]},
     {"label": "LFO / MOD", "keys": ["lfo_shape", "lfo_rate", "lfo_retrig", "lfo_sync", "lfo_div", "lfo_lock", "wheel_lfo", "at_cutoff", "at_morph", "at_lfo", "bend_range"]},

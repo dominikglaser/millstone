@@ -56,9 +56,11 @@ int key_index(const char *key) {
     return -1;
 }
 
-enum PerOsc { O_ON, O_ENGINE, O_HARM, O_TIMBRE, O_MORPH, O_FM, O_TMOD, O_MMOD, O_OCT, O_SEMI, O_FINE, O_LEVEL, O_MIX, O_CV_SRC, O_COUNT };
+enum PerOsc { O_ON, O_ENGINE, O_HARM, O_TIMBRE, O_MORPH, O_FM, O_TMOD, O_MMOD, O_OCT, O_SEMI, O_FINE, O_LEVEL, O_MIX, O_CV_SRC, O_AMP, O_COUNT };
 const char *const kOscSuffix[O_COUNT] = {"on", "engine", "harm", "timbre", "morph", "fm", "timbre_mod", "morph_mod",
-                                         "oct", "semi", "fine", "level", "mix", "cv_src"};
+                                         "oct", "semi", "fine", "level", "mix", "cv_src", "amp"}
+;
+enum OscAmp { AMP_AUTO, AMP_ENV, AMP_LPG };
 
 enum Global {
     G_VOICES, G_VOICE_MODE, G_GLIDE, G_VIBRATO, G_NOISE, G_LPG_DECAY, G_LPG_COLOUR,
@@ -76,6 +78,7 @@ const float kTriggerThreshold = 0.25f;   // a trigger input fires as its cords r
 enum OscDest { OD_PITCH, OD_HARM, OD_TIMBRE, OD_MORPH, OD_LEVEL };
 const float kCordPitch = 24.0f;    // semitones at full amount and full signal
 const float kCordCutoff = 6.0f;    // octaves, the same reach as MOD DEPTH
+const float kLevelSlew = 0.01f;    // about 2 ms: a gate into a level input snaps without clicking. Audio-rate cords skip this
 
 const char *const kGlobalKey[G_COUNT] = {
     "voices", "voice_mode", "glide", "vibrato", "noise", "lpg_decay", "lpg_colour",
@@ -183,6 +186,11 @@ struct Voice {
     int trig_low_chunks = 0;  // force Plaits TRIG low for a render or two, so a retrigger makes a new rising edge
     int silent_chunks = 0;
     int released_chunks = 0;
+    float vca_cord = 0.0f;        // what the patch bay is doing to these levels, smoothed
+    float level_cord[kOscs] = {0.0f, 0.0f, 0.0f};
+    float noise_cord = 0.0f;
+    bool cords_settled = false;   // a new note starts at the patched level, rather than sliding to it
+    float osc_gate = 0.0f;        // per-oscillator routing: the de-clicked key, for a free-running oscillator in VCA ON
     int input_quiet_chunks = 0;   // released, and nothing going into the filter: a self-oscillating filter must not ring forever
     uint32_t serial = 0;      // allocation order (oldest first)
     float gain_z = 0.0f;      // VCA smoothing (de-click for ON mode)
@@ -272,6 +280,7 @@ void start_voice(Instance *in, Voice *v, int note, float vel, bool retrigger) {
         if (!v->active) {
             for (int n = 0; n < kOscs; n++) v->osc_last[n] = 0.0f;
             v->noise_last = 0.0f;
+            v->cords_settled = false;
 #ifdef MILLSTONE_DESKTOP
             v->elements_stale = true;
 #endif
@@ -663,6 +672,20 @@ void render_voice(Instance *in, Voice *v, int index, int frames, float lfo) {
     const bool gated = v->gate || v->sustained;
     const float trig = (gated && v->trig_low_chunks == 0) ? 1.0f : 0.0f;   // TRIG follows the gate (6-op FM needs it held)
     const CordState cords = read_cords(in, v, gated, at);
+
+    // An oscillator set to ENV or LPG takes its amp on its own. The VCA sits after the mix, so its envelope would also cut an LPG
+    // oscillator's ring: when any oscillator is set, the envelope moves in front of the mix, for those routed to it.
+    bool per_osc = false;
+    for (int n = 0; n < kOscs; n++) if (in->O(n, O_ON) >= 0.5f && (int)in->O(n, O_AMP) != AMP_AUTO) per_osc = true;
+    float env_curve[kChunk], gate_curve[kChunk];
+    if (per_osc) {
+        v->env.set(in->P(G_ATTACK) * 0.01f, in->P(G_DECAY) * 0.01f, in->P(G_SUSTAIN) * 0.01f, in->P(G_RELEASE) * 0.01f);
+        for (int i = 0; i < frames; i++) {
+            env_curve[i] = v->env.tick();
+            v->osc_gate += ((gated ? 1.0f : 0.0f) - v->osc_gate) * 0.01f;
+            gate_curve[i] = v->osc_gate;
+        }
+    }
     // Trigger inputs fire once as their cords rise.
     bool fired[7];
     for (int t = 0; t < 7; t++) {
@@ -679,7 +702,14 @@ void render_voice(Instance *in, Voice *v, int index, int frames, float lfo) {
 #else
     (void)index;
 #endif
-    const float noise_level = clampf(in->P(G_NOISE) * 0.01f + cords.amount[D_NOISE], 0.0f, 1.0f);
+    if (!v->cords_settled) {
+        v->vca_cord = cords.amount[D_VCA];
+        v->noise_cord = cords.amount[D_NOISE];
+        for (int n = 0; n < kOscs; n++) v->level_cord[n] = cords.osc_dest(n, OD_LEVEL);
+        v->cords_settled = true;
+    }
+    const bool noise_moving = v->noise_cord != cords.amount[D_NOISE];
+    const float noise_level = clampf(in->P(G_NOISE) * 0.01f + (noise_moving ? fmaxf(v->noise_cord, cords.amount[D_NOISE]) : cords.amount[D_NOISE]), 0.0f, 1.0f);
     bool any_self_env = false;
     bool any_free_running = noise_level > 0.0f;   // noise, or an oscillator that would sound forever without a gate
     bool chip_clocked = false;
@@ -689,17 +719,22 @@ void render_voice(Instance *in, Voice *v, int index, int frames, float lfo) {
             v->osc_last[n] = 0.0f;
         }
         if (in->O(n, O_ON) < 0.5f) continue;
-        const float level = clampf(in->O(n, O_LEVEL) * 0.01f + cords.osc_dest(n, OD_LEVEL), 0.0f, 1.0f);
+        const float level_knob = in->O(n, O_LEVEL) * 0.01f, level_target = cords.osc_dest(n, OD_LEVEL);
+        if (fabsf(v->level_cord[n] - level_target) < 1e-4f) v->level_cord[n] = level_target;
+        const bool level_moving = v->level_cord[n] != level_target;
+        const float level = clampf(level_knob + (level_moving ? fmaxf(v->level_cord[n], level_target) : level_target), 0.0f, 1.0f);
         if (level <= 0.0f && !cords.osc_used[n]) continue;   // LEVEL 0 with a cord: heard only through what it modulates
         int model = clampi((int)in->O(n, O_ENGINE), 0, 23);
         int engine = kEngineMap[model];
-        bool trig_mode = (vca_mode == VCA_LPG) || self_enveloped(engine);
+        const int amp = (int)in->O(n, O_AMP);
+        bool trig_mode = amp == AMP_ENV ? false : amp == AMP_LPG ? true : (vca_mode == VCA_LPG) || self_enveloped(engine);
 #ifdef MILLSTONE_DESKTOP
         const bool use_elements = n == 0 && (int)in->P(G_O1_TYPE) == 1;
 #else
         const bool use_elements = false;
 #endif
-        if (level > 0.0f) { if (use_elements || self_enveloped(engine)) any_self_env = true; else any_free_running = true; }
+        const bool ends_by_itself = use_elements || (amp == AMP_ENV ? false : amp == AMP_LPG || self_enveloped(engine));
+        if (level > 0.0f) { if (ends_by_itself) any_self_env = true; else any_free_running = true; }
         if (trig_mode && engine == 7) chip_clocked = true;   // chiptune clocked by TRIG: it never fades by itself
 
         plaits::Patch p;
@@ -729,7 +764,7 @@ void render_voice(Instance *in, Voice *v, int index, int frames, float lfo) {
         m.timbre_patched = p.timbre_modulation_amount != 0.0f;
         m.morph_patched = p.morph_modulation_amount != 0.0f;
         m.trigger_patched = trig_mode;
-        m.level_patched = trig_mode && vca_mode != VCA_LPG;   // LPG mode: TRIG strikes, LEVEL unpatched = accent fixed
+        m.level_patched = trig_mode && vca_mode != VCA_LPG && amp != AMP_LPG;   // LPG mode: TRIG strikes, LEVEL unpatched = accent fixed
 
 #ifdef MILLSTONE_DESKTOP
         if (use_elements)
@@ -744,8 +779,25 @@ void render_voice(Instance *in, Voice *v, int index, int frames, float lfo) {
         float wet = in->O(n, O_MIX) * 0.01f;
         float dry = 1.0f - wet;
         float g = level * level / 32768.0f;
+        float gains[kChunk];
+        for (int i = 0; i < frames; i++) {
+            if (level_moving) {
+                v->level_cord[n] += (level_target - v->level_cord[n]) * kLevelSlew;
+                const float l = clampf(level_knob + v->level_cord[n], 0.0f, 1.0f);
+                gains[i] = l * l / 32768.0f;
+            } else gains[i] = g;
+        }
+        if (per_osc) {
+            // ENV: the amp envelope. LPG: nothing here, its gate has done the work. AUTO follows VCA MODE.
+            const bool through_env = amp == AMP_ENV || (amp == AMP_AUTO && vca_mode == VCA_ENV);
+            const bool through_gate = amp == AMP_AUTO && vca_mode == VCA_ON && !ends_by_itself;
+            for (int i = 0; i < frames; i++) {
+                const float shape = through_env ? env_curve[i] : through_gate ? gate_curve[i] : 1.0f;
+                mix[i] += gains[i] * shape * (dry * v->frames[i].out + wet * v->frames[i].aux);
+            }
+        } else
         for (int i = 0; i < frames; i++)
-            mix[i] += g * (dry * v->frames[i].out + wet * v->frames[i].aux);
+            mix[i] += gains[i] * (dry * v->frames[i].out + wet * v->frames[i].aux);
     }
     if (v->trig_low_chunks > 0) v->trig_low_chunks--;
     for (int n = 0; n < kOscs; n++) if (v->osc_trigger_low[n] > 0) v->osc_trigger_low[n]--;
@@ -757,8 +809,18 @@ void render_voice(Instance *in, Voice *v, int index, int frames, float lfo) {
     }
     if (noise_level > 0.0f) {
         float g = noise_level * noise_level * 0.5f;
-        if (vca_mode == VCA_LPG) g *= v->env.value;   // Plaits' gate does not reach the noise, so the envelope shapes it
-        for (int i = 0; i < frames; i++) mix[i] += g * (cords.noise_used ? v->noise_audio[i] : v->noise.tick());
+        const float noise_knob = in->P(G_NOISE) * 0.01f, noise_target = cords.amount[D_NOISE];
+        if (vca_mode == VCA_LPG && !per_osc) g *= v->env.value;   // Plaits' gate does not reach the noise, so the envelope shapes it
+        for (int i = 0; i < frames; i++) {
+            if (noise_moving) {
+                v->noise_cord += (noise_target - v->noise_cord) * kLevelSlew;
+                if (fabsf(v->noise_cord - noise_target) < 1e-4f) v->noise_cord = noise_target;
+                const float l = clampf(noise_knob + v->noise_cord, 0.0f, 1.0f);
+                g = l * l * 0.5f;
+                if (vca_mode == VCA_LPG && !per_osc) g *= v->env.value;
+            }
+            mix[i] += g * (per_osc ? (vca_mode == VCA_ON ? gate_curve[i] : env_curve[i]) : 1.0f) * (cords.noise_used ? v->noise_audio[i] : v->noise.tick());
+        }
     }
 
     // filter, envelope, VCA
@@ -789,11 +851,14 @@ void render_voice(Instance *in, Voice *v, int index, int frames, float lfo) {
         case VCA_ON:  target_gain = ((gated || self_ending) && !input_gone) ? vel_gain : 0.0f; break;
         default:      target_gain = vel_gain; break;
     }
+    if (per_osc) target_gain = (gated || !input_gone) ? vel_gain : 0.0f;   // the VCA only finishes what is left of the voice
     float peak = 0.0f;
     for (int i = 0; i < frames; i++) {
-        float e = v->env.tick();
+        float e = per_osc ? env_curve[i] : v->env.tick();
         v->menv.tick();
-        float cutoff_mod = 0.0f, reso_mod = 0.0f, vca_mod = base_vca;
+        v->vca_cord += (base_vca - v->vca_cord) * kLevelSlew;
+        if (fabsf(v->vca_cord - base_vca) < 1e-5f) v->vca_cord = base_vca;
+        float cutoff_mod = 0.0f, reso_mod = 0.0f, vca_mod = v->vca_cord;
         for (int c = 0; c < cords.fast_count; c++) {   // audio-rate cords: the sidebands come from doing this every sample
             const int source = cords.fast[c].source;
             const float signal = (source == S_NOISE ? v->noise_audio[i] : v->osc_audio[source - S_OSC1][i]) * cords.fast[c].amount;
@@ -804,7 +869,7 @@ void render_voice(Instance *in, Voice *v, int index, int frames, float lfo) {
         if (cords.fast_filter) v->filter.set(octaves_to_hz(base_oct + cutoff_mod * kCordCutoff), base_reso + reso_mod, highpass);
         float y = v->filter.tick(mix[i] * pre) * post;
         v->gain_z += (target_gain - v->gain_z) * 0.01f;   // ~2 ms de-click
-        float gain = vca_mode == VCA_ENV ? e * vel_gain : v->gain_z;
+        float gain = vca_mode == VCA_ENV && !per_osc ? e * vel_gain : v->gain_z;
         y *= gain * ring_gain * clampf(1.0f + vca_mod, 0.0f, 2.0f);
         in->out[i] += y;
         float a = fabsf(y);
@@ -812,10 +877,10 @@ void render_voice(Instance *in, Voice *v, int index, int frames, float lfo) {
     }
 
     // free the voice when it has nothing left to say
-    bool env_done = (vca_mode == VCA_ENV) && v->env.idle() && !gated;
+    bool env_done = (vca_mode == VCA_ENV) && !per_osc && v->env.idle() && !gated;
     if (peak < 1e-4f && !gated) v->silent_chunks++; else v->silent_chunks = 0;
-    bool silent_done = v->silent_chunks > kSilentChunks && (vca_mode != VCA_ENV || v->env.idle());
-    bool on_done = (vca_mode != VCA_ENV) && !gated && v->gain_z < 1e-4f && (input_gone || (vca_mode == VCA_ON ? !self_ending : chip_clocked));
+    bool silent_done = v->silent_chunks > kSilentChunks && (per_osc || vca_mode != VCA_ENV || v->env.idle());
+    bool on_done = (per_osc || vca_mode != VCA_ENV) && !gated && v->gain_z < 1e-4f && (input_gone || (!per_osc && (vca_mode == VCA_ON ? !self_ending : chip_clocked)));
     const bool ring_done = v->released_chunks > kMaxRingChunks + kRingFadeChunks;
     if (env_done || silent_done || on_done || ring_done) {
         v->active = false;

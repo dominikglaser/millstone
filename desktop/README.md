@@ -74,6 +74,9 @@ full three-oscillator sound.
   MOD TRIG, and O1 to O3 TRIG, which strike percussive models while a note is held. With SOURCE on SONG it follows Live.
 - Elements (desktop only) replaces Plaits on OSC 1 when its type switch says so, one instance per voice, run at its own 32 kHz
   and resampled. Its exciter takes audio from the patch bay through E STK IN and E BLW IN, and O1 TRIG strikes it again.
+- Each oscillator has an amp switch. AUTO follows VCA MODE. ENV is a plain oscillator with its trigger unpatched, shaped by the VCA
+  envelope. LPG patches its trigger, so Plaits' internal gate shapes it, with LPG DECAY and LPG COLOUR. With any oscillator set, the
+  envelope moves in front of the mix and applies only to what is routed to it, so an LPG oscillator rings past the key.
 - `tools/run_all_tests.sh [--sanitize]` runs every check below in one go, and CI runs it too. `stress_test` proves every parameter
   changes the sound, instances stay separate, and nothing breaks while presets change under running audio. `engine_fuzz` plays
   random patches and MIDI at the engine; `sanitized_fuzz.sh` does that under AddressSanitizer and UBSan.

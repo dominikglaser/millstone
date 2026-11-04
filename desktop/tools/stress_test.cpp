@@ -47,6 +47,7 @@ static void contextFor(MillstoneProcessor& p, const juce::String& key) {
         const auto o = key.substring(0, 3);
         setValue(p, o + "fm", 40); setValue(p, o + "timbre_mod", 60); setValue(p, o + "morph_mod", 60); setValue(p, "cutoff", 90);
         if (key.endsWith("_mix")) setOption(p, o + "engine", "Waveshaper");
+        if (key.endsWith("_amp")) { setValue(p, "attack", 40); setValue(p, "lpg_decay", 30); }
         if (key.endsWith("_harm") || key.endsWith("_timbre") || key.endsWith("_morph")) setOption(p, o + "engine", "FM 2-Op");
     } else if (key == "lfo_retrig" || key == "lfo_rate" || key == "lfo_shape" || key == "lfo_sync" || key == "lfo_div" || key == "lfo_lock" || key == "f_src" || key == "wheel_lfo" || key == "at_lfo") {
         setValue(p, "f_mod", 100); setOption(p, "f_src", "LFO");

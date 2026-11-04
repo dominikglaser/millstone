@@ -114,7 +114,7 @@ private:
     struct FxValues {
         std::atomic<float>* phRate, *phDepth, *phFb, *phMix, *chMode, *chMix;
         std::atomic<float>* dlSync, *dlTime, *dlDiv, *dlFb, *dlIn, *dlThrow, *dlHeads, *dlPp, *dlWidth, *dlLow, *dlHigh, *dlDrive, *dlWow, *dlDuck, *dlMix;
-        std::atomic<float>* rvType, *rvDecay, *rvDiff, *rvDamp, *rvKick, *rvMix, *clockBpm;
+        std::atomic<float>* rvType, *rvDecay, *rvDiff, *rvDamp, *rvKick, *rvMix, *clockBpm, *output;
     } fxValues {};
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MillstoneProcessor)

@@ -49,7 +49,7 @@ MillstoneProcessor::MillstoneProcessor()
     fxValues = { value("fx_ph_rate"), value("fx_ph_depth"), value("fx_ph_fb"), value("fx_ph_mix"), value("fx_ch_mode"), value("fx_ch_mix"),
                  value("fx_dl_sync"), value("fx_dl_time"), value("fx_dl_div"), value("fx_dl_fb"), value("fx_dl_in"), value("fx_dl_throw"), value("fx_dl_heads"),
                  value("fx_dl_pp"), value("fx_dl_width"), value("fx_dl_low"), value("fx_dl_high"), value("fx_dl_drive"), value("fx_dl_wow"), value("fx_dl_duck"), value("fx_dl_mix"),
-                 value("fx_rv_type"), value("fx_rv_decay"), value("fx_rv_diff"), value("fx_rv_damp"), value("fx_rv_kick"), value("fx_rv_mix"), value("ck_bpm") };
+                 value("fx_rv_type"), value("fx_rv_decay"), value("fx_rv_diff"), value("fx_rv_damp"), value("fx_rv_kick"), value("fx_rv_mix"), value("ck_bpm"), value("fx_out") };
 }
 
 juce::AudioProcessorEditor* MillstoneProcessor::createEditor() { return new MillstoneEditor(*this); }
@@ -117,6 +117,7 @@ void MillstoneProcessor::updateEffects() {
     s.reverbDamping = percent(fxValues.rvDamp);
     s.reverbMix = percent(fxValues.rvMix);
     s.springKick = option(fxValues.rvKick) == 1;
+    s.outputGain = std::pow(10.0f, fxValues.output->load() * 0.05f);
     fx.setSettings(s);
 }
 

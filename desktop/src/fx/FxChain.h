@@ -19,6 +19,7 @@ public:
         ReverbType reverbType = ReverbType::plate;
         float reverbDecay = 0.5f, reverbDiffusion = 0.6f, reverbDamping = 0.4f, reverbMix = 0.0f;
         bool springKick = false;
+        float outputGain = 1.0f;   // make-up, after everything
     };
 
     void prepare(double sampleRate);
@@ -40,7 +41,7 @@ private:
     Reverb plate;
     SpringReverb spring;
     double sampleRate = 48000.0;
-    float plateNow = 0, springNow = 0, rampStep = 0.001f;
+    float plateNow = 0, springNow = 0, rampStep = 0.001f, outputNow = 1.0f;
     bool wasKicked = false, plateDirty = false, springDirty = false;
     static constexpr int kChunk = 256;
     float wetLeft[kChunk] {}, wetRight[kChunk] {}, dryLeft[kChunk] {}, dryRight[kChunk] {};

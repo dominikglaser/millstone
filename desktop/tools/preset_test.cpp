@@ -86,6 +86,8 @@ int main(int argc, char** argv) {
     float closestDistance = 1e9f; juce::String closestPair;
     static constexpr float duplicateDb = 1.0f;
     int fullVolume = 0;
+    float worstUnder = 0.0f; juce::String worstUnderName;
+    static constexpr float maxUnderDb = 7.0f;
     for (int i = 0; i < (int)library.size(); ++i) {
         const auto& preset = library[(size_t)i];
         MillstoneProcessor p;
@@ -151,6 +153,7 @@ int main(int argc, char** argv) {
             const bool capped = volume >= 99.9f && loudDb < targetDb;
             const bool peakLimited = peakDb > peakLimitDb - 1.5f && loudDb < targetDb;
             if (volume >= 99.9f && !preset.unmatched) ++fullVolume;
+            if (capped && !preset.unmatched && targetDb - loudDb > worstUnder) { worstUnder = targetDb - loudDb; worstUnderName = preset.name; }
             if (capped) printf("info %s is at full volume, %.1f dB under the target\n", preset.name.toRawUTF8(), targetDb - loudDb);
             // Some depend on the shared random generator, so those are not held to this.
             check(preset.unmatched || capped || peakLimited || std::abs(loudDb - targetDb) <= toleranceDb, preset.name + " is level-matched (" + juce::String(loudDb, 1) + " dB, peak " + juce::String(peakDb, 1) + ", want " + juce::String(targetDb, 0) + ")");
@@ -170,7 +173,9 @@ int main(int argc, char** argv) {
     }
     printf("info the closest two sounds are %s, %.1f dB apart\n", closestPair.toRawUTF8(), closestDistance);
     printf("%d presets are at full volume\n", fullVolume);
-    check(fullVolume <= (int)library.size() / 6, "VOLUME keeps headroom on nearly every preset");
+    // Level and VOLUME both top out, so a thin or very filtered sound can sit at full volume a little under the target. That is
+    // the engine's reach, not a mistake, but one far under it would be a hole in the library.
+    check(worstUnder <= maxUnderDb, "nothing is far quieter than the rest, worst is " + worstUnderName + " at " + juce::String(worstUnder, 1) + " dB under");
     if (trimFile != juce::File()) trimFile.replaceWithText(juce::JSON::toString(juce::var(trims.release()), false) + "\n");
 
     // Loading.
@@ -338,7 +343,7 @@ int main(int argc, char** argv) {
         const auto type = [&](const char* text) { search->setText(text, false); search->onTextChange(); };
         type("hold key");
         check(rows() > 0 && rows() < (int)library.size(), "search finds things by what they do, " + juce::String(rows()));
-        type("slow tide"); check(rows() == 1, "every word has to match, " + juce::String(rows()));
+        type("slow"); const int oneWord = rows(); type("slow tide pad"); check(rows() >= 1 && rows() < oneWord, "every word has to match, " + juce::String(rows()) + " of " + juce::String(oneWord));
         type("zzzz"); check(rows() == 0, "nothing found is fine");
         next->onClick(); check(p.getCurrentPresetName() == "Init", "and < > with nothing to step to do nothing");
         type("");

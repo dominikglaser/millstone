@@ -126,7 +126,8 @@ void FxChain::renderReverb(float* left, float* right, int numFrames) {
 void FxChain::process(float* left, float* right, int numFrames) {
     const bool colour = settings.phaserMix > 0.0f || (settings.chorusMode != ChorusMode::off && settings.chorusMix > 0.0f);
     const bool reverb = settings.reverbMix > 0.0f || plateNow > 0.0f || springNow > 0.0f || plateDirty || springDirty;
-    if (!colour && !delay.isActive() && !reverb) return;   // the voices, untouched
+    const bool output = settings.outputGain != 1.0f || outputNow != 1.0f;
+    if (!colour && !delay.isActive() && !reverb && !output) return;   // the voices, untouched
 
     if (colour) {
         phaser.process(left, numFrames);
@@ -144,8 +145,13 @@ void FxChain::process(float* left, float* right, int numFrames) {
         std::fill(right, right + numFrames, 0.0f);
         return;
     }
+    const float step = (settings.outputGain - outputNow) / (float)std::max(numFrames, 1);
     for (int i = 0; i < numFrames; ++i) {
+        outputNow += step;
+        left[i] *= outputNow;
+        right[i] *= outputNow;
         left[i] = kOutputCeiling * softClipAbove(left[i] / kOutputCeiling, kOutputKnee);
         right[i] = kOutputCeiling * softClipAbove(right[i] / kOutputCeiling, kOutputKnee);
     }
+    outputNow = settings.outputGain;
 }

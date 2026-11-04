@@ -2122,7 +2122,8 @@ juce::StringArray MillstoneEditor::layoutProblems() {
     static Item rackItem;
     rackItem.attrs["page"] = "rack";
     parts.push_back({ "rack master screen", { 418, 42, 644, 46 }, &rackItem, true });
-    parts.push_back({ "rack master keys", { 1076, 49, 284, 32 }, &rackItem, true });
+    parts.push_back({ "rack preset keys", { 1076, 49, 84, 32 }, &rackItem, true });
+    parts.push_back({ "rack PANEL", { 1270, 49, 90, 32 }, &rackItem, true });
     parts.push_back({ "clock output buttons", { 98, 198, 246, 26 }, &rackItem, true });
     parts.push_back({ "clock LCD", { 378, 128, 712, 106 }, &rackItem, true });
     parts.push_back({ "clock SELECT", { 1157 - 36.0f, 166 - 36.0f, 72, 72 }, &rackItem, true, true });

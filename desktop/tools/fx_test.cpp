@@ -244,6 +244,15 @@ int main() {
             for (size_t i = n / 2 - 100; i < n / 2 + (size_t)(sr * .05); ++i) biggest = std::max(biggest, (double)std::abs(l[i] - l[i - 1]));
             check(biggest < 0.2, "switching reverb type fades rather than clicks", biggest);
         }
+        // OUTPUT raises the level, and the ceiling still holds.
+        {
+            FxChain::Settings s; s.outputGain = 2.0f; auto fx = chain(s, sr);
+            auto out = run(*fx, 1, sr, [&](size_t i) { return 0.2f * (float)std::sin(6.283185307 * 220.0 * (double)i / sr); });
+            check(std::abs(peak(out.l, (size_t)(sr * .5)) - 0.4) < 0.01, "OUTPUT makes up level", peak(out.l));
+            s.outputGain = 8.0f; auto loud = chain(s, sr);
+            auto top = run(*loud, 1, sr, [&](size_t i) { return 0.5f * (float)std::sin(6.283185307 * 220.0 * (double)i / sr); });
+            check(peak(top.l) <= 0.945, "and cannot pass the ceiling", peak(top.l));
+        }
         // Everything at once, flat out, with a loud signal.
         {
             FxChain::Settings s; s.phaserMix = 1; s.phaserFeedback = .9f; s.phaserRateHz = 2; s.chorusMode = ChorusMode::oneAndTwo; s.delay.mix = 1; s.delay.repeats = 1.2f; s.delay.drive = 1; s.delay.heads = 7; s.delay.timeSeconds = .05f; s.delay.wow = 1;

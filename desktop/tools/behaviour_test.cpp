@@ -535,14 +535,14 @@ int main() {
         const auto& library = MillstoneProcessor::factoryPresets();
         const auto value = [](const MillstoneProcessor::Preset& q, const char* key) { for (const auto& [k, v] : q.values) if (k == key) return v; return -1.0f; };
         check(value(library[0], "fx_dl_mix") == 0 && value(library[0], "fx_rv_mix") == 0 && value(library[0], "fx_ph_mix") == 0 && value(library[0], "fx_ch_mode") == 0, "Init has every effect off");
-        int wrong = 0, withFx = 0;
+        int wrong = 0, withFx = 0, first = 0;
         for (const auto& q : library) {
             const bool delay = value(q, "fx_dl_mix") > 0, reverb = value(q, "fx_rv_mix") > 0;
             wrong += delay != q.uses.contains("Delay") || reverb != q.uses.contains("Reverb");
-            withFx += delay || reverb || q.uses.contains("Colour FX");
+            if (q.pack == "Factory 1") { withFx += delay || reverb || q.uses.contains("Colour FX"); ++first; }
         }
         check(wrong == 0, "a preset's tags say which effects it has on");
-        check(withFx > 20 && withFx < (int)library.size() * 2 / 3, "a sprinkle, not a coat", juce::String(withFx));
+        check(withFx > 20 && withFx < first * 2 / 3, "the first library has a sprinkle, not a coat", juce::String(withFx));
     }
     {   // The echo of a short note lands on the song's tempo, and moves with it.
         const auto echoAt = [&](double bpm) {

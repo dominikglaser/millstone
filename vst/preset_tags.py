@@ -4,7 +4,6 @@ listener can say. Every preset must be here, and every word must be in these lis
 TYPES = ["Bass", "Lead", "Pad", "Keys", "Pluck", "Perc", "Sequence", "Riser/FX", "Texture", "Drone"]
 STYLES = ["Classic", "Techno", "Dub", "House", "Rave", "Ambient", "Cinematic", "Experimental"]
 CHARACTERS = ["Dark", "Bright", "Warm", "Metallic", "Evolving", "Aggressive", "Soft"]
-PACKS = ["Factory 1"]
 
 def t(type_, styles, characters):
     return type_, styles.split(), characters.split()

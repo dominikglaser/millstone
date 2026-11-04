@@ -155,6 +155,14 @@ if(MILLSTONE_UI_SNAPSHOT)
     add_executable(millstone_fx_test tools/fx_test.cpp)
     set_target_properties(millstone_fx_test PROPERTIES CXX_STANDARD 17)
     target_link_libraries(millstone_fx_test PRIVATE millstone_fx)
+    add_executable(millstone_preset_probe tools/preset_probe.cpp)
+    target_include_directories(millstone_preset_probe PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${REPO}/src
+        ${REPO}/src/third_party/eurorack
+        ${REPO}/vst/build
+        ${mpcvst_SOURCE_DIR}/wrapper)
+    target_link_libraries(millstone_preset_probe PRIVATE Millstone millstone_engine MillstoneData juce::juce_audio_utils)
     add_executable(millstone_fx_plugin_test tools/fx_plugin_test.cpp)
     target_include_directories(millstone_fx_plugin_test PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src

@@ -18,10 +18,13 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Configure
-        run: cmake -B desktop/build -S desktop -DCMAKE_BUILD_TYPE=Release
+        run: cmake -B desktop/build -S desktop -DCMAKE_BUILD_TYPE=Release -DMILLSTONE_UI_SNAPSHOT=ON
 
       - name: Build
         run: cmake --build desktop/build --config Release -j3
+
+      - name: Test
+        run: desktop/tools/run_all_tests.sh
 
       - name: Collect
         run: |

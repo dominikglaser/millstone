@@ -505,7 +505,7 @@ juce::Image makePanelArt(bool wear = true, WearCounts* counts = nullptr) {
             g.drawEllipse(round(6.6f), 0.6f);
             g.setColour(cream);
             g.setFont(printFont(9.5f, true, 0.04f));
-            g.drawFittedText(item.str("label"), juce::Rectangle<float>(c.x - 23, c.y + 15, 46, 13).toNearestInt(), juce::Justification::centred, 1, 0.7f);
+            g.drawFittedText(item.str("label"), juce::Rectangle<float>(c.x - 21, c.y + 15, 42, 13).toNearestInt(), juce::Justification::centred, 1, 0.7f);
         } else if (item.kind == "fader") {
             paintFaderPrinting(g, item);
         } else if (item.kind == "enum_v" || item.kind == "enum_h") {
@@ -1046,6 +1046,8 @@ struct MillstoneEditor::PresetBar : juce::Component {
         readoutValue.setColour(juce::Label::textWhenEditingColourId, screenFill);
         readoutValue.setJustificationType(juce::Justification::centredRight);
         readoutValue.setEditable(false, true);
+        readoutValue.setComponentID("readout_value");
+        readoutName.setComponentID("readout_name");
         readoutValue.onTextChange = [this] {
             if (shown != nullptr) { shown->setValue(readoutValue.getText().getDoubleValue(), juce::sendNotificationSync); showValue(); }
         };
@@ -1488,6 +1490,99 @@ void MillstoneEditor::timerCallback() {
     }
     presetBar->sync();
     patchBay->sync();
+}
+
+juce::Point<float> MillstoneEditor::jackPosition(bool isOutput, int index) {
+    for (const auto& item : panelItems())
+        if (item.kind == "jack" && (item.str("role") == "src") == isOutput && item.num("index") == index)
+            return { (float)item.num("cx"), (float)(item.num("cy") - designH) };
+    return {};
+}
+
+juce::StringArray MillstoneEditor::layoutProblems() {
+    struct Part { juce::String name; juce::Rectangle<float> r; const Item* item; bool hasFrame; bool round = false; };
+    std::vector<Part> parts;
+    const auto textRect = [](const juce::String& text, const juce::Font& font, float cx, float top, float h, float maxW = 1e6f) {
+        const float w = juce::jmin(maxW, juce::GlyphArrangement::getStringWidth(font, text));
+        return juce::Rectangle<float>(cx - w * 0.5f, top, w, h);
+    };
+    std::vector<juce::Rectangle<float>> frames;
+    for (const auto& item : panelItems()) {
+        const float cx = (float)item.num("cx"), cy = (float)item.num("cy");
+        const auto label = item.str("label"), name = item.kind + " " + (item.str("key").isNotEmpty() ? item.str("key") : label);
+        if (item.kind == "frame") {
+            frames.push_back({ (float)item.num("x"), (float)item.num("y"), (float)item.num("w"), (float)item.num("h") });
+        } else if (item.kind == "knob") {
+            const float r = (float)item.num("r", 20);
+            parts.push_back({ name, juce::Rectangle<float>(2 * (r + 8.5f), 2 * (r + 8.5f)).withCentre({ cx, cy }), &item, true, true });
+            parts.push_back({ name + " label", textRect(label, printFont(r >= 30 ? 13.0f : 11.0f), cx, cy + r + 10, 13), &item, true });
+        } else if (item.kind == "fader") {
+            const float h = (float)item.num("h", 160);
+            parts.push_back({ name, { cx - 22, cy - h * 0.5f, 44, h }, &item, true });
+            parts.push_back({ name + " label", textRect(label, printFont(14.0f), cx, cy + h * 0.5f + 5, 15), &item, true });
+        } else if (item.kind == "enum_h" || item.kind == "enum_v") {
+            const auto* def = findEngineParam(item.str("key"));
+            const int n = def != nullptr ? def->nopts : 1;
+            const float sw = (float)item.num("sw", 60), sh = (float)item.num("sh", 26), w = item.kind == "enum_v" ? sw : (float)n * sw + (float)(n - 1) * 3, h = item.kind == "enum_v" ? (float)n * sh + (float)(n - 1) * 3 : sh;
+            parts.push_back({ name, { cx - w * 0.5f, cy - h * 0.5f, w, h }, &item, true });
+            if (label.isNotEmpty()) parts.push_back({ name + " label", textRect(label, printFont(10.5f), cx, cy - h * 0.5f - 15, 12), &item, true });
+        } else if (item.kind == "toggle") {
+            parts.push_back({ name, { cx - 15, cy - 18, 44, 36 }, &item, true });
+            parts.push_back({ name + " label", textRect(label, printFont(10.5f), cx, cy + 20, 12), &item, true });
+        } else if (item.kind == "popup") {
+            const float w = (float)item.num("w", 200), h = (float)item.num("h", 38);
+            parts.push_back({ name, { cx - w * 0.5f, cy - h * 0.5f, w, h }, &item, true });
+            if (label.isNotEmpty()) parts.push_back({ name + " label", textRect(label, printFont(10.5f), cx, cy - h * 0.5f - 15, 12), &item, true });
+        } else if (item.kind == "button") {
+            parts.push_back({ name, { cx - 16, cy - 16, 32, 32 }, &item, true });
+        } else if (item.kind == "jack") {
+            parts.push_back({ name + " " + label, { cx - 12.5f, cy - 12.5f, 25, 25 }, &item, true, true });
+            parts.push_back({ name + " " + label + " label", textRect(label, printFont(9.5f, true, 0.04f), cx, cy + 15, 11, 42), &item, true });
+        }
+    }
+    static const Item fixedItem;
+    parts.push_back({ "display", { 438, 11, 614, 66 }, &fixedItem, false });
+    parts.push_back({ "preset buttons", { 1066, 17, 152, 58 }, &fixedItem, false });
+    parts.push_back({ "model plate", { 1262, 22, 160, 46 }, &fixedItem, false });
+    parts.push_back({ "drawer page buttons", { 58, 914, 74, 55 }, &fixedItem, true });
+    static Item clockButtons;
+    clockButtons.attrs["page"] = "clock";
+    parts.push_back({ "clock output buttons", { 150, 930, 246, 26 }, &clockButtons, true });
+
+    // Two things can only collide if they can be on screen together.
+    const auto together = [](const Item& a, const Item& b) {
+        if (a.str("page").isNotEmpty() && b.str("page").isNotEmpty() && a.str("page") != b.str("page")) return false;
+        if (a.str("channel").isNotEmpty() && b.str("channel").isNotEmpty() && a.str("channel") != b.str("channel")) return false;
+        const auto wa = a.str("when"), wb = b.str("when");
+        if (wa.isNotEmpty() && wb.isNotEmpty() && wa.upToFirstOccurrenceOf(":", false, false) == wb.upToFirstOccurrenceOf(":", false, false)) {
+            const auto va = wa.fromFirstOccurrenceOf(":", false, false), vb = wb.fromFirstOccurrenceOf(":", false, false);
+            if (va != vb && !(va.startsWithChar('!') && va.substring(1) != vb) && !(vb.startsWithChar('!') && vb.substring(1) != va)) return false;
+        }
+        return true;
+    };
+    juce::StringArray problems;
+    for (size_t i = 0; i < parts.size(); ++i) {
+        for (size_t k = i + 1; k < parts.size(); ++k) {
+            if (parts[i].item == parts[k].item && parts[i].item != &fixedItem) continue;   // a control and its own label
+            if (!together(*parts[i].item, *parts[k].item)) continue;
+            const auto clash = [](const Part& a, const Part& b) {   // a knob and a jack are round: their square corners are empty
+                if (!a.r.reduced(0.5f).intersects(b.r.reduced(0.5f))) return false;
+                if (a.round && b.round) return a.r.getCentre().getDistanceFrom(b.r.getCentre()) < (a.r.getWidth() + b.r.getWidth()) * 0.5f;
+                if (!a.round && !b.round) return true;
+                const auto& circle = a.round ? a : b; const auto& box = a.round ? b : a;
+                const auto c = circle.r.getCentre();
+                const juce::Point<float> nearest(juce::jlimit(box.r.getX(), box.r.getRight(), c.x), juce::jlimit(box.r.getY(), box.r.getBottom(), c.y));
+                return c.getDistanceFrom(nearest) < circle.r.getWidth() * 0.5f;
+            };
+            if (clash(parts[i], parts[k])) problems.add(parts[i].name + " touches " + parts[k].name);
+        }
+        if (parts[i].hasFrame) {
+            bool inside = false;
+            for (const auto& f : frames) inside = inside || f.contains(parts[i].r);
+            if (!inside) problems.add(parts[i].name + " leaves its frame");
+        }
+    }
+    return problems;
 }
 
 MillstoneEditor::WearCheck MillstoneEditor::checkWear() {

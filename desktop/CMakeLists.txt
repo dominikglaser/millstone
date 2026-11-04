@@ -58,7 +58,16 @@ endforeach()
 # Modules that are desktop-only until the MPC build can be tested again.
 list(APPEND ENGINE_SOURCES
     ${REPO}/src/third_party/eurorack/tides2/poly_slope_generator.cc
-    ${REPO}/src/third_party/eurorack/tides2/resources.cc)
+    ${REPO}/src/third_party/eurorack/tides2/resources.cc
+    ${REPO}/src/third_party/eurorack/elements/dsp/exciter.cc
+    ${REPO}/src/third_party/eurorack/elements/dsp/multistage_envelope.cc
+    ${REPO}/src/third_party/eurorack/elements/dsp/ominous_voice.cc
+    ${REPO}/src/third_party/eurorack/elements/dsp/part.cc
+    ${REPO}/src/third_party/eurorack/elements/dsp/resonator.cc
+    ${REPO}/src/third_party/eurorack/elements/dsp/string.cc
+    ${REPO}/src/third_party/eurorack/elements/dsp/tube.cc
+    ${REPO}/src/third_party/eurorack/elements/dsp/voice.cc
+    ${REPO}/src/third_party/eurorack/elements/resources.cc)
 add_library(millstone_engine STATIC ${ENGINE_SOURCES})
 set_target_properties(millstone_engine PROPERTIES
     CXX_STANDARD 14 CXX_EXTENSIONS ON POSITION_INDEPENDENT_CODE ON)
@@ -140,6 +149,14 @@ if(MILLSTONE_UI_SNAPSHOT)
         ${REPO}/vst/build
         ${mpcvst_SOURCE_DIR}/wrapper)
     target_link_libraries(millstone_behaviour_test PRIVATE Millstone millstone_engine MillstoneData juce::juce_audio_utils)
+    add_executable(millstone_stress_test tools/stress_test.cpp)
+    target_include_directories(millstone_stress_test PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${REPO}/src
+        ${REPO}/src/third_party/eurorack
+        ${REPO}/vst/build
+        ${mpcvst_SOURCE_DIR}/wrapper)
+    target_link_libraries(millstone_stress_test PRIVATE Millstone millstone_engine MillstoneData juce::juce_audio_utils)
     add_executable(millstone_preset_test tools/preset_test.cpp)
     target_include_directories(millstone_preset_test PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src

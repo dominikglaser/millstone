@@ -16,8 +16,9 @@ Known upstream bug, handled outside the vendored code: `ChiptuneEngine::Init` in
 of `kChordNumVoices`, leaving the last one uninitialised. If its memory reads as NaN, `SuperSquareOscillator::Render` loops
 forever. `millstone.cpp` zero-initialises its voices for this reason; keep the `()` in those `new` expressions.
 
-`src/third_party/eurorack/tides2` (the slope generator only, no firmware) is copied unchanged from the same repository at
-commit `f4cfa76`, MIT. Elements and Tides are used by the desktop build only (`MILLSTONE_DESKTOP`).
+`src/third_party/eurorack/tides2` (the slope generator only) and `src/third_party/eurorack/elements` (`dsp/` and `resources`, no
+firmware) are copied unchanged from the same repository at commit `f4cfa76`, MIT, and are used by the desktop build only
+(`MILLSTONE_DESKTOP`). `Part::Init` leaves `panic_` and `easter_egg_` unset, so `ElementsVoice` is zero-initialised too.
 
 Build flags needed (no source change): `-DTEST` (portable `Sqrt`/`Clip16` instead of ARMv7 inline asm
 in `stmlib/dsp/dsp.h`) and `-include cstdio` (`plaits/user_data.h`'s mock flash functions call

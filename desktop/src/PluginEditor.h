@@ -17,6 +17,8 @@ public:
     // For tests: how many art pixels the wear changed on each kind of surface.
     struct WearCheck { int onFlat = 0, onRaised = 0, onRecessed = 0, tried = 0, drawn = 0; };
     static WearCheck checkWear();
+    static juce::Point<float> jackPosition(bool isOutput, int index);   // in the patch bay's own coordinates
+    static juce::StringArray layoutProblems();                          // printing or controls that collide or leave their frame
 
 private:
     void timerCallback() override;

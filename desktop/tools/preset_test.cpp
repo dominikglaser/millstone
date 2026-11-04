@@ -33,7 +33,10 @@ int main(int argc, char** argv) {
     // The library itself.
     std::map<juce::String, int> perCategory;
     juce::StringArray names;
-    check(library.size() == 65, "65 presets: Init + 64, have " + juce::String((int)library.size()));
+    int testing = 0;
+    for (const auto& preset : library) testing += preset.category == "Testing";
+    check((int)library.size() - testing == 65, "65 library presets: Init + 64, have " + juce::String((int)library.size() - testing));
+    printf("%d presets in Testing\n", testing);
     check(!library.empty() && library[0].name == "Init", "Init comes first");
     MillstoneProcessor probe;
     int exposed = 0;
@@ -53,7 +56,7 @@ int main(int argc, char** argv) {
         }
     }
     for (const auto& [category, count] : perCategory)
-        if (category != "Init") check(count == 8, category + " has 8 presets, has " + juce::String(count));
+        if (category != "Init" && category != "Testing") check(count == 8, category + " has 8 presets, has " + juce::String(count));
 
     // Each one, played. Fresh processor: presets must not depend on what came before.
     printf("%-22s %-11s %9s %8s %8s %7s %6s\n", "preset", "category", "loudest", "peak", "treble", "volume", "tail");
@@ -104,9 +107,10 @@ int main(int argc, char** argv) {
         if (preset.name != "Init") {
             const bool capped = volume >= 99.9f && loudDb < targetDb;
             const bool peakLimited = peakDb > peakLimitDb - 1.5f && loudDb < targetDb;
-            if (volume >= 99.9f) ++fullVolume;
+            if (volume >= 99.9f && preset.category != "Testing") ++fullVolume;
             if (capped) printf("info %s is at full volume, %.1f dB under the target\n", preset.name.toRawUTF8(), targetDb - loudDb);
-            check(capped || peakLimited || std::abs(loudDb - targetDb) <= toleranceDb, preset.name + " is level-matched (" + juce::String(loudDb, 1) + " dB, peak " + juce::String(peakDb, 1) + ", want " + juce::String(targetDb, 0) + ")");
+            // Testing presets are temporary and some depend on the shared random generator, so only the library is held to this.
+            check(preset.category == "Testing" || capped || peakLimited || std::abs(loudDb - targetDb) <= toleranceDb, preset.name + " is level-matched (" + juce::String(loudDb, 1) + " dB, peak " + juce::String(peakDb, 1) + ", want " + juce::String(targetDb, 0) + ")");
             if (trimFile != juce::File())   // volume is squared in the gain law
                 trims->setProperty(preset.name, juce::roundToInt(juce::jlimit(5.0f, 100.0f, volume * std::pow(10.0f, juce::jmin(targetDb - loudDb, peakLimitDb - peakDb) / 40.0f)) * 10) / 10.0);
         }
@@ -134,6 +138,43 @@ int main(int argc, char** argv) {
         check(std::abs(q.apvts.getParameter("cutoff")->getValue() - 0.123f) < 1e-4f, "tweaks survive save and reload");
         check(q.getCurrentProgram() == 5, "the host sees the right program after reload");
     }
+    // Every cord in a Testing preset has to earn its place: taking it out must change the sound.
+    {
+        const auto play = [&](int program, int withoutCord) {
+            MillstoneProcessor p;
+            p.setRateAndBufferSizeDetails(44100, 256);
+            p.prepareToPlay(44100, 256);
+            p.setCurrentProgram(program);
+            if (withoutCord >= 0) p.disconnectCord(withoutCord);
+            juce::MidiBuffer m;
+            m.addEvent(juce::MidiMessage::noteOn(1, 60, (juce::uint8)100), 0);
+            m.addEvent(juce::MidiMessage::controllerEvent(1, 1, 127), 0);        // wheel
+            m.addEvent(juce::MidiMessage::channelPressureChange(1, 90), 0);      // pressure
+            juce::AudioBuffer<float> b(2, 256);
+            std::vector<float> x;
+            for (int i = 0; i < 700; ++i) { b.clear(); p.processBlock(b, m); m.clear(); x.insert(x.end(), b.getReadPointer(0), b.getReadPointer(0) + 256); }
+            return x;
+        };
+        int cordsChecked = 0;
+        for (int i = 0; i < (int)library.size(); ++i) {
+            if (library[(size_t)i].category != "Testing") continue;
+            MillstoneProcessor probeCords;
+            probeCords.setCurrentProgram(i);
+            const auto whole = play(i, -1);
+            double energy = 0; for (float v : whole) energy += v * v;
+            check(energy > 0.01, library[(size_t)i].name + " makes sound");
+            for (int c = 0; c < MillstoneProcessor::numCords; ++c) {
+                if (probeCords.cordSource(c) == 0 || probeCords.cordDest(c) == 0) continue;
+                ++cordsChecked;
+                const auto without = play(i, c);
+                double d = 0; for (size_t k = 0; k < whole.size(); ++k) d += std::abs(whole[k] - without[k]);
+                d /= (double)whole.size();
+                check(d > 1e-4, library[(size_t)i].name + ": cord " + juce::String(c + 1) + " changes the sound, by " + juce::String(d, 6));
+            }
+        }
+        printf("%d cords in Testing presets checked\n", cordsChecked);
+    }
+
     // Loading writes each parameter once, and leaves alone what is not changing.
     {
         struct Watch : juce::AudioProcessorParameter::Listener {

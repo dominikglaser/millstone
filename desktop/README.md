@@ -72,6 +72,11 @@ full three-oscillator sound.
   Pamela's Workout. Each output has a rate, shape, width, swing, probability, phase, level, offset and a Euclidean pattern, and
   patches through the drawer as CLOCK 1 to 8. Trigger inputs fire as a cord rises past a quarter: T TRIG, LFO RST, ENV TRIG,
   MOD TRIG, and O1 to O3 TRIG, which strike percussive models while a note is held. With SOURCE on SONG it follows Live.
+- Elements (desktop only) replaces Plaits on OSC 1 when its type switch says so, one instance per voice, run at its own 32 kHz
+  and resampled. Its exciter takes audio from the patch bay through E STK IN and E BLW IN, and O1 TRIG strikes it again.
+- `tools/run_all_tests.sh [--sanitize]` runs every check below in one go, and CI runs it too. `stress_test` proves every parameter
+  changes the sound, instances stay separate, and nothing breaks while presets change under running audio. `engine_fuzz` plays
+  random patches and MIDI at the engine; `sanitized_fuzz.sh` does that under AddressSanitizer and UBSan.
 - `tools/` — optional checks, built with `-DMILLSTONE_UI_SNAPSHOT=ON`. `ui_snapshot` renders each page to a PNG and
   tests the controls. `behaviour_test` drives the whole plugin and measures pitch, filter, envelope, VCA, LFO, glide,
   voice handling, MIDI and state against what each section should do.

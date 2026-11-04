@@ -23,6 +23,7 @@ extern "C" {
 #include "stmlib/utils/gate_flags.h"
 #include "tides2/poly_slope_generator.h"
 #include "workout_clock.h"
+#include "elements/dsp/part.h"
 #endif
 
 namespace {
@@ -36,6 +37,9 @@ const int kChunk = 12;            // Plaits renders in 12-frame blocks on the ha
 const int kOscRam = 16384;        // per-oscillator scratch for the Plaits engines
 const int kNoteStack = 16;
 const int kSilentChunks = 920;    // ~0.25 s of near-silence frees a voice
+// String and Modal at full MORPH have no decay at all, and with their trigger patched nothing else would stop them.
+const int kMaxRingChunks = 110250;    // 30 s after key up, a voice starts to fade...
+const int kRingFadeChunks = 11025;    // ...over 3 s, and is then freed
 
 // Our model list (params.json order) -> Plaits engine index.
 const int kEngineMap[24] = {8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 0, 1, 2, 3, 4, 5, 6, 7};
@@ -62,11 +66,12 @@ enum Global {
     G_ATTACK, G_DECAY, G_SUSTAIN, G_RELEASE, G_M_ATTACK, G_M_DECAY, G_M_SUSTAIN, G_M_RELEASE, G_VCA_MODE, G_VOLUME, G_VEL_AMP, G_VEL_FILT,
     G_LFO_SHAPE, G_LFO_RATE, G_LFO_RETRIG, G_LFO_SYNC, G_LFO_DIV, G_LFO_LOCK,
     G_WHEEL_LFO, G_AT_CUTOFF, G_AT_MORPH, G_AT_LFO, G_BEND_RANGE,
-    G_T_MODE, G_T_OUT, G_T_TRIG, G_T_DIV, G_T_RATE, G_T_SHAPE, G_T_SLOPE, G_T_SMOOTH, G_T_SHIFT, G_CK_SRC, G_CK_BPM, G_COUNT
+    G_T_MODE, G_T_OUT, G_T_TRIG, G_T_DIV, G_T_RATE, G_T_SHAPE, G_T_SLOPE, G_T_SMOOTH, G_T_SHIFT, G_CK_SRC, G_CK_BPM,
+    G_O1_TYPE, G_E_MODEL, G_E_CONTOUR, G_E_BOW, G_E_BOW_T, G_E_BLOW, G_E_FLOW, G_E_BLOW_T, G_E_STRIKE, G_E_MALLET, G_E_STRIKE_T, G_E_GEOM, G_E_BRIGHT, G_E_DAMP, G_E_POS, G_E_SPACE, G_COUNT
 };
 // Patch bay. These match the option order of cN_src and cN_dst in params.json.
 enum CordSource { S_OFF, S_LFO, S_VCA_ENV, S_MOD_ENV, S_VELOCITY, S_AFTERTOUCH, S_WHEEL, S_KEY, S_GATE, S_NOISE, S_OSC1, S_OSC2, S_OSC3, S_TIDES1, S_TIDES2, S_TIDES3, S_TIDES4, S_CLOCK1, S_CLOCK8 = S_CLOCK1 + 7 };
-enum CordDest { D_OFF, D_PITCH, D_CUTOFF, D_RESO, D_VCA, D_NOISE, D_OSC1, D_OSC_COUNT = 5, D_T_RATE = D_OSC1 + 3 * D_OSC_COUNT, D_T_SHAPE, D_T_SLOPE, D_T_SMOOTH, D_T_SHIFT, D_T_TRIG, D_LFO_RESET, D_ENV_TRIG, D_MOD_TRIG, D_O1_TRIG, D_O2_TRIG, D_O3_TRIG, D_COUNT };
+enum CordDest { D_OFF, D_PITCH, D_CUTOFF, D_RESO, D_VCA, D_NOISE, D_OSC1, D_OSC_COUNT = 5, D_T_RATE = D_OSC1 + 3 * D_OSC_COUNT, D_T_SHAPE, D_T_SLOPE, D_T_SMOOTH, D_T_SHIFT, D_T_TRIG, D_LFO_RESET, D_ENV_TRIG, D_MOD_TRIG, D_O1_TRIG, D_O2_TRIG, D_O3_TRIG, D_E_GEOM, D_E_BRIGHT, D_E_DAMP, D_E_POS, D_E_SPACE, D_E_BOW, D_E_BLOW, D_E_STRIKE, D_E_STRIKE_IN, D_E_BLOW_IN, D_COUNT };
 const float kTriggerThreshold = 0.25f;   // a trigger input fires as its cords rise past this
 enum OscDest { OD_PITCH, OD_HARM, OD_TIMBRE, OD_MORPH, OD_LEVEL };
 const float kCordPitch = 24.0f;    // semitones at full amount and full signal
@@ -78,7 +83,8 @@ const char *const kGlobalKey[G_COUNT] = {
     "attack", "decay", "sustain", "release", "m_attack", "m_decay", "m_sustain", "m_release", "vca_mode", "volume", "vel_amp", "vel_filt",
     "lfo_shape", "lfo_rate", "lfo_retrig", "lfo_sync", "lfo_div", "lfo_lock",
     "wheel_lfo", "at_cutoff", "at_morph", "at_lfo", "bend_range",
-    "t_mode", "t_out", "t_trig", "t_div", "t_rate", "t_shape", "t_slope", "t_smooth", "t_shift", "ck_src", "ck_bpm"};
+    "t_mode", "t_out", "t_trig", "t_div", "t_rate", "t_shape", "t_slope", "t_smooth", "t_shift", "ck_src", "ck_bpm",
+    "o1_type", "e_model", "e_contour", "e_bow", "e_bow_t", "e_blow", "e_flow", "e_blow_t", "e_strike", "e_mallet", "e_strike_t", "e_geom", "e_bright", "e_damp", "e_pos", "e_space"};
 
 const char *const kClockSuffix[11] = {"div", "shape", "width", "swing", "prob", "phase", "level", "offset", "steps", "fill", "rot"};
 enum ClockField { CK_DIV, CK_SHAPE, CK_WIDTH, CK_SWING, CK_PROB, CK_PHASE, CK_LEVEL, CK_OFFSET, CK_STEPS, CK_FILL, CK_ROT };
@@ -134,6 +140,33 @@ struct Osc {
     }
 };
 
+#ifdef MILLSTONE_DESKTOP
+// Elements on OSC 1. It runs at its own 32 kHz, because its tuning and delays depend on that, and is resampled to ours.
+struct ElementsVoice {
+    enum { kBlock = 16 };
+    elements::Part part;
+    uint16_t reverb[32768];
+    float history[4];       // the last four samples, for interpolating
+    float position;         // between history[1] and history[2]
+    float exciter_open;     // audio patched into the exciter stops with the key, or the resonator would ring forever
+    float main[kBlock], aux[kBlock], blow_in[kBlock], strike_in[kBlock];
+    int block_at;           // next unread sample of the block
+    float aux_history[4];
+    uint32_t seed;
+    void init(uint32_t voice_seed) {   // also how a voice is cleared: Part declares a Panic() but never implements it
+        seed = voice_seed;
+        memset(reverb, 0, sizeof reverb);
+        part.Init(reverb);
+        part.Seed(&seed, 1);           // every module differs slightly by serial number; here, every voice does
+        part.set_easter_egg(false);
+        for (int i = 0; i < 4; i++) history[i] = aux_history[i] = 0.0f;
+        position = 0.0f;
+        exciter_open = 0.0f;
+        block_at = kBlock;
+    }
+};
+#endif
+
 struct Voice {
     Osc osc[kOscs];
     Ladder filter;
@@ -149,6 +182,8 @@ struct Voice {
     float pitch_cur = 60.0f, pitch_target = 60.0f;
     int trig_low_chunks = 0;  // force Plaits TRIG low for a render or two, so a retrigger makes a new rising edge
     int silent_chunks = 0;
+    int released_chunks = 0;
+    int input_quiet_chunks = 0;   // released, and nothing going into the filter: a self-oscillating filter must not ring forever
     uint32_t serial = 0;      // allocation order (oldest first)
     float gain_z = 0.0f;      // VCA smoothing (de-click for ON mode)
     plaits::Voice::Frame frames[kChunk];
@@ -163,6 +198,8 @@ struct Voice {
 #ifdef MILLSTONE_DESKTOP
     tides::PolySlopeGenerator tides;
     stmlib::GateFlags tides_gate;
+    ElementsVoice *elements;
+    bool elements_stale;              // a new note took this voice: last note's resonance and reverb must not come back
 #endif
 };
 
@@ -235,6 +272,9 @@ void start_voice(Instance *in, Voice *v, int note, float vel, bool retrigger) {
         if (!v->active) {
             for (int n = 0; n < kOscs; n++) v->osc_last[n] = 0.0f;
             v->noise_last = 0.0f;
+#ifdef MILLSTONE_DESKTOP
+            v->elements_stale = true;
+#endif
         }
         if (v->active) v->trig_low_chunks = 2;   // already sounding: a new strike needs TRIG to drop first
         if (!v->active) { v->filter.reset(); v->gain_z = 0.0f; }
@@ -249,6 +289,8 @@ void start_voice(Instance *in, Voice *v, int note, float vel, bool retrigger) {
     v->sustained = false;
     v->active = true;
     v->silent_chunks = 0;
+    v->input_quiet_chunks = 0;
+    v->released_chunks = 0;
     v->serial = in->serial++;
     in->last_pitch = (float)note;
 }
@@ -390,6 +432,8 @@ struct CordState {
     float amount[D_COUNT] = {};            // summed: everything that only needs to change once per chunk
     struct { int source; int dest; float amount; } fast[kCords];   // audio into the filter or VCA: applied every sample
     int fast_count = 0;
+    struct { int source; int dest; float amount; } exciter[kCords];   // audio into Elements' exciter
+    int exciter_count = 0;
     bool osc_used[kOscs] = {};
     bool noise_used = false;
     bool fast_filter = false;
@@ -407,6 +451,13 @@ CordState read_cords(const Instance *in, const Voice *v, bool gated, float at) {
         if (source == S_OFF || dest == D_OFF || amount == 0.0f) continue;
         if (source == S_NOISE) st.noise_used = true;
         if (source >= S_OSC1 && source <= S_OSC3) st.osc_used[source - S_OSC1] = true;
+        if (audio_source(source) && (dest == D_E_STRIKE_IN || dest == D_E_BLOW_IN)) {
+            st.exciter[st.exciter_count].source = source;
+            st.exciter[st.exciter_count].dest = dest;
+            st.exciter[st.exciter_count].amount = amount;
+            st.exciter_count++;
+            continue;
+        }
         if (audio_source(source) && (dest == D_CUTOFF || dest == D_RESO || dest == D_VCA)) {
             st.fast[st.fast_count].source = source;
             st.fast[st.fast_count].dest = dest;
@@ -513,6 +564,80 @@ void clock_step(Instance *in, int frames) {
 }
 #endif
 
+#ifdef MILLSTONE_DESKTOP
+inline float catmull(const float *h, float t) {
+    const float t2 = t * t, t3 = t2 * t;
+    return 0.5f * (2.0f * h[1] + (-h[0] + h[2]) * t + (2.0f * h[0] - 5.0f * h[1] + 4.0f * h[2] - h[3]) * t2 + (-h[0] + 3.0f * h[1] - 3.0f * h[2] + h[3]) * t3);
+}
+
+// Plays Elements into the voice's frames, in place of a Plaits oscillator, so the rest of the voice treats it the same.
+void render_elements(Instance *in, Voice *v, const CordState &cords, float note, float strength, bool gate, bool held, int frames) {
+    ElementsVoice &e = *v->elements;
+    if (v->elements_stale) {
+        e.init(e.seed);
+        v->elements_stale = false;
+    }
+    elements::Patch &patch = *e.part.mutable_patch();
+    const auto knob = [&](int g, int dest) { return clampf(in->P(g) * 0.01f + cords.amount[dest], 0.0f, 1.0f); };
+    patch.exciter_envelope_shape = in->P(G_E_CONTOUR) * 0.01f;
+    patch.exciter_bow_level = knob(G_E_BOW, D_E_BOW);
+    patch.exciter_bow_timbre = in->P(G_E_BOW_T) * 0.01f;
+    patch.exciter_blow_level = knob(G_E_BLOW, D_E_BLOW);
+    patch.exciter_blow_meta = in->P(G_E_FLOW) * 0.01f;
+    patch.exciter_blow_timbre = in->P(G_E_BLOW_T) * 0.01f;
+    patch.exciter_strike_level = knob(G_E_STRIKE, D_E_STRIKE);
+    patch.exciter_strike_meta = in->P(G_E_MALLET) * 0.01f;
+    patch.exciter_strike_timbre = in->P(G_E_STRIKE_T) * 0.01f;
+    patch.resonator_geometry = knob(G_E_GEOM, D_E_GEOM);
+    patch.resonator_brightness = knob(G_E_BRIGHT, D_E_BRIGHT);
+    patch.resonator_damping = knob(G_E_DAMP, D_E_DAMP);
+    patch.resonator_position = knob(G_E_POS, D_E_POS);
+    patch.space = knob(G_E_SPACE, D_E_SPACE);
+    e.part.set_resonator_model((elements::ResonatorModel)clampi((int)in->P(G_E_MODEL), 0, 2));
+
+    elements::PerformanceState state;
+    state.gate = gate;
+    state.note = note;
+    state.modulation = 0.0f;
+    state.strength = strength;
+
+    const float ratio = 32000.0f / kRate;
+    for (int i = 0; i < frames; i++) {
+        e.position += ratio;
+        while (e.position >= 1.0f) {
+            e.position -= 1.0f;
+            if (e.block_at >= ElementsVoice::kBlock) {
+                // Anything patched into the exciter: the latest chunk of audio, stretched over this block.
+                for (int k = 0; k < ElementsVoice::kBlock; k++) {
+                    const int at = k * frames / ElementsVoice::kBlock;
+                    float blow = cords.amount[D_E_BLOW_IN], strike = cords.amount[D_E_STRIKE_IN];
+                    for (int c = 0; c < cords.exciter_count; c++) {
+                        const int source = cords.exciter[c].source;
+                        const float signal = (source == S_NOISE ? v->noise_audio[at] : v->osc_audio[source - S_OSC1][at]) * cords.exciter[c].amount;
+                        if (cords.exciter[c].dest == D_E_BLOW_IN) blow += signal; else strike += signal;
+                    }
+                    e.exciter_open += ((held ? 1.0f : 0.0f) - e.exciter_open) * 0.02f;
+                    e.blow_in[k] = blow * e.exciter_open;
+                    e.strike_in[k] = strike * e.exciter_open;
+                }
+                e.part.Process(state, e.blow_in, e.strike_in, e.main, e.aux, ElementsVoice::kBlock);
+                e.block_at = 0;
+            }
+            float main = e.main[e.block_at], aux = e.aux[e.block_at];
+            e.block_at++;
+            if (!(fabsf(main) < 8.0f) || !(fabsf(aux) < 8.0f)) { main = aux = 0.0f; v->elements_stale = true; }   // never let a blown-up resonator through: cleared on the next chunk
+            for (int h = 0; h < 3; h++) { e.history[h] = e.history[h + 1]; e.aux_history[h] = e.aux_history[h + 1]; }
+            e.history[3] = main;
+            e.aux_history[3] = aux;
+        }
+        const float m = catmull(e.history, e.position), a = catmull(e.aux_history, e.position);
+        // Its two outputs differ only in their stereo spread and reverb, so together they make the mono voice.
+        v->frames[i].out = (int16_t)clampf((m + a) * 0.5f * 26000.0f, -32767.0f, 32767.0f);
+        v->frames[i].aux = (int16_t)clampf(a * 26000.0f, -32767.0f, 32767.0f);
+    }
+}
+#endif
+
 void render_voice(Instance *in, Voice *v, int index, int frames, float lfo) {
     const int vca_mode = (int)in->P(G_VCA_MODE);
     const float at = fmaxf(in->chan_at, v->aftertouch);
@@ -569,7 +694,12 @@ void render_voice(Instance *in, Voice *v, int index, int frames, float lfo) {
         int model = clampi((int)in->O(n, O_ENGINE), 0, 23);
         int engine = kEngineMap[model];
         bool trig_mode = (vca_mode == VCA_LPG) || self_enveloped(engine);
-        if (level > 0.0f) { if (self_enveloped(engine)) any_self_env = true; else any_free_running = true; }
+#ifdef MILLSTONE_DESKTOP
+        const bool use_elements = n == 0 && (int)in->P(G_O1_TYPE) == 1;
+#else
+        const bool use_elements = false;
+#endif
+        if (level > 0.0f) { if (use_elements || self_enveloped(engine)) any_self_env = true; else any_free_running = true; }
         if (trig_mode && engine == 7) chip_clocked = true;   // chiptune clocked by TRIG: it never fades by itself
 
         plaits::Patch p;
@@ -601,6 +731,11 @@ void render_voice(Instance *in, Voice *v, int index, int frames, float lfo) {
         m.trigger_patched = trig_mode;
         m.level_patched = trig_mode && vca_mode != VCA_LPG;   // LPG mode: TRIG strikes, LEVEL unpatched = accent fixed
 
+#ifdef MILLSTONE_DESKTOP
+        if (use_elements)
+            render_elements(in, v, cords, p.note, v->velocity, gated && v->trig_low_chunks == 0 && v->osc_trigger_low[n] == 0, gated, frames);
+        else
+#endif
         v->osc[n].voice.Render(p, m, v->frames, (size_t)frames);
         if (cords.osc_used[n]) {
             for (int i = 0; i < frames; i++) v->osc_audio[n][i] = clampf(v->frames[i].out * (1.5f / 32768.0f), -1.0f, 1.0f);
@@ -640,12 +775,18 @@ void render_voice(Instance *in, Voice *v, int index, int frames, float lfo) {
     float vel_amp = in->P(G_VEL_AMP) * 0.01f;
     float vel_gain = 1.0f - vel_amp + vel_amp * v->velocity;
 
+    float input_peak = 0.0f;
+    for (int i = 0; i < frames; i++) { const float a = fabsf(mix[i]); if (a > input_peak) input_peak = a; }
+    if (gated || input_peak >= 1e-4f) v->input_quiet_chunks = 0; else v->input_quiet_chunks++;
+    const bool input_gone = v->input_quiet_chunks > kSilentChunks;
+    v->released_chunks = gated ? 0 : v->released_chunks + 1;
+    const float ring_gain = v->released_chunks <= kMaxRingChunks ? 1.0f : clampf(1.0f - (float)(v->released_chunks - kMaxRingChunks) / kRingFadeChunks, 0.0f, 1.0f);
     // Stay open after key up only if everything sounding ends by itself; anything else would hang.
     const bool self_ending = any_self_env && !any_free_running;
     float target_gain;
     switch (vca_mode) {
-        case VCA_LPG: target_gain = (gated || !chip_clocked) ? vel_gain : 0.0f; break;
-        case VCA_ON:  target_gain = (gated || self_ending) ? vel_gain : 0.0f; break;
+        case VCA_LPG: target_gain = ((gated || !chip_clocked) && !input_gone) ? vel_gain : 0.0f; break;
+        case VCA_ON:  target_gain = ((gated || self_ending) && !input_gone) ? vel_gain : 0.0f; break;
         default:      target_gain = vel_gain; break;
     }
     float peak = 0.0f;
@@ -664,7 +805,7 @@ void render_voice(Instance *in, Voice *v, int index, int frames, float lfo) {
         float y = v->filter.tick(mix[i] * pre) * post;
         v->gain_z += (target_gain - v->gain_z) * 0.01f;   // ~2 ms de-click
         float gain = vca_mode == VCA_ENV ? e * vel_gain : v->gain_z;
-        y *= gain * clampf(1.0f + vca_mod, 0.0f, 2.0f);
+        y *= gain * ring_gain * clampf(1.0f + vca_mod, 0.0f, 2.0f);
         in->out[i] += y;
         float a = fabsf(y);
         if (a > peak) peak = a;
@@ -674,8 +815,9 @@ void render_voice(Instance *in, Voice *v, int index, int frames, float lfo) {
     bool env_done = (vca_mode == VCA_ENV) && v->env.idle() && !gated;
     if (peak < 1e-4f && !gated) v->silent_chunks++; else v->silent_chunks = 0;
     bool silent_done = v->silent_chunks > kSilentChunks && (vca_mode != VCA_ENV || v->env.idle());
-    bool on_done = (vca_mode != VCA_ENV) && !gated && v->gain_z < 1e-4f && (vca_mode == VCA_ON ? !self_ending : chip_clocked);
-    if (env_done || silent_done || on_done) {
+    bool on_done = (vca_mode != VCA_ENV) && !gated && v->gain_z < 1e-4f && (input_gone || (vca_mode == VCA_ON ? !self_ending : chip_clocked));
+    const bool ring_done = v->released_chunks > kMaxRingChunks + kRingFadeChunks;
+    if (env_done || silent_done || on_done || ring_done) {
         v->active = false;
         v->env.reset(); v->menv.reset();
         v->gain_z = 0.0f;
@@ -767,6 +909,13 @@ void *ms_create(const char *) {
 #ifdef MILLSTONE_DESKTOP
         in->voices[i]->tides.Init();
         in->voices[i]->tides_gate = stmlib::GATE_FLAG_LOW;
+        in->voices[i]->elements = new (std::nothrow) ElementsVoice();
+        if (!in->voices[i]->elements) {
+            for (int j = 0; j <= i; j++) { delete in->voices[j]->elements; delete in->voices[j]; }
+            delete in;
+            return 0;
+        }
+        in->voices[i]->elements->init(0x9e3779b9u * (uint32_t)(i + 1));
 #endif
     }
     in->lfo.retrigger();
@@ -776,7 +925,12 @@ void *ms_create(const char *) {
 void ms_destroy(void *inst) {
     Instance *in = (Instance *)inst;
     if (!in) return;
-    for (int i = 0; i < kVoices; i++) delete in->voices[i];
+    for (int i = 0; i < kVoices; i++) {
+#ifdef MILLSTONE_DESKTOP
+        delete in->voices[i]->elements;
+#endif
+        delete in->voices[i];
+    }
     delete in;
 }
 

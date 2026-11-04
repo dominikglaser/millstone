@@ -4,16 +4,17 @@
 #   cmake --build build --config Release
 # JUCE and the Open MPC kit (for wrapper/engine.h and the params generator) are fetched automatically.
 cmake_minimum_required(VERSION 3.22)
+# These two must come before project(): it creates both cache entries, empty, and a later set() would not replace them.
+if(CMAKE_HOST_APPLE)
+    set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "Universal binary")
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Oldest macOS supported")
+endif()
 project(Millstone VERSION 0.1.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     set(CMAKE_BUILD_TYPE Release)
-endif()
-if(APPLE)
-    set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "Universal binary")
-    set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "")
 endif()
 
 set(REPO ${CMAKE_CURRENT_SOURCE_DIR}/..)
@@ -103,6 +104,18 @@ target_link_libraries(Millstone PRIVATE
     PUBLIC
     juce::juce_recommended_config_flags
     juce::juce_recommended_warning_flags)
+
+# The linker's signature covers only the binary, so a finished bundle fails verification. Sign each one as its last
+# build step, after JUCE has added its resources. "-" is an ad-hoc signature; pass a Developer ID to distribute.
+if(APPLE)
+    set(MILLSTONE_SIGN_IDENTITY "-" CACHE STRING "codesign identity for the plugin bundles")
+    foreach(format VST3 AU Standalone)
+        add_custom_command(TARGET Millstone_${format} POST_BUILD
+            COMMAND codesign --force --sign ${MILLSTONE_SIGN_IDENTITY} "$<TARGET_BUNDLE_DIR:Millstone_${format}>"
+            COMMAND codesign --verify --strict "$<TARGET_BUNDLE_DIR:Millstone_${format}>"
+            VERBATIM)
+    endforeach()
+endif()
 
 # Developer check: renders each page to a PNG and exercises the controls. Not part of a normal build.
 option(MILLSTONE_UI_SNAPSHOT "Build the UI snapshot test tool" OFF)

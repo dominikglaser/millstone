@@ -23,13 +23,6 @@ jobs:
       - name: Build
         run: cmake --build desktop/build --config Release -j3
 
-      - name: Ad-hoc sign (so it loads without a developer ID)
-        run: |
-          A=desktop/build/Millstone_artefacts/Release
-          for p in "$A/VST3/Millstone.vst3" "$A/AU/Millstone.component" "$A/Standalone/Millstone.app"; do
-            [ -e "$p" ] && codesign --force --deep -s - "$p" || true
-          done
-
       - name: Collect
         run: |
           A=desktop/build/Millstone_artefacts/Release

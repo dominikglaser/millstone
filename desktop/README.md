@@ -24,7 +24,11 @@ cmake -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build --config Release
 ```
 
-Outputs land in `desktop/build/Millstone_artefacts/Release/{VST3,AU,Standalone}/`.
+Outputs land in `desktop/build/Millstone_artefacts/Release/{VST3,AU,Standalone}/`, as universal binaries (Apple
+Silicon + Intel, macOS 11 or later) with a verified ad-hoc signature. To sign with a real identity, add
+`-DMILLSTONE_SIGN_IDENTITY="Developer ID Application: ..."` when configuring; distribution also needs notarization.
+
+If an older `build` folder predates these settings, reconfigure it once with `cmake --fresh -B build`.
 
 ## Install
 

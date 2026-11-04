@@ -55,8 +55,8 @@ configure downloads them and builds `juceaide`, so it takes a few minutes.
 ## Known limitations to be aware of (not bugs to chase)
 
 - MIDI is applied at block start, not sample-accurate. Fine for playing; tighten later if needed.
-- Not code-signed / notarized. Local builds run fine; only downloaded copies need
-  `xattr -dr com.apple.quarantine`.
+- Ad-hoc signed, not notarized. The build signs and verifies each bundle itself. Local builds run fine; only
+  downloaded copies need `xattr -dr com.apple.quarantine`.
 
 ## The MPC side (for later, so you have the full picture)
 

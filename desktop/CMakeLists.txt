@@ -77,7 +77,11 @@ juce_add_plugin(Millstone
     COPY_PLUGIN_AFTER_BUILD FALSE)
 
 target_sources(Millstone PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/PluginProcessor.cpp)
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/PluginProcessor.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/PluginEditor.cpp)
+
+# The panel reads the same layout file as the MPC skin, embedded so the plugin is self-contained.
+juce_add_binary_data(MillstoneData SOURCES ${REPO}/vst/layout.conf)
 
 target_include_directories(Millstone PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
@@ -94,7 +98,29 @@ target_compile_definitions(Millstone PRIVATE
 
 target_link_libraries(Millstone PRIVATE
     millstone_engine
+    MillstoneData
     juce::juce_audio_utils
     PUBLIC
     juce::juce_recommended_config_flags
     juce::juce_recommended_warning_flags)
+
+# Developer check: renders each page to a PNG and exercises the controls. Not part of a normal build.
+option(MILLSTONE_UI_SNAPSHOT "Build the UI snapshot test tool" OFF)
+if(MILLSTONE_UI_SNAPSHOT)
+    add_executable(millstone_ui_snapshot tools/ui_snapshot.cpp)
+    target_include_directories(millstone_ui_snapshot PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${REPO}/src
+        ${REPO}/src/third_party/eurorack
+        ${REPO}/vst/build
+        ${mpcvst_SOURCE_DIR}/wrapper)
+    target_link_libraries(millstone_ui_snapshot PRIVATE Millstone millstone_engine MillstoneData juce::juce_audio_utils)
+    add_executable(millstone_behaviour_test tools/behaviour_test.cpp)
+    target_include_directories(millstone_behaviour_test PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${REPO}/src
+        ${REPO}/src/third_party/eurorack
+        ${REPO}/vst/build
+        ${mpcvst_SOURCE_DIR}/wrapper)
+    target_link_libraries(millstone_behaviour_test PRIVATE Millstone millstone_engine MillstoneData juce::juce_audio_utils)
+endif()

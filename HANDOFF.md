@@ -7,7 +7,7 @@ toolchain (that's why it's being handed to you).
 ## What Millstone is
 
 An 8-voice hybrid synthesizer. Each voice has three Mutable Instruments Plaits macro-oscillators (all 24
-models), a 24 dB ladder filter (LP/HP), an ADS envelope, a VCA with ENV/LPG/ON modes, one global LFO, glide,
+models), a 24 dB ladder filter (LP/HP), VCA and modulation ADSR envelopes, a VCA with ENV/LPG/ON modes, one global LFO, glide,
 noise, vibrato, velocity and aftertouch routing. Modeled on the Behringer Grind's feature set, extended to 3
 oscillators and 8-voice polyphony. No sequencer (the user sequences from the MPC).
 
@@ -54,8 +54,6 @@ configure downloads them and builds `juceaide`, so it takes a few minutes.
 
 ## Known limitations to be aware of (not bugs to chase)
 
-- GUI is JUCE's generic parameter list for now (functional, not skinned). Fine for testing the sound; a custom
-  editor can come later.
 - MIDI is applied at block start, not sample-accurate. Fine for playing; tighten later if needed.
 - Not code-signed / notarized. Local builds run fine; only downloaded copies need
   `xattr -dr com.apple.quarantine`.

@@ -1,6 +1,6 @@
 // Millstone: an 8-voice hybrid synth for Akai MPC OS (Open MPC port kit).
 // Each voice has three Mutable Instruments Plaits macro-oscillators, a 24 dB ladder filter (LP/HP),
-// an ADS envelope, a VCA with ENV / LPG / ON modes; one global LFO. Modelled on the panel of a
+// a VCA ADSR and a modulation ADSR, a VCA with ENV / LPG / ON modes; one global LFO. Modelled on the panel of a
 // semi-modular hybrid desktop synth: VC MIX, OSC MOD (vibrato), glide, noise, VCF mod depth with an
 // ENV/LFO source switch.
 //
@@ -46,22 +46,22 @@ int key_index(const char *key) {
     return -1;
 }
 
-enum PerOsc { O_ON, O_ENGINE, O_HARM, O_TIMBRE, O_MORPH, O_FM, O_TMOD, O_MMOD, O_OCT, O_SEMI, O_FINE, O_LEVEL, O_MIX, O_COUNT };
+enum PerOsc { O_ON, O_ENGINE, O_HARM, O_TIMBRE, O_MORPH, O_FM, O_TMOD, O_MMOD, O_OCT, O_SEMI, O_FINE, O_LEVEL, O_MIX, O_CV_SRC, O_COUNT };
 const char *const kOscSuffix[O_COUNT] = {"on", "engine", "harm", "timbre", "morph", "fm", "timbre_mod", "morph_mod",
-                                         "oct", "semi", "fine", "level", "mix"};
+                                         "oct", "semi", "fine", "level", "mix", "cv_src"};
 
 enum Global {
     G_VOICES, G_VOICE_MODE, G_GLIDE, G_VIBRATO, G_NOISE, G_LPG_DECAY, G_LPG_COLOUR,
     G_CUTOFF, G_RESO, G_FMODE, G_FMOD, G_FSRC, G_KEYTRACK, G_DRIVE,
-    G_ATTACK, G_DECAY, G_SUSTAIN, G_VCA_MODE, G_VOLUME, G_VEL_AMP, G_VEL_FILT,
-    G_LFO_SHAPE, G_LFO_RATE, G_LFO_RETRIG, G_LFO_SYNC, G_LFO_DIV,
+    G_ATTACK, G_DECAY, G_SUSTAIN, G_RELEASE, G_M_ATTACK, G_M_DECAY, G_M_SUSTAIN, G_M_RELEASE, G_VCA_MODE, G_VOLUME, G_VEL_AMP, G_VEL_FILT,
+    G_LFO_SHAPE, G_LFO_RATE, G_LFO_RETRIG, G_LFO_SYNC, G_LFO_DIV, G_LFO_LOCK,
     G_WHEEL_LFO, G_AT_CUTOFF, G_AT_MORPH, G_AT_LFO, G_BEND_RANGE, G_COUNT
 };
 const char *const kGlobalKey[G_COUNT] = {
     "voices", "voice_mode", "glide", "vibrato", "noise", "lpg_decay", "lpg_colour",
     "cutoff", "reso", "f_mode", "f_mod", "f_src", "keytrack", "drive",
-    "attack", "decay", "sustain", "vca_mode", "volume", "vel_amp", "vel_filt",
-    "lfo_shape", "lfo_rate", "lfo_retrig", "lfo_sync", "lfo_div",
+    "attack", "decay", "sustain", "release", "m_attack", "m_decay", "m_sustain", "m_release", "vca_mode", "volume", "vel_amp", "vel_filt",
+    "lfo_shape", "lfo_rate", "lfo_retrig", "lfo_sync", "lfo_div", "lfo_lock",
     "wheel_lfo", "at_cutoff", "at_morph", "at_lfo", "bend_range"};
 
 struct Index {
@@ -101,7 +101,8 @@ struct Osc {
 struct Voice {
     Osc osc[kOscs];
     Ladder filter;
-    Env env;
+    Env env;    // VCA
+    Env menv;   // modulation: filter, oscillator FM, and TIMBRE/MORPH CV when selected
     Noise noise;
     bool active = false;
     bool gate = false;        // key (or pedal) holding the note
@@ -123,6 +124,8 @@ struct Instance {
     Lfo lfo;
     float lfo_value = 0.0f;
     float bpm = 120.0f;
+    double song_ppq = 0.0;     // host song position in beats, at the latest block start
+    bool song_fresh = false;   // ...and the LFO has not lined up with it yet
     float modwheel = 0.0f, chan_at = 0.0f, bend = 0.0f;
     bool pedal = false;
     int stack[kNoteStack];   // mono/legato note stack, most recent last
@@ -151,8 +154,13 @@ float param_clamp(int i, float v) {
     return clampf(v, p.min, p.max);
 }
 
+void all_notes_off(Instance *in);
+
 void set_param_idx(Instance *in, int i, float v) {
-    in->val[i] = param_clamp(i, v);
+    const float next = param_clamp(i, v);
+    // POLY and MONO/LEGATO track held keys differently, so a key held across the change could never be released.
+    if (i == IDX().g[G_VOICE_MODE] && next != in->val[i]) all_notes_off(in);
+    in->val[i] = next;
 }
 
 // ---- voice allocation -------------------------------------------------------------------------
@@ -165,13 +173,15 @@ void start_voice(Instance *in, Voice *v, int note, float vel, bool retrigger) {
         // glide from where this voice was, or from the last played pitch when it starts fresh
         v->pitch_cur = (glide > 0.0f) ? (v->active ? v->pitch_cur : in->last_pitch) : (float)note;
         v->env.gate_on();
+        v->menv.gate_on();
         if (v->active) v->trig_low_chunks = 2;   // already sounding: a new strike needs TRIG to drop first
         if (!v->active) { v->filter.reset(); v->gain_z = 0.0f; }
+        v->velocity = vel;                       // a legato note continues the phrase at its level
+        if (in->P(G_LFO_RETRIG) > 0.5f) in->lfo.retrigger();
     } else if (glide <= 0.0f) {
         v->pitch_cur = (float)note;
     }
     v->note = note;
-    v->velocity = vel;
     v->aftertouch = 0.0f;
     v->gate = true;
     v->sustained = false;
@@ -179,18 +189,17 @@ void start_voice(Instance *in, Voice *v, int note, float vel, bool retrigger) {
     v->silent_chunks = 0;
     v->serial = in->serial++;
     in->last_pitch = (float)note;
-    if (in->P(G_LFO_RETRIG) > 0.5f) in->lfo.retrigger();
 }
 
 void release_voice(Voice *v) {
     v->gate = false;
     v->sustained = false;
     v->env.gate_off();
+    v->menv.gate_off();
 }
 
 Voice *find_voice_for_note(Instance *in, int note) {
-    int n = num_voices(in);
-    for (int i = 0; i < n; i++)
+    for (int i = 0; i < kVoices; i++)   // all of them: VOICES may have been lowered while this note was held
         if (in->voices[i]->active && in->voices[i]->gate && in->voices[i]->note == note) return in->voices[i];
     return 0;
 }
@@ -259,8 +268,7 @@ void note_on(Instance *in, int note, int vel) {
 void note_off(Instance *in, int note) {
     int mode = (int)in->P(G_VOICE_MODE);
     if (mode == VM_POLY) {
-        int n = num_voices(in);
-        for (int i = 0; i < n; i++) {
+        for (int i = 0; i < kVoices; i++) {   // all of them: VOICES may have been lowered while this note was held
             Voice *v = in->voices[i];
             if (v->active && v->gate && v->note == note) {
                 if (in->pedal) v->sustained = true; else release_voice(v);
@@ -291,6 +299,16 @@ void all_notes_off(Instance *in) {
     for (int i = 0; i < kVoices; i++) if (in->voices[i]->active) release_voice(in->voices[i]);
 }
 
+void all_sound_off(Instance *in) {   // MIDI CC120: silence now, without the release
+    in->nstack = 0;
+    for (int i = 0; i < kVoices; i++) {
+        Voice *v = in->voices[i];
+        v->active = v->gate = v->sustained = false;
+        v->env.reset(); v->menv.reset();
+        v->gain_z = 0.0f;
+    }
+}
+
 // ---- rendering --------------------------------------------------------------------------------
 inline float cutoff_hz(const Instance *in, const Voice *v, float env, float lfo) {
     float base_oct = 10.0f * in->P(G_CUTOFF) * 0.01f;               // 20 Hz .. 20.48 kHz
@@ -309,7 +327,7 @@ void render_voice(Instance *in, Voice *v, int frames, float lfo) {
     const float bend = in->bend * in->P(G_BEND_RANGE);
     const float vib = in->P(G_VIBRATO) * 0.01f;
     const float vibrato = lfo * vib * vib * 12.0f;
-    const float env_now = v->env.value;
+    const float env_now = v->menv.value;
 
     // glide: constant-time exponential approach, 5 ms .. 2 s
     float glide = in->P(G_GLIDE) * 0.01f;
@@ -354,10 +372,11 @@ void render_voice(Instance *in, Voice *v, int frames, float lfo) {
         plaits::Modulations m;
         m.engine = 0.0f;
         m.note = 0.0f;
-        m.frequency = env_now * 24.0f;                 // FM knob = envelope -> pitch, up to +-24 semitones
+        m.frequency = env_now * 24.0f;                 // FM knob = mod envelope -> pitch, up to +-24 semitones
         m.harmonics = 0.0f;
-        m.timbre = lfo;                                // TIMBRE CV / MORPH CV attenuators take the LFO
-        m.morph = lfo;
+        const float cv = (int)in->O(n, O_CV_SRC) == 1 ? env_now : lfo;   // TIMBRE CV / MORPH CV attenuators take this
+        m.timbre = cv;
+        m.morph = cv;
         m.trigger = trig;
         m.level = v->velocity;
         m.frequency_patched = !trig_mode;              // in TRIG mode Plaits' own decay envelope sweeps the pitch
@@ -387,7 +406,8 @@ void render_voice(Instance *in, Voice *v, int frames, float lfo) {
     float pre = 1.0f + drive * 6.0f;
     float post = 1.0f / (1.0f + drive * 2.0f);
     v->filter.set(cutoff_hz(in, v, env_now, lfo), in->P(G_RESO) * 0.01f, (int)in->P(G_FMODE) == 1);
-    v->env.set(in->P(G_ATTACK) * 0.01f, in->P(G_DECAY) * 0.01f, in->P(G_SUSTAIN) * 0.01f);
+    v->env.set(in->P(G_ATTACK) * 0.01f, in->P(G_DECAY) * 0.01f, in->P(G_SUSTAIN) * 0.01f, in->P(G_RELEASE) * 0.01f);
+    v->menv.set(in->P(G_M_ATTACK) * 0.01f, in->P(G_M_DECAY) * 0.01f, in->P(G_M_SUSTAIN) * 0.01f, in->P(G_M_RELEASE) * 0.01f);
     float vel_amp = in->P(G_VEL_AMP) * 0.01f;
     float vel_gain = 1.0f - vel_amp + vel_amp * v->velocity;
 
@@ -400,6 +420,7 @@ void render_voice(Instance *in, Voice *v, int frames, float lfo) {
     float peak = 0.0f;
     for (int i = 0; i < frames; i++) {
         float e = v->env.tick();
+        v->menv.tick();
         float y = v->filter.tick(mix[i] * pre) * post;
         v->gain_z += (target_gain - v->gain_z) * 0.01f;   // ~2 ms de-click
         float gain = vca_mode == VCA_ENV ? e * vel_gain : v->gain_z;
@@ -412,11 +433,11 @@ void render_voice(Instance *in, Voice *v, int frames, float lfo) {
     // free the voice when it has nothing left to say
     bool env_done = (vca_mode == VCA_ENV) && v->env.idle() && !gated;
     if (peak < 1e-4f && !gated) v->silent_chunks++; else v->silent_chunks = 0;
-    bool silent_done = v->silent_chunks > kSilentChunks && v->env.idle();
+    bool silent_done = v->silent_chunks > kSilentChunks && (vca_mode != VCA_ENV || v->env.idle());
     bool on_done = (vca_mode != VCA_ENV) && !gated && v->gain_z < 1e-4f && (vca_mode == VCA_ON ? !any_self_env : chip_clocked);
     if (env_done || silent_done || on_done) {
         v->active = false;
-        v->env.reset();
+        v->env.reset(); v->menv.reset();
         v->gain_z = 0.0f;
     }
 }
@@ -427,12 +448,22 @@ void render_chunk(Instance *in, int16_t *out_lr, int frames) {
     if (in->P(G_LFO_SYNC) > 0.5f) {
         int div = clampi((int)in->P(G_LFO_DIV), 0, 7);
         hz = clampf(in->bpm, 20.0f, 300.0f) / (60.0f * kDivBeats[div]);
+        // BAR: take the phase from the song position, so the LFO lands the same way on every playback. A stopped
+        // transport sends no position, so it free-runs at the tempo between plays rather than freezing.
+        if (in->song_fresh && (int)in->P(G_LFO_LOCK) == 1) {
+            const double cycles = in->song_ppq / kDivBeats[div];
+            in->lfo.set_phase((float)(cycles - floor(cycles)));
+        }
     } else {
         hz = Lfo::rate_hz(in->P(G_LFO_RATE) * 0.01f);
     }
+    in->song_fresh = false;
     float raw = in->lfo.step(hz, frames, (int)in->P(G_LFO_SHAPE));
     float w = in->P(G_WHEEL_LFO) * 0.01f;
-    float scale = (1.0f - w) + w * in->modwheel + in->P(G_AT_LFO) * 0.01f * in->chan_at;
+    float pressure = in->chan_at;   // the LFO is shared, so the hardest-pressed key speaks for it
+    for (int i = 0; i < kVoices; i++)
+        if (in->voices[i]->active) pressure = fmaxf(pressure, in->voices[i]->aftertouch);
+    float scale = (1.0f - w) + w * in->modwheel + in->P(G_AT_LFO) * 0.01f * pressure;
     in->lfo_value = raw * clampf(scale, 0.0f, 1.5f);
 
     for (int i = 0; i < frames; i++) in->out[i] = 0.0f;
@@ -440,7 +471,7 @@ void render_chunk(Instance *in, int16_t *out_lr, int frames) {
     for (int i = 0; i < kVoices; i++) {
         Voice *v = in->voices[i];
         if (!v->active) continue;
-        if (i >= n && !v->gate) { v->active = false; v->env.reset(); continue; }   // voice count lowered
+        if (i >= n && !v->gate) { v->active = false; v->env.reset(); v->menv.reset(); continue; }   // voice count lowered
         render_voice(in, v, frames, in->lfo_value);
     }
 
@@ -504,8 +535,13 @@ void ms_midi(void *inst, const uint8_t *msg, int len) {
                 bool down = d2 >= 64;
                 if (in->pedal && !down) { in->pedal = false; pedal_up(in); }
                 in->pedal = down;
-            } else if (d1 == 120 || d1 == 123) all_notes_off(in);
-            else if (d1 == 121) { in->modwheel = 0.0f; in->chan_at = 0.0f; in->bend = 0.0f; }
+            } else if (d1 == 120) all_sound_off(in);
+            else if (d1 == 123) all_notes_off(in);
+            else if (d1 == 121) {
+                in->modwheel = 0.0f; in->chan_at = 0.0f; in->bend = 0.0f;
+                in->pedal = false; pedal_up(in);
+                for (int i = 0; i < kVoices; i++) in->voices[i]->aftertouch = 0.0f;
+            }
             break;
         case 0xd0:
             in->chan_at = d1 / 127.0f;
@@ -576,7 +612,14 @@ void ms_render(void *inst, int16_t *out_lr, int frames) {
     }
 }
 
-const mpc_engine_t kEngine = {ms_create, ms_destroy, ms_midi, ms_set_param, ms_get_param, ms_render, 0, 0};
+void ms_song_pos(void *inst, double ppq, double, int playing, int) {
+    Instance *in = (Instance *)inst;
+    if (!playing || ppq < 0.0) return;
+    in->song_ppq = ppq;
+    in->song_fresh = true;
+}
+
+const mpc_engine_t kEngine = {ms_create, ms_destroy, ms_midi, ms_set_param, ms_get_param, ms_render, 0, ms_song_pos};
 
 }  // namespace
 

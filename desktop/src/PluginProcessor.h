@@ -15,17 +15,16 @@ public:
     void releaseResources() override {}
     bool isBusesLayoutSupported(const BusesLayout& layouts) const override;
     void processBlock(juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
+    void processBlockBypassed(juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
 
-    juce::AudioProcessorEditor* createEditor() override {
-        return new juce::GenericAudioProcessorEditor(*this);
-    }
+    juce::AudioProcessorEditor* createEditor() override;
     bool hasEditor() const override { return true; }
 
     const juce::String getName() const override { return "Millstone"; }
     bool acceptsMidi() const override { return true; }
     bool producesMidi() const override { return false; }
     bool isMidiEffect() const override { return false; }
-    double getTailLengthSeconds() const override { return 0.0; }
+    double getTailLengthSeconds() const override { return 10.0; }   // the longest release
 
     int getNumPrograms() override { return 1; }
     int getCurrentProgram() override { return 0; }
@@ -37,6 +36,7 @@ public:
     void setStateInformation(const void*, int sizeInBytes) override;
 
     juce::AudioProcessorValueTreeState apvts;
+    int uiTab = 0;   // the page showing, so it survives closing and reopening the window
 
 private:
     static juce::AudioProcessorValueTreeState::ParameterLayout makeLayout();

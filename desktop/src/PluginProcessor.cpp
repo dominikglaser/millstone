@@ -1,15 +1,19 @@
 #include "PluginProcessor.h"
+#include "PluginEditor.h"
 
 namespace {
 // Build a stable JUCE parameter id from an engine key (keys are already id-safe: letters, digits, _).
 juce::String pid(const char* key) { return juce::String(key); }
+
+// Hidden: the model prev/next steppers (the model choice covers them) and the MPC skin's popup open/closed flags.
+bool exposedToHost(const param_t& p) { return !p.momentary && p.popup_of < 0; }
 }
 
 juce::AudioProcessorValueTreeState::ParameterLayout MillstoneProcessor::makeLayout() {
     juce::AudioProcessorValueTreeState::ParameterLayout layout;
     for (int i = 0; i < NPARAMS; ++i) {
         const param_t& p = PARAMS[i];
-        if (p.momentary) continue;   // model prev/next steppers: not exposed; the model Choice covers it
+        if (exposedToHost(p) == false) continue;
         if (p.nopts > 0) {
             juce::StringArray choices;
             for (int o = 0; o < p.nopts; ++o) choices.add(p.opts[o]);
@@ -32,9 +36,11 @@ MillstoneProcessor::MillstoneProcessor()
       apvts(*this, nullptr, "PARAMS", makeLayout()) {
     rawValues.assign(NPARAMS, nullptr);
     for (int i = 0; i < NPARAMS; ++i)
-        if (!PARAMS[i].momentary)
+        if (exposedToHost(PARAMS[i]))
             rawValues[i] = apvts.getRawParameterValue(pid(PARAMS[i].key));
 }
+
+juce::AudioProcessorEditor* MillstoneProcessor::createEditor() { return new MillstoneEditor(*this); }
 
 void MillstoneProcessor::prepareToPlay(double sampleRate, int) {
     engine.prepare(sampleRate);
@@ -64,12 +70,16 @@ void MillstoneProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mi
 
     // Host tempo for the synced LFO.
     if (auto* ph = getPlayHead()) {
-        if (auto pos = ph->getPosition())
-            if (auto bpm = pos->getBpm()) {
+        if (auto pos = ph->getPosition()) {
+            const auto bpm = pos->getBpm();
+            if (bpm) {
                 char t[32];
                 std::snprintf(t, sizeof t, "%g", *bpm);
                 engine.setParam("lfo_bpm", t);
             }
+            const auto ppq = pos->getPpqPosition();
+            engine.songPosition(ppq ? *ppq : -1.0, bpm ? *bpm : 0.0, pos->getIsPlaying(), n);
+        }
     }
 
     // APVTS is the source of truth; keep the engine in step with it.
@@ -85,6 +95,12 @@ void MillstoneProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mi
     float* R = buffer.getNumChannels() > 1 ? buffer.getWritePointer(1) : L;
     engine.render(L, R, n);
     if (buffer.getNumChannels() == 1) {} // mono host: L already holds the signal
+}
+
+void MillstoneProcessor::processBlockBypassed(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midi) {
+    // Keep the engine running so a note-off that arrives while bypassed still ends its note.
+    processBlock(buffer, midi);
+    buffer.clear();
 }
 
 void MillstoneProcessor::getStateInformation(juce::MemoryBlock& dest) {

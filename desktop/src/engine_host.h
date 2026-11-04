@@ -26,6 +26,8 @@ public:
         dsp_ = eng_ ? eng_->create(nullptr) : nullptr;
         hostRate_ = hostSampleRate > 0 ? hostSampleRate : 44100.0;
         ratio_ = kEngineRate / hostRate_;   // engine input samples consumed per host output sample
+        bufL_.reserve(kReserve);   // so the audio thread does not allocate at any normal block size
+        bufR_.reserve(kReserve);
         bufL_.assign(4, 0.0f);
         bufR_.assign(4, 0.0f);
         readPos_ = 1.0;                      // leaves bufX_[idx-1] valid from the first sample
@@ -40,6 +42,10 @@ public:
 
     void setParam(const char* key, const char* value) {
         if (eng_ && dsp_) eng_->set_param(dsp_, key, value);
+    }
+
+    void songPosition(double ppq, double bpm, bool playing, int frames) {
+        if (eng_ && dsp_ && eng_->song_pos) eng_->song_pos(dsp_, ppq, bpm, playing ? 1 : 0, frames);
     }
 
     void midi(const uint8_t* bytes, int len) {
@@ -75,7 +81,8 @@ public:
 
 private:
     static constexpr double kEngineRate = 44100.0;
-    static constexpr int kChunk = 256;   // engine frames rendered per refill
+    static constexpr int kChunk = 32;    // engine frames rendered per refill; rendered ahead, so this is added latency
+    static constexpr size_t kReserve = 32768;
 
     static inline float catmull(float a, float b, float c, float d, float t) {
         // Catmull-Rom: smooth 4-point interpolation, b..c is the active segment

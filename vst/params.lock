@@ -74,3 +74,12 @@ o2_prev
 o2_next
 o3_prev
 o3_next
+lfo_lock
+release
+m_attack
+m_decay
+m_sustain
+m_release
+o1_cv_src
+o2_cv_src
+o3_cv_src

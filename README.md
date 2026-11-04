@@ -3,7 +3,7 @@
 An 8-voice hybrid synth for Akai MPC OS standalone devices (MPC Live III, One G2, Key 37/61 G2, XL; Gen1
 units with the armv7 build), built on the [Open MPC port kit](https://github.com/open-mpc/mpc-vst-plugins).
 Each voice has **three Mutable Instruments Plaits macro-oscillators** (all 24 models), a **24 dB ladder filter**
-(low-pass or high-pass), an **ADS envelope** and a **VCA** with ENV / LPG / ON modes; one global LFO. The
+(low-pass or high-pass), **VCA and modulation ADSR envelopes** and a **VCA** with ENV / LPG / ON modes; one global LFO. The
 panel follows a semi-modular hybrid desktop synth: VC MIX, OSC MOD (vibrato), glide, noise, a VCF mod depth
 with an ENV/LFO source switch. Sequence it from the MPC: there is no sequencer or arpeggiator in the plugin.
 
@@ -17,7 +17,8 @@ Status: **offline-tested only** (x86 test harness, ASan/UBSan). Not yet run on a
                  └─ OSC 3 (Plaits) ─┘                                ▲              ▲   │
                                                        ENV or LFO ───┘    ENV/LPG/ON┘   ├─ x8 voices ─ volume ─ out
  LFO (tri/sqr/saw/ramp/S&H, 0.01–350 Hz or tempo-synced) ──► vibrato, VCF, TIMBRE CV, MORPH CV
- ADS envelope ──► VCA (ENV mode), VCF (MOD SOURCE = ENV), FM (ENV > pitch per oscillator)
+ VCA ADSR ──► VCA (ENV mode)
+ MOD ADSR ──► VCF (MOD SOURCE = ENV), FM (pitch per oscillator), TIMBRE/MORPH CV (CV SOURCE = ENV)
 ```
 
 ## Pages
@@ -28,7 +29,7 @@ Status: **offline-tested only** (x86 test harness, ASan/UBSan). Not yet run on a
 | FILTER / ENV | CUTOFF, RESONANCE, MODE (LP/HP), DRIVE, MOD DEPTH (±), MOD SOURCE (ENV/LFO), KEY TRACK; ATTACK, DECAY, SUSTAIN (decay time doubles as release); VCA MODE (ENV / LPG / ON), VOLUME, VEL > AMP, VEL > VCF |
 | LFO / VOICE | VOICES (1–8), MODE (POLY / MONO / LEGATO), GLIDE, OSC MOD (vibrato), NOISE; AT > CUTOFF, AT > MORPH, LPG DECAY, LPG COLOUR, BEND RANGE; LFO SHAPE, RATE or DIVISION (SYNC), RETRIG, SYNC, WHEEL > LFO, AT > LFO |
 
-VCA modes: **ENV** shapes every note with the ADS envelope. **LPG** patches TRIG into Plaits' own low-pass gate
+VCA modes: **ENV** shapes every note with the VCA ADSR. **LPG** patches TRIG into Plaits' own low-pass gate
 (LPG DECAY / COLOUR), like a hardware trigger input: pings, plucks, drums. **ON** opens the VCA for as long as the
 key is held (self-enveloped models such as drums, plucks and 6-op FM ring out). In every mode the self-enveloped
 models (6-op FM, string, modal, bass drum, snare, hi-hat) receive a gate from the keys.

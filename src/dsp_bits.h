@@ -1,4 +1,4 @@
-// Small DSP building blocks for Millstone: ADS envelope, LFO, 24 dB ladder filter, noise.
+// Small DSP building blocks for Millstone: ADSR envelope, LFO, 24 dB ladder filter, noise.
 // All of them run at 44.1 kHz, per sample or per control chunk, and never allocate.
 #pragma once
 #include <math.h>
@@ -19,19 +19,21 @@ static inline float fast_tanh(float x) {
     return x * (27.0f + x2) / (27.0f + 9.0f * x2);
 }
 
-// ---- ADS envelope (Grind style: attack, decay, sustain; the decay time is also the release) ----
+// ---- ADSR envelope ----
 struct Env {
     enum Stage { IDLE, ATTACK, DECAY, RELEASE };
     Stage stage = IDLE;
     float value = 0.0f;
-    float a_coef = 0.01f, d_coef = 0.001f, sustain = 1.0f;
+    float a_coef = 0.01f, d_coef = 0.001f, r_coef = 0.001f, sustain = 1.0f;
 
-    // attack 2 ms..3 s, decay 2 ms..5 s (knobs 0..1), sustain 0..1
-    void set(float attack01, float decay01, float sustain01) {
+    // attack 2 ms..3 s, decay and release 4 ms..10 s (knobs 0..1), sustain 0..1
+    void set(float attack01, float decay01, float sustain01, float release01) {
         float ta = 0.002f * powf(1500.0f, clampf(attack01, 0.0f, 1.0f));
-        float td = 0.002f * powf(2500.0f, clampf(decay01, 0.0f, 1.0f));
+        float td = 0.004f * powf(2500.0f, clampf(decay01, 0.0f, 1.0f));
+        float tr = 0.004f * powf(2500.0f, clampf(release01, 0.0f, 1.0f));
         a_coef = 1.0f - expf(-1.7918f / (ta * kRate));   // ln 6: a 1.2 target reaches 1.0 in ta
         d_coef = 1.0f - expf(-6.9078f / (td * kRate));   // ln 1000: -60 dB in td
+        r_coef = 1.0f - expf(-6.9078f / (tr * kRate));
         sustain = clampf(sustain01, 0.0f, 1.0f);
     }
     void gate_on() { stage = ATTACK; }            // keeps the current value: no click on a retrigger
@@ -48,7 +50,7 @@ struct Env {
                 value += (sustain - value) * d_coef;
                 break;
             case RELEASE:
-                value += (0.0f - value) * d_coef;
+                value += (0.0f - value) * r_coef;
                 if (value < 1e-4f) { value = 0.0f; stage = IDLE; }
                 break;
             default: break;
@@ -66,6 +68,8 @@ struct Lfo {
 
     static float rate_hz(float knob01) { return 0.01f * powf(35000.0f, clampf(knob01, 0.0f, 1.0f)); }
     void retrigger() { phase = 0.0f; hold = next_random(); }
+    // Follow an outside clock. Passing the top of the cycle still counts as a new cycle, so S/H keeps stepping.
+    void set_phase(float p) { if (p < phase - 0.5f) hold = next_random(); phase = p; }
     float next_random() {
         rng ^= rng << 13; rng ^= rng >> 17; rng ^= rng << 5;
         return (float)(rng & 0xffffff) / 8388608.0f - 1.0f;

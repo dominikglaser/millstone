@@ -93,7 +93,8 @@ struct Lfo {
 struct Ladder {
     float s[4] = {0, 0, 0, 0};   // stage states
     float G = 0.0f, g1 = 1.0f;   // per-stage coefficient, 1/(1+g)
-    float k = 0.0f;              // feedback 0..4+
+    float k = 0.0f;              // feedback 0..4.7: self-oscillates from k = 4, about 88% of the knob
+    float comp = 1.0f;           // low-pass input gain, gives back half (in dB) of the bass that feedback takes
     int hp = 0;
 
     void reset() { s[0] = s[1] = s[2] = s[3] = 0.0f; }
@@ -102,7 +103,8 @@ struct Ladder {
         float g = tanf((float)M_PI * hz / kRate);
         G = g / (1.0f + g);
         g1 = 1.0f / (1.0f + g);
-        k = powf(clampf(reso01, 0.0f, 1.0f), 1.3f) * 4.3f;
+        k = powf(clampf(reso01, 0.0f, 1.0f), 1.3f) * 4.7f;
+        comp = highpass ? 1.0f : sqrtf(1.0f + k);   // high-pass has no such loss
         hp = highpass;
     }
     inline float tick(float x) {
@@ -110,7 +112,7 @@ struct Ladder {
         float S = ((s[0] * G + s[1]) * G + s[2]) * G + s[3];
         S *= g1;
         float G4 = G * G * G * G;
-        float u = (x - k * S) / (1.0f + k * G4);
+        float u = (x * comp - k * S) / (1.0f + k * G4);
         u = fast_tanh(u);
         float y[4];
         float in = u;

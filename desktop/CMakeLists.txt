@@ -81,8 +81,8 @@ target_sources(Millstone PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src/PluginProcessor.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/PluginEditor.cpp)
 
-# The panel reads the same layout file as the MPC skin, embedded so the plugin is self-contained.
-juce_add_binary_data(MillstoneData SOURCES ${REPO}/vst/layout.conf)
+# The panel and preset browser read the same files as the MPC build, embedded so the plugin is self-contained.
+juce_add_binary_data(MillstoneData SOURCES ${REPO}/vst/layout.conf ${REPO}/vst/presets.json)
 
 target_include_directories(Millstone PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
@@ -136,4 +136,12 @@ if(MILLSTONE_UI_SNAPSHOT)
         ${REPO}/vst/build
         ${mpcvst_SOURCE_DIR}/wrapper)
     target_link_libraries(millstone_behaviour_test PRIVATE Millstone millstone_engine MillstoneData juce::juce_audio_utils)
+    add_executable(millstone_preset_test tools/preset_test.cpp)
+    target_include_directories(millstone_preset_test PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${REPO}/src
+        ${REPO}/src/third_party/eurorack
+        ${REPO}/vst/build
+        ${mpcvst_SOURCE_DIR}/wrapper)
+    target_link_libraries(millstone_preset_test PRIVATE Millstone millstone_engine MillstoneData juce::juce_audio_utils)
 endif()

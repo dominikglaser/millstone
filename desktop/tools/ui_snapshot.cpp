@@ -37,8 +37,8 @@ int main(int argc, char** argv) {
     check(text("o1_engine") == "Chiptune", "- wraps from the first model to the last");
     click("o1_next");
     check(text("o1_engine") == "Virtual Analog", "+ wraps from the last model to the first");
-    click("o2_on");
-    check(text("o2_on") == "ON", "toggle turns OSC 2 on");
+    click("o3_on");
+    check(text("o3_on") == "ON", "toggle turns OSC 3 on");
     click("f_mode:1");
     check(text("f_mode") == "HP", "segment selects HP");
     click("f_mode:0");
@@ -79,7 +79,7 @@ int main(int argc, char** argv) {
     }
     editor.showTab(5);
     click("lfo_sync");
-    juce::Timer::callPendingTimersSynchronously();
+    editor.refreshFromProcessor();
     render("page6_sync");
     auto* division = find(editor, "lfo_div");
     check(division != nullptr && division->isVisible(), "DIVISION shows when SYNC is on");
@@ -88,7 +88,7 @@ int main(int argc, char** argv) {
     click("lfo_lock:1");
     check(text("lfo_lock") == "BAR", "PHASE selects BAR");
     click("lfo_sync");
-    juce::Timer::callPendingTimersSynchronously();
+    editor.refreshFromProcessor();
     check(phase != nullptr && !phase->getParentComponent()->isVisible(), "PHASE hides when SYNC is off");
 
     std::cout << (failures == 0 ? "PASSED" : "FAILED") << std::endl;

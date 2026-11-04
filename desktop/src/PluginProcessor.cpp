@@ -1,5 +1,6 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
+#include "BinaryData.h"
 
 namespace {
 // Build a stable JUCE parameter id from an engine key (keys are already id-safe: letters, digits, _).
@@ -104,12 +105,134 @@ void MillstoneProcessor::processBlockBypassed(juce::AudioBuffer<float>& buffer, 
 }
 
 void MillstoneProcessor::getStateInformation(juce::MemoryBlock& dest) {
-    if (auto xml = apvts.copyState().createXml()) copyXmlToBinary(*xml, dest);
+    auto state = apvts.copyState();
+    state.setProperty("preset", currentPresetName, nullptr);
+    if (auto xml = state.createXml()) copyXmlToBinary(*xml, dest);
 }
 
 void MillstoneProcessor::setStateInformation(const void* data, int sizeInBytes) {
-    if (auto xml = getXmlFromBinary(data, sizeInBytes))
-        apvts.replaceState(juce::ValueTree::fromXml(*xml));
+    if (auto xml = getXmlFromBinary(data, sizeInBytes)) {
+        auto state = juce::ValueTree::fromXml(*xml);
+        currentPresetName = state.getProperty("preset").toString();   // empty for sets saved before presets existed
+        apvts.replaceState(state);
+    }
+}
+
+// ---- presets ----------------------------------------------------------------------------------------------------
+const std::vector<MillstoneProcessor::Preset>& MillstoneProcessor::factoryPresets() {
+    static const std::vector<Preset> library = [] {
+        std::vector<Preset> out;
+        const auto json = juce::JSON::parse(juce::String::fromUTF8(BinaryData::presets_json, BinaryData::presets_jsonSize));
+        if (const auto* list = json["presets"].getArray())
+            for (const auto& entry : *list) {
+                Preset preset { entry["name"].toString(), entry["category"].toString(), {} };
+                if (const auto* obj = entry["values"].getDynamicObject())
+                    for (const auto& property : obj->getProperties()) {
+                        const auto key = property.name.toString();
+                        const param_t* def = nullptr;
+                        for (int i = 0; i < NPARAMS && def == nullptr; ++i)
+                            if (key == PARAMS[i].key) def = &PARAMS[i];
+                        if (def == nullptr) { jassertfalse; continue; }
+                        float value = (float)property.value;
+                        if (property.value.isString())
+                            for (int o = 0; o < def->nopts; ++o)
+                                if (property.value.toString() == def->opts[o]) value = (float)o;
+                        preset.values.emplace_back(key, value);
+                    }
+                out.push_back(std::move(preset));
+            }
+        return out;
+    }();
+    return library;
+}
+
+void MillstoneProcessor::applyDefaultsThenValues(const std::vector<std::pair<juce::String, float>>& values) {
+    for (auto* base : getParameters())
+        if (auto* p = dynamic_cast<juce::RangedAudioParameter*>(base))
+            p->setValueNotifyingHost(p->getDefaultValue());
+    for (const auto& [key, value] : values)
+        if (auto* p = apvts.getParameter(key))
+            p->setValueNotifyingHost(p->convertTo0to1(value));
+}
+
+int MillstoneProcessor::getCurrentProgram() {
+    const auto& library = factoryPresets();
+    for (int i = 0; i < (int)library.size(); ++i)
+        if (library[(size_t)i].name == currentPresetName) return i;
+    return 0;
+}
+
+void MillstoneProcessor::setCurrentProgram(int index) {
+    const auto& library = factoryPresets();
+    if (!juce::isPositiveAndBelow(index, (int)library.size())) return;
+    // A host re-selecting what is already loaded, as some do when restoring, must not undo the user's tweaks.
+    if (library[(size_t)index].name == currentPresetName) return;
+    applyDefaultsThenValues(library[(size_t)index].values);
+    currentPresetName = library[(size_t)index].name;
+}
+
+const juce::String MillstoneProcessor::getProgramName(int index) {
+    const auto& library = factoryPresets();
+    return juce::isPositiveAndBelow(index, (int)library.size()) ? library[(size_t)index].name : juce::String();
+}
+
+juce::File MillstoneProcessor::userPresetDirectory() const {
+    if (userDirectoryOverride != juce::File()) return userDirectoryOverride;
+    return juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory)
+        .getChildFile("Application Support/Glaser/Millstone/Presets");
+}
+
+juce::File MillstoneProcessor::userPresetFile(const juce::String& name) const {
+    for (const auto& file : userPresetDirectory().findChildFiles(juce::File::findFiles, false, "*.millstone"))
+        if (auto xml = juce::XmlDocument::parse(file))
+            if (xml->getStringAttribute("name") == name) return file;
+    return userPresetDirectory().getChildFile(juce::File::createLegalFileName(name) + ".millstone");
+}
+
+juce::StringArray MillstoneProcessor::userPresetNames() const {
+    juce::StringArray names;
+    for (const auto& file : userPresetDirectory().findChildFiles(juce::File::findFiles, false, "*.millstone"))
+        if (auto xml = juce::XmlDocument::parse(file))
+            names.add(xml->getStringAttribute("name", file.getFileNameWithoutExtension()));
+    names.sortNatural();
+    return names;
+}
+
+bool MillstoneProcessor::saveUserPreset(const juce::String& name) {
+    const auto trimmed = name.trim();
+    if (trimmed.isEmpty()) return false;
+    for (const auto& factory : factoryPresets())
+        if (factory.name.equalsIgnoreCase(trimmed)) return false;   // the library keeps its names
+    if (!userPresetDirectory().createDirectory()) return false;
+    juce::XmlElement xml("MillstonePreset");
+    xml.setAttribute("name", trimmed);
+    for (auto* base : getParameters())
+        if (auto* p = dynamic_cast<juce::RangedAudioParameter*>(base)) {
+            auto* item = xml.createNewChildElement("param");
+            item->setAttribute("id", p->getParameterID());
+            item->setAttribute("value", (double)p->convertFrom0to1(p->getValue()));
+        }
+    if (!xml.writeTo(userPresetFile(trimmed))) return false;
+    currentPresetName = trimmed;
+    return true;
+}
+
+bool MillstoneProcessor::loadUserPreset(const juce::String& name) {
+    auto xml = juce::XmlDocument::parse(userPresetFile(name));
+    if (xml == nullptr || !xml->hasTagName("MillstonePreset")) return false;
+    std::vector<std::pair<juce::String, float>> values;
+    for (auto* item : xml->getChildWithTagNameIterator("param"))
+        values.emplace_back(item->getStringAttribute("id"), (float)item->getDoubleAttribute("value"));
+    applyDefaultsThenValues(values);   // a parameter newer than the file gets its default
+    currentPresetName = name;
+    return true;
+}
+
+bool MillstoneProcessor::deleteUserPreset(const juce::String& name) {
+    const auto file = userPresetFile(name);
+    if (!file.existsAsFile() || !file.deleteFile()) return false;
+    if (currentPresetName == name) currentPresetName.clear();   // the sound stays, it just no longer has that name
+    return true;
 }
 
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter() { return new MillstoneProcessor(); }

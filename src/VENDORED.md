@@ -12,6 +12,10 @@ to that upstream commit apart from one change, which this port keeps:
   44.1 kHz; Plaits' hardware rate is 48 kHz). Both constants are plain runtime floats used for every
   phase increment and time constant, so pitch and timing stay consistent.
 
+Known upstream bug, handled outside the vendored code: `ChiptuneEngine::Init` initialises `kChordNumNotes` oscillators out
+of `kChordNumVoices`, leaving the last one uninitialised. If its memory reads as NaN, `SuperSquareOscillator::Render` loops
+forever. `millstone.cpp` zero-initialises its voices for this reason; keep the `()` in those `new` expressions.
+
 Build flags needed (no source change): `-DTEST` (portable `Sqrt`/`Clip16` instead of ARMv7 inline asm
 in `stmlib/dsp/dsp.h`) and `-include cstdio` (`plaits/user_data.h`'s mock flash functions call
 `printf` without including it).

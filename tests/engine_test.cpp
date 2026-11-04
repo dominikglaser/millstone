@@ -12,6 +12,15 @@ extern "C" {
 }
 #include "params.h"
 
+// Every allocation starts as a huge float. Plaits' ChiptuneEngine::Init leaves its last oscillator uninitialised, and at a
+// phase this size subtracting 1 changes nothing, so that oscillator's loop never ends and the audio thread freezes. Real
+// leftover memory did this at random. The engine must never see such memory.
+#include <new>
+void *operator new(size_t n, const std::nothrow_t &) noexcept { void *p = malloc(n ? n : 1); if (p) memset(p, 0x7f, n); return p; }
+void *operator new(size_t n) { void *p = malloc(n ? n : 1); if (!p) abort(); memset(p, 0x7f, n); return p; }
+void operator delete(void *p) noexcept { free(p); }
+void operator delete(void *p, size_t) noexcept { free(p); }
+
 static int fails = 0;
 #define CHECK(c, ...) do { printf("%s ", (c) ? "ok  " : "FAIL"); printf(__VA_ARGS__); printf("\n"); if (!(c)) fails++; } while (0)
 
@@ -103,6 +112,7 @@ int main(int argc, char **argv) {
         for (int v = 0; v < 3; v++) {
             reset_all(in);
             setf(in, "o1_engine", (float)m);
+            set(in, "o2_on", "0");   // this checks one model at a time
             set(in, "vca_mode", vca[v]);
             setf(in, "decay", 30);
             note(in, 60, 100);

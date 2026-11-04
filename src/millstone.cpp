@@ -346,6 +346,7 @@ void render_voice(Instance *in, Voice *v, int frames, float lfo) {
     const bool gated = v->gate || v->sustained;
     const float trig = (gated && v->trig_low_chunks == 0) ? 1.0f : 0.0f;   // TRIG follows the gate (6-op FM needs it held)
     bool any_self_env = false;
+    bool any_free_running = in->P(G_NOISE) > 0.0f;   // noise, or an oscillator that would sound forever without a gate
     bool chip_clocked = false;
     for (int n = 0; n < kOscs; n++) {
         if (in->O(n, O_ON) < 0.5f) continue;
@@ -354,7 +355,7 @@ void render_voice(Instance *in, Voice *v, int frames, float lfo) {
         int model = clampi((int)in->O(n, O_ENGINE), 0, 23);
         int engine = kEngineMap[model];
         bool trig_mode = (vca_mode == VCA_LPG) || self_enveloped(engine);
-        if (self_enveloped(engine)) any_self_env = true;
+        if (self_enveloped(engine)) any_self_env = true; else any_free_running = true;
         if (trig_mode && engine == 7) chip_clocked = true;   // chiptune clocked by TRIG: it never fades by itself
 
         plaits::Patch p;
@@ -398,6 +399,7 @@ void render_voice(Instance *in, Voice *v, int frames, float lfo) {
     float noise = in->P(G_NOISE) * 0.01f;
     if (noise > 0.0f) {
         float g = noise * noise * 0.5f;
+        if (vca_mode == VCA_LPG) g *= v->env.value;   // Plaits' gate does not reach the noise, so the envelope shapes it
         for (int i = 0; i < frames; i++) mix[i] += g * v->noise.tick();
     }
 
@@ -411,10 +413,12 @@ void render_voice(Instance *in, Voice *v, int frames, float lfo) {
     float vel_amp = in->P(G_VEL_AMP) * 0.01f;
     float vel_gain = 1.0f - vel_amp + vel_amp * v->velocity;
 
+    // Stay open after key up only if everything sounding ends by itself; anything else would hang.
+    const bool self_ending = any_self_env && !any_free_running;
     float target_gain;
     switch (vca_mode) {
         case VCA_LPG: target_gain = (gated || !chip_clocked) ? vel_gain : 0.0f; break;
-        case VCA_ON:  target_gain = (gated || any_self_env) ? vel_gain : 0.0f; break;
+        case VCA_ON:  target_gain = (gated || self_ending) ? vel_gain : 0.0f; break;
         default:      target_gain = vel_gain; break;
     }
     float peak = 0.0f;
@@ -434,7 +438,7 @@ void render_voice(Instance *in, Voice *v, int frames, float lfo) {
     bool env_done = (vca_mode == VCA_ENV) && v->env.idle() && !gated;
     if (peak < 1e-4f && !gated) v->silent_chunks++; else v->silent_chunks = 0;
     bool silent_done = v->silent_chunks > kSilentChunks && (vca_mode != VCA_ENV || v->env.idle());
-    bool on_done = (vca_mode != VCA_ENV) && !gated && v->gain_z < 1e-4f && (vca_mode == VCA_ON ? !any_self_env : chip_clocked);
+    bool on_done = (vca_mode != VCA_ENV) && !gated && v->gain_z < 1e-4f && (vca_mode == VCA_ON ? !self_ending : chip_clocked);
     if (env_done || silent_done || on_done) {
         v->active = false;
         v->env.reset(); v->menv.reset();
@@ -478,7 +482,7 @@ void render_chunk(Instance *in, int16_t *out_lr, int frames) {
     float vol = in->P(G_VOLUME) * 0.01f;
     float g = vol * vol * 0.5f;
     for (int i = 0; i < frames; i++) {
-        float y = fast_tanh(in->out[i] * g * 1.2f) * 0.95f;
+        float y = fast_tanh(in->out[i] * g * 2.0f) * 0.95f;
         int16_t s = (int16_t)lrintf(y * 32767.0f);
         out_lr[2 * i] = s;
         out_lr[2 * i + 1] = s;
@@ -488,11 +492,13 @@ void render_chunk(Instance *in, int16_t *out_lr, int frames) {
 // ---- engine interface -------------------------------------------------------------------------
 void *ms_create(const char *) {
     if (!IDX().ok) return 0;   // params.json and this engine disagree: refuse to load rather than misbehave
-    Instance *in = new (std::nothrow) Instance;
+    // The () zeroes every member first. Plaits leaves some state to chance (ChiptuneEngine::Init skips its last
+    // oscillator, whose phase could then read as NaN and hang the audio thread), so nothing may start as garbage.
+    Instance *in = new (std::nothrow) Instance();
     if (!in) return 0;
     for (int i = 0; i < NPARAMS; i++) in->val[i] = param_default(i);
     for (int i = 0; i < kVoices; i++) {
-        in->voices[i] = new (std::nothrow) Voice;
+        in->voices[i] = new (std::nothrow) Voice();
         if (!in->voices[i]) {
             for (int j = 0; j < i; j++) delete in->voices[j];
             delete in;

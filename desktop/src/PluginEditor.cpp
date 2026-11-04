@@ -387,6 +387,10 @@ struct MillstoneEditor::LookAndFeel : juce::LookAndFeel_V4 {
         setColour(juce::PopupMenu::textColourId, theme.at("theme_ink"));
         setColour(juce::PopupMenu::highlightedBackgroundColourId, theme.at("theme_accent"));
         setColour(juce::PopupMenu::highlightedTextColourId, theme.at("theme_btn_text"));
+        setColour(juce::ComboBox::backgroundColourId, screenFill);
+        setColour(juce::ComboBox::textColourId, screenInk);
+        setColour(juce::ComboBox::outlineColourId, boxLine);
+        setColour(juce::ComboBox::arrowColourId, screenInk);
     }
 
     void drawRotarySlider(juce::Graphics& g, int x, int y, int w, int h, float pos, float, float, juce::Slider&) override {
@@ -472,6 +476,165 @@ const Layout& layout() {
 }
 }
 
+// Category filter, preset list, previous/next, Save and Delete. Sits to the right of the tabs.
+struct MillstoneEditor::PresetBar : juce::Component {
+    explicit PresetBar(MillstoneProcessor& p) : processor(p) {
+        for (auto* b : {&previous, &next, &save, &remove}) {
+            b->setColour(juce::TextButton::buttonColourId, capFill);
+            b->setColour(juce::TextButton::textColourOffId, capInk);
+            addAndMakeVisible(*b);
+        }
+        category.setComponentID("preset_category");
+        presetList.setComponentID("preset_list");
+        previous.setComponentID("preset_prev");
+        next.setComponentID("preset_next");
+        presetList.setTextWhenNothingSelected("Custom");
+        addAndMakeVisible(category);
+        addAndMakeVisible(presetList);
+        category.onChange = [this] { categoryChanged(); };
+        presetList.onChange = [this] { if (presetList.getSelectedId() > 0) load(entries[(size_t)presetList.getSelectedId() - 1]); };
+        previous.onClick = [this] { step(-1); };
+        next.onClick = [this] { step(1); };
+        save.onClick = [this] { askToSave(); };
+        remove.onClick = [this] { askToDelete(); };
+        rebuild();
+        sync(true);
+    }
+
+    void resized() override {
+        auto r = getLocalBounds();
+        category.setBounds(r.removeFromLeft(112)); r.removeFromLeft(4);
+        remove.setBounds(r.removeFromRight(52)); r.removeFromRight(2);
+        save.setBounds(r.removeFromRight(46)); r.removeFromRight(4);
+        next.setBounds(r.removeFromRight(26)); r.removeFromRight(2);
+        previous.setBounds(r.removeFromRight(26)); r.removeFromRight(4);
+        presetList.setBounds(r);
+    }
+
+    // Follows the host by comparing the name, not the selector: a filter that hides the current preset leaves the
+    // selector empty on purpose, and treating that as out of sync would keep resetting the filter.
+    void sync(bool force = false) {
+        const auto name = processor.getCurrentPresetName();
+        if (!force && name == lastName) return;
+        lastName = name;
+        const auto* current = find(name);
+        if (current != nullptr && category.getSelectedId() > 1 && category.getText() != current->category)
+            category.setSelectedId(1, juce::dontSendNotification);
+        fillList();
+    }
+
+private:
+    struct Entry { juce::String name, category; int program; };   // program < 0: a user preset
+
+    const Entry* find(const juce::String& name) const {
+        for (const auto& e : entries) if (e.name == name) return &e;
+        return nullptr;
+    }
+
+    void rebuild() {
+        const auto shown = category.getSelectedId() > 1 ? category.getText() : juce::String();
+        entries.clear();
+        const auto& library = MillstoneProcessor::factoryPresets();
+        for (int i = 0; i < (int)library.size(); ++i)
+            entries.push_back({ library[(size_t)i].name, library[(size_t)i].category, i });
+        for (const auto& name : processor.userPresetNames())
+            entries.push_back({ name, "User", -1 });
+        category.clear(juce::dontSendNotification);
+        category.addItem("All", 1);
+        juce::StringArray seen;
+        for (const auto& e : entries)
+            if (seen.addIfNotAlreadyThere(e.category))
+                category.addItem(e.category, seen.size() + 1);
+        const int restored = seen.indexOf(shown);
+        category.setSelectedId(restored >= 0 ? restored + 2 : 1, juce::dontSendNotification);
+    }
+
+    void fillList() {
+        presetList.clear(juce::dontSendNotification);
+        const bool all = category.getSelectedId() <= 1;
+        const auto shown = category.getText();
+        for (int i = 0; i < (int)entries.size(); ++i)
+            if (all || entries[(size_t)i].category == shown)
+                presetList.addItem(entries[(size_t)i].name, i + 1);
+        const auto name = processor.getCurrentPresetName();
+        for (int i = 0; i < (int)entries.size(); ++i)
+            if (entries[(size_t)i].name == name && (all || entries[(size_t)i].category == shown))
+                presetList.setSelectedId(i + 1, juce::dontSendNotification);
+        const auto* current = find(name);
+        remove.setEnabled(current != nullptr && current->program < 0);
+    }
+
+    void load(const Entry& e) {
+        if (e.program >= 0) processor.setCurrentProgram(e.program);
+        else processor.loadUserPreset(e.name);
+        sync(true);
+    }
+
+    void categoryChanged() {
+        fillList();
+        // Land on something playable, unless what is playing already belongs here.
+        if (presetList.getSelectedId() == 0 && presetList.getNumItems() > 0)
+            load(entries[(size_t)presetList.getItemId(0) - 1]);
+    }
+
+    void step(int delta) {
+        const int count = presetList.getNumItems();
+        if (count == 0) return;
+        const int at = presetList.indexOfItemId(presetList.getSelectedId());
+        const int to = at < 0 ? 0 : ((at + delta) % count + count) % count;
+        load(entries[(size_t)presetList.getItemId(to) - 1]);
+    }
+
+    void saved(const juce::String& name) {
+        if (!processor.saveUserPreset(name)) {
+            juce::NativeMessageBox::showAsync(juce::MessageBoxOptions().withIconType(juce::MessageBoxIconType::WarningIcon)
+                .withTitle("Could not save").withMessage("\"" + name + "\" is empty or belongs to a factory preset. Pick another name.")
+                .withButton("OK").withAssociatedComponent(this), nullptr);
+            return;
+        }
+        rebuild();
+        category.setSelectedId(1, juce::dontSendNotification);
+        sync(true);
+    }
+
+    void askToSave() {
+        dialog = std::make_unique<juce::AlertWindow>("Save preset", "Name:", juce::MessageBoxIconType::NoIcon, this);
+        const auto* current = find(processor.getCurrentPresetName());
+        dialog->addTextEditor("name", current != nullptr && current->program < 0 ? current->name : juce::String());
+        dialog->addButton("Save", 1, juce::KeyPress(juce::KeyPress::returnKey));
+        dialog->addButton("Cancel", 0, juce::KeyPress(juce::KeyPress::escapeKey));
+        juce::Component::SafePointer<PresetBar> self(this);
+        dialog->enterModalState(true, juce::ModalCallbackFunction::create([self](int result) {
+            if (self == nullptr || result != 1) return;
+            const auto name = self->dialog->getTextEditorContents("name").trim();
+            if (!self->processor.userPresetNames().contains(name)) { self->saved(name); return; }
+            juce::NativeMessageBox::showOkCancelBox(juce::MessageBoxIconType::QuestionIcon, "Replace preset",
+                "Replace your preset \"" + name + "\"?", self.getComponent(),
+                juce::ModalCallbackFunction::create([self, name](int ok) { if (self != nullptr && ok != 0) self->saved(name); }));
+        }), false);
+    }
+
+    void askToDelete() {
+        const auto name = processor.getCurrentPresetName();
+        juce::Component::SafePointer<PresetBar> self(this);
+        juce::NativeMessageBox::showOkCancelBox(juce::MessageBoxIconType::QuestionIcon, "Delete preset",
+            "Delete your preset \"" + name + "\"?", this,
+            juce::ModalCallbackFunction::create([self, name](int ok) {
+                if (self == nullptr || ok == 0) return;
+                self->processor.deleteUserPreset(name);
+                self->rebuild();
+                self->sync(true);
+            }));
+    }
+
+    MillstoneProcessor& processor;
+    juce::ComboBox category, presetList;
+    juce::TextButton previous { "<" }, next { ">" }, save { "Save" }, remove { "Delete" };
+    std::vector<Entry> entries;
+    juce::String lastName;
+    std::unique_ptr<juce::AlertWindow> dialog;
+};
+
 MillstoneEditor::MillstoneEditor(MillstoneProcessor& p)
     : juce::AudioProcessorEditor(p), processor(p), lnf(std::make_unique<LookAndFeel>(layout().theme)) {
     setLookAndFeel(lnf.get());
@@ -498,6 +661,10 @@ MillstoneEditor::MillstoneEditor(MillstoneProcessor& p)
         pages.push_back(std::move(page));
         ++index;
     }
+
+    presetBar = std::make_unique<PresetBar>(processor);
+    presetBar->setBounds(820, 10, 450, 32);
+    content.addAndMakeVisible(*presetBar);
 
     showTab(processor.uiTab);
     timerCallback();
@@ -526,6 +693,7 @@ void MillstoneEditor::showTab(int index) {
 
 void MillstoneEditor::timerCallback() {
     for (auto& page : pages) page->updateVisibility(processor);
+    presetBar->sync();
 }
 
 void MillstoneEditor::paint(juce::Graphics& g) {

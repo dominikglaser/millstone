@@ -54,7 +54,7 @@ struct Synth {
     void clean(float vol = 35) {
         set("cutoff", 100); set("reso", 0); set("f_mod", 0); set("vel_amp", 0); set("vel_filt", 0); set("attack", 0);
         set("decay", 20); set("sustain", 100); set("release", 10); set("m_attack", 0); set("m_decay", 20); set("m_sustain", 100); set("m_release", 10); set("volume", vol); set("o1_level", 100); set("o2_level", 100); set("o3_level", 100);
-        set("o2_engine", 0); set("o3_engine", 0);
+        set("o2_engine", 0); set("o3_engine", 0); opt("o2_on", "OFF"); opt("o3_on", "OFF"); set("o2_fine", 0); set("keytrack", 0); set("drive", 0);
     }
     void noiseOnly(float n = 100) { opt("o1_on", "OFF"); opt("o2_on", "OFF"); opt("o3_on", "OFF"); set("noise", n); }
 };
@@ -101,6 +101,7 @@ static int crossings(const Vec& x, double sr, double winMs = 20) {   // level tr
     for (float v : e) { if (!high && v > up) { high = true; ++c; } else if (high && v < down) { high = false; ++c; } }
     return c;
 }
+static float hz_(int n) { return 440.0f * std::pow(2.0f, (n - 69) / 12.0f); }
 static juce::String num(double v, int d = 2) { return juce::String(v, d); }
 
 int main() {
@@ -187,6 +188,28 @@ int main() {
       check(vel(127) > 1.5f * vel(30), "VEL > VCF: harder notes are brighter", num(db(vel(127), vel(30))) + " dB");
       auto drive = [&](float d) { Synth s; s.clean(15); s.set("o1_engine", 2); s.set("o1_timbre", 0); s.set("o1_level", 40); s.set("drive", d); s.on(57); auto x = s.run(0.6); const float f = tone(x, 220, sr, 5000), h = tone(x, 660, sr, 5000) + tone(x, 1100, sr, 5000); return h / juce::jmax(1e-6f, f); };
       check(drive(100) > 1.05f * drive(0), "DRIVE adds harmonics", num(drive(0), 3) + " -> " + num(drive(100), 3));
+    }
+
+    puts("--- filter tuning");
+    { auto lpGain = [](float reso, double f) { ms::Ladder l; l.set(1000, reso, 0); Vec y; for (int i = 0; i < 44100; ++i) y.push_back(l.tick(0.05f * (float)std::sin(2 * M_PI * f * i / 44100))); return tone(y, f, 44100, 22050) / 0.05f; };
+      check(db(lpGain(0, 100), 1) > -1 && db(lpGain(0, 100), 1) < 1, "reso 0 leaves the passband at unity", num(db(lpGain(0, 100), 1)) + " dB");
+      check(db(lpGain(0.9f, 100), 1) > -8, "resonance keeps some bass: under 8 dB lost at 90% (was 13.5)", num(db(lpGain(0.9f, 100), 1)) + " dB");
+      check(db(lpGain(0.9f, 100), 1) < -3, "...and still thins it, ladder style", num(db(lpGain(0.9f, 100), 1)) + " dB");
+      auto osc = [](float reso, float fc, double* freq) { ms::Ladder l; l.set(fc, reso, 0); Vec y; for (int i = 0; i < 132300; ++i) y.push_back(l.tick(i < 200 ? 0.01f : 0.0f)); float p = 0; int n = 0; double a = -1, b = -1; for (size_t i = 88200; i < y.size(); ++i) { p = juce::jmax(p, std::abs(y[i])); if (y[i - 1] < 0 && y[i] >= 0) { const double t = i - 1 + (-y[i - 1]) / (y[i] - y[i - 1]); if (a < 0) a = t; b = t; ++n; } } if (freq) *freq = n > 1 ? (n - 1) * 44100.0 / (b - a) : 0; return p; };
+      double f = 0; check(osc(0.85f, 1000, nullptr) < 1e-3f, "85% resonance does not self-oscillate"); check(osc(0.90f, 1000, nullptr) > 0.03f, "90% resonance self-oscillates", num(osc(0.90f, 1000, nullptr), 3));
+      check(osc(1.0f, 1000, nullptr) > 0.18f, "full self-oscillation is strong (was 0.136)", num(osc(1.0f, 1000, nullptr), 3));
+      for (float fc : {55.f, 440.f, 3520.f}) { osc(1.0f, fc, &f); check(std::abs(1200 * std::log2(f / fc)) < 2, (juce::String("self-oscillation in tune at ") + juce::String(fc, 0) + " Hz").toRawUTF8(), num(1200 * std::log2(f / fc)) + " cents"); }
+      auto hpGain = [](float reso) { ms::Ladder l; l.set(1000, reso, 1); Vec y; for (int i = 0; i < 44100; ++i) y.push_back(l.tick(0.05f * (float)std::sin(2 * M_PI * 8000 * i / 44100))); return tone(y, 8000, 44100, 22050) / 0.05f; };
+      check(std::abs(db(hpGain(0.9f), hpGain(0))) < 0.5f, "HP passband is unaffected by resonance", num(db(hpGain(0.9f), hpGain(0))) + " dB"); }
+
+    puts("--- default patch");
+    { auto peak = [](const Vec& x, size_t a = 0) { float p = 0; for (size_t i = a; i < x.size(); ++i) p = juce::jmax(p, std::abs(x[i])); return p; };
+      { Synth s; s.on(60); const float p = db(peak(s.run(1.0)), 1); check(p > -18 && p < -8, "one note peaks between -18 and -8 dBFS (was -19.7)", num(p) + " dB"); }
+      { Synth s; for (int n : {48, 55, 60, 64, 67, 72, 76, 79}) s.on(n); auto x = s.run(1.0); const float p = db(peak(x), 1); check(p < -0.4f, "an 8-note chord stays under the ceiling", num(p) + " dB"); }
+      auto highs = [](const Vec& x, size_t a, size_t b) { double d = 0, e = 0; for (size_t i = a + 2; i < b; ++i) { const double v = x[i] - 2 * x[i - 1] + x[i - 2]; d += v * v; e += x[i] * x[i]; } return (float)std::sqrt(d / juce::jmax(1e-12, e)); };   // treble share: a detuned pair smears single-frequency readings
+      { Synth s; s.on(60); auto x = s.run(1.2); const float d = db(highs(x, 400, 2600), highs(x, 40000, 50000)); check(d > 6, "the filter envelope is clearly audible", num(d) + " dB more treble at the attack"); }
+      { auto selfOsc = [&](int note) { Synth s; s.clean(30); s.noiseOnly(3); s.set("cutoff", 50); s.set("reso", 100); s.set("keytrack", s.p->apvts.getParameter("keytrack")->convertFrom0to1(s.p->apvts.getParameter("keytrack")->getDefaultValue())); s.on(note); s.run(0.5); return pitch(s.run(0.6), sr); }; const float r = selfOsc(72) / juce::jmax(1.f, selfOsc(60)); check(near(r, 1.414f, 0.04f), "default KEY TRACK: half an octave per octave", num(r, 3)); }
+      { Synth s; check(s.p->apvts.getParameter("o2_on")->getCurrentValueAsText() == "ON" && s.p->apvts.getParameter("o3_on")->getCurrentValueAsText() == "OFF", "OSC 1 and 2 on, OSC 3 off"); }
     }
 
     puts("--- envelope");
@@ -303,6 +326,11 @@ int main() {
     { Synth s; s.clean(25); s.set("decay", 10); s.on(60); s.on(60); s.off(60); check(silent(s), "repeated note on, single note off"); }
     { Synth s; s.clean(25); s.set("decay", 10); s.on(60); s.run(0.1); s.run(0.05, true); s.off(60); s.run(0.05, true); check(silent(s), "note off during plugin bypass"); }
     { Synth s; s.clean(25); s.set("decay", 10); s.on(60); s.run(0.1); s.off(60); juce::MidiBuffer none; s.p->prepareToPlay(sr, 256); s.m.clear(); check(silent(s), "host re-prepare drops the voices"); }
+
+    { Synth s; s.clean(25); s.set("o1_engine", 15); s.opt("o2_on", "ON"); s.opt("vca_mode", "ON"); s.on(60); s.run(0.2); s.off(60); check(silent(s), "VCA ON: percussive + free-running oscillators ends at key up"); }
+    { Synth s; s.clean(25); s.set("o1_engine", 15); s.set("noise", 30); s.opt("vca_mode", "ON"); s.on(60); s.run(0.2); s.off(60); check(silent(s), "VCA ON: percussive oscillator + noise ends at key up"); }
+    { Synth s; s.clean(25); s.set("noise", 40); s.opt("vca_mode", "LPG"); s.on(60); s.run(0.2); s.off(60); check(silent(s), "VCA LPG: noise ends at key up"); }
+    { Synth s; s.clean(25); s.set("o1_engine", 13); s.opt("vca_mode", "ON"); s.on(60); s.run(0.02); s.off(60); auto tail = s.run(0.2); check(rms(tail) > 1e-3f, "VCA ON: a lone percussive model still rings past key up", num(rms(tail), 4)); check(silent(s), "...and ends"); }
 
     puts("--- sustain pedal and channel messages");
     { Synth s; s.clean(25); s.set("decay", 10); s.cc(64, 127); s.on(60); s.run(0.1); s.off(60); s.run(0.5); check(rms(s.run(0.2)) > 1e-3f, "pedal holds a released note"); s.cc(64, 0); check(silent(s), "pedal up releases it"); }

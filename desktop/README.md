@@ -47,8 +47,8 @@ them; clear it with `xattr -dr com.apple.quarantine <path>`. Built locally, ther
 After a rebuild, quit Ableton completely (Cmd-Q) and reopen it: a running Live keeps the copy it already loaded.
 
 In Ableton: rescan plugins (Preferences → Plug-Ins), add Millstone to a MIDI track, set the track's MIDI input
-to the MPC Key 37, play. Turn OSC 2 and OSC 3 on for the full three-oscillator sound; one oscillator (Virtual
-Analog) is on by default.
+to the MPC Key 37, play. OSC 1 and OSC 2 (Virtual Analog, slightly detuned) are on by default; turn OSC 3 on for the
+full three-oscillator sound.
 
 ## How it fits together
 

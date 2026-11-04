@@ -6,6 +6,7 @@
   "so": "millstone.so",
   "params": "params.json",
   "layout": "layout.conf",
+  "presets": "presets.json",
   "targets": ["armv7", "aarch64"],
   "defines": {
     "SAMPLE_ACCURATE": 1,

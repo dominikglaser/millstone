@@ -1,10 +1,12 @@
 #include "PluginEditor.h"
 #include "BinaryData.h"
+#include <array>
 #include <map>
 
 namespace {
 
 constexpr int designW = 1480, designH = 864;      // the window scales from this
+constexpr int drawerH = 200, totalH = designH + drawerH;   // the patch bay drawer hangs below the panel
 constexpr int woodW = 36;
 constexpr int artScale = 2;                       // the static art is rendered at twice the design size, for Retina
 constexpr int knobPad = 8;                        // room around a knob for its shadow, or the control's edge cuts it off
@@ -13,6 +15,9 @@ constexpr bool showWear = false;                  // scratches, gouges, scuffs a
 const juce::Colour ink(0xff1b1a18), cream(0xffe9e4d4), capFill(0xffd9d3c2), capInk(0xff20201d), screenFill(0xff0d0b08),
                    amber(0xffffb347), amberDim(0xff6e4a1c), ledOn(0xffff4a2a), ledOff(0xff4a1d14);
 constexpr juce::uint8 metalR = 168, metalG = 165, metalB = 154;
+const juce::Colour cordColours[12] = { juce::Colour(0xffc8352b), juce::Colour(0xffe2b13c), juce::Colour(0xff3274b5), juce::Colour(0xff4c9a4a),
+    juce::Colour(0xffdd7a2a), juce::Colour(0xff8b56a8), juce::Colour(0xffd9d6cc), juce::Colour(0xff2f9c9a),
+    juce::Colour(0xffd76f93), juce::Colour(0xff9bb83a), juce::Colour(0xff57bcd8), juce::Colour(0xff9a6a40) };
 
 using Attrs = std::map<juce::String, juce::String>;
 
@@ -177,6 +182,7 @@ void paintScratches(juce::Graphics& g, juce::Random& rng, int count, juce::Recta
 
 // Printed scale, label and everything else that belongs to a control but never moves.
 void paintKnobPrinting(juce::Graphics& g, const Item& item, float offsetX = 0, float offsetY = 0) {
+    const juce::Colour ink = item.num("cy") >= designH ? cream : ::ink;   // the drawer is dark, so its printing is light
     const float cx = (float)item.num("cx") + offsetX, cy = (float)item.num("cy") + offsetY, r = (float)item.num("r", 20);
     g.setColour(ink.withAlpha(0.82f));
     const int ticks = r > 30 ? 21 : 11;
@@ -212,7 +218,7 @@ void paintFaderPrinting(juce::Graphics& g, const Item& item) {
 }
 
 juce::Image makePanelArt() {
-    juce::Image img(juce::Image::RGB, designW * artScale, designH * artScale, true, juce::SoftwareImageType());
+    juce::Image img(juce::Image::RGB, designW * artScale, totalH * artScale, true, juce::SoftwareImageType());
     paintBrushedMetal(img);
     paintWood(img, 0, woodW * artScale, 7);
     paintWood(img, (designW - woodW) * artScale, designW * artScale, 19);
@@ -222,12 +228,18 @@ juce::Image makePanelArt() {
 
     const float left = (float)woodW, right = (float)(designW - woodW);
 
+    // The drawer is the same brushed metal, anodised dark.
+    g.setColour(juce::Colour(0xff0d0c0a).withAlpha(0.80f));
+    g.fillRect(left, (float)designH, right - left, (float)drawerH);
+
     for (const auto& item : panelItems()) {
         if (item.kind == "frame") {
             const auto r = juce::Rectangle<float>((float)item.num("x"), (float)item.num("y"), (float)item.num("w"), (float)item.num("h"));
-            g.setColour(juce::Colours::black.withAlpha(0.045f));   // a very slightly darker printed field
+            const bool tray = item.num("y") >= designH;
+            const juce::Colour ink = tray ? cream : ::ink, cream = tray ? ::ink : ::cream;
+            g.setColour((tray ? juce::Colours::white : juce::Colours::black).withAlpha(tray ? 0.03f : 0.045f));   // a very slightly different printed field
             g.fillRoundedRectangle(r, 3.0f);
-            g.setColour(ink.withAlpha(0.75f));
+            g.setColour(ink.withAlpha(tray ? 0.45f : 0.75f));
             g.drawRoundedRectangle(r, 3.0f, 1.2f);
             const auto title = item.str("title");
             const auto font = printFont(11.5f, true, 0.20f);
@@ -240,6 +252,26 @@ juce::Image makePanelArt() {
             g.drawText(title, strip, juce::Justification::centred);
         } else if (item.kind == "knob") {
             if (item.str("when").isEmpty()) paintKnobPrinting(g, item);
+            if (item.str("cord").isNotEmpty()) {   // a colour dot, matching that cord's cable
+                g.setColour(cordColours[item.num("cord") % 12]);
+                g.fillEllipse((float)item.num("cx") - 3.5f + 15.0f, (float)item.num("cy") + (float)item.num("r") + 12.5f, 7.0f, 7.0f);
+            }
+        } else if (item.kind == "jack") {
+            const juce::Point<float> c((float)item.num("cx"), (float)item.num("cy"));
+            const auto round = [&](float radius) { return juce::Rectangle<float>(2 * radius, 2 * radius).withCentre(c); };
+            g.setColour(juce::Colours::black.withAlpha(0.6f));
+            g.fillEllipse(round(12.5f).translated(0.8f, 1.6f));
+            g.setGradientFill(juce::ColourGradient(juce::Colour(0xffe2dfd5), c.x - 8, c.y - 10, juce::Colour(0xff55524a), c.x + 8, c.y + 10, false));
+            g.fillEllipse(round(12.0f));                                                     // the nut
+            g.setColour(juce::Colours::black.withAlpha(0.45f));
+            g.drawEllipse(round(8.2f), 1.0f);
+            g.setColour(juce::Colour(0xff070706));
+            g.fillEllipse(round(6.6f));                                                      // the socket
+            g.setColour(juce::Colours::white.withAlpha(0.18f));
+            g.drawEllipse(round(6.6f), 0.6f);
+            g.setColour(cream);
+            g.setFont(printFont(9.5f, true, 0.04f));
+            g.drawFittedText(item.str("label"), juce::Rectangle<float>(c.x - 29, c.y + 15, 58, 13).toNearestInt(), juce::Justification::centred, 1, 0.8f);
         } else if (item.kind == "fader") {
             paintFaderPrinting(g, item);
         } else if (item.kind == "enum_v" || item.kind == "enum_h") {
@@ -366,9 +398,14 @@ juce::Image makePanelArt() {
         }
     }
     g.setGradientFill(juce::ColourGradient(juce::Colours::black.withAlpha(0.60f), left, 0, juce::Colours::transparentBlack, left + 7, 0, false));
-    g.fillRect(left, 0.0f, 7.0f, (float)designH);
+    g.fillRect(left, 0.0f, 7.0f, (float)totalH);
     g.setGradientFill(juce::ColourGradient(juce::Colours::black.withAlpha(0.60f), right, 0, juce::Colours::transparentBlack, right - 7, 0, false));
-    g.fillRect(right - 7, 0.0f, 7.0f, (float)designH);
+    g.fillRect(right - 7, 0.0f, 7.0f, (float)totalH);
+    // The panel's edge casts a shadow into the drawer.
+    g.setGradientFill(juce::ColourGradient(juce::Colours::black.withAlpha(0.75f), 0, (float)designH, juce::Colours::transparentBlack, 0, designH + 14.0f, false));
+    g.fillRect(left, (float)designH, right - left, 14.0f);
+    for (const auto& p : std::vector<juce::Point<float>>{ {left + 12, totalH - 10.0f}, {right - 12, totalH - 10.0f}, {left + 12, designH + 11.0f}, {right - 12, designH + 11.0f} })
+        paintScrew(g, p.x, p.y, 4.6f, turns.nextFloat() * 3.14f);
     return img;
 }
 
@@ -788,7 +825,9 @@ private:
 // The display: category and preset selectors, and a readout of the control last touched. Double-click the value to type one.
 struct MillstoneEditor::PresetBar : juce::Component {
     explicit PresetBar(MillstoneProcessor& p) : processor(p) {
-        for (auto* b : {&previous, &next, &save, &remove}) addAndMakeVisible(*b);
+        for (auto* b : {&previous, &next, &patch, &save, &remove}) addAndMakeVisible(*b);
+        patch.setComponentID("patch_toggle");
+        patch.onClick = [this] { if (onPatch) onPatch(); };
         category.setComponentID("preset_category");
         presetList.setComponentID("preset_list");
         previous.setComponentID("preset_prev");
@@ -830,6 +869,7 @@ struct MillstoneEditor::PresetBar : juce::Component {
         readoutValue.setBounds(336, 32, 266, 24);
         previous.setBounds(626, 4, 34, 26);
         next.setBounds(664, 4, 34, 26);
+        patch.setBounds(706, 4, 72, 26);
         save.setBounds(626, 36, 72, 26);
         remove.setBounds(706, 36, 72, 26);
     }
@@ -845,11 +885,21 @@ struct MillstoneEditor::PresetBar : juce::Component {
         g.fillRoundedRectangle(glass.withHeight(26), 3.0f);
     }
 
+    std::function<void()> onPatch;
+    void setPatchLit(bool lit) { patch.setColour(juce::TextButton::textColourOffId, lit ? amber : cream); patch.repaint(); }
+
     void show(juce::Slider* slider, juce::RangedAudioParameter* param) {
         shown = slider;
         shownInt = false;
         if (param != nullptr) {
-            readoutName.setText(param->getName(32), juce::dontSendNotification);
+            const auto id = param->getParameterID();
+            if (id.startsWithChar('c') && id.endsWith("_amt")) {   // a cord: say what it connects
+                const auto stem = id.upToLastOccurrenceOf("_", false, false);
+                const auto from = processor.apvts.getParameter(stem + "_src")->getCurrentValueAsText(), to = processor.apvts.getParameter(stem + "_dst")->getCurrentValueAsText();
+                readoutName.setText("CORD " + stem.substring(1) + ":  " + (from == "OFF" || to == "OFF" ? juce::String("UNPLUGGED") : from + " > " + to), juce::dontSendNotification);
+            } else {
+                readoutName.setText(param->getName(32), juce::dontSendNotification);
+            }
             if (const auto* def = findEngineParam(param->getParameterID())) shownInt = def->int_display != 0;
         }
         showValue();
@@ -975,7 +1025,7 @@ private:
 
     MillstoneProcessor& processor;
     juce::ComboBox category, presetList;
-    juce::TextButton previous { "<" }, next { ">" }, save { "SAVE" }, remove { "DELETE" };
+    juce::TextButton previous { "<" }, next { ">" }, patch { "PATCH" }, save { "SAVE" }, remove { "DELETE" };
     juce::Label readoutName, readoutValue;
     juce::Slider* shown = nullptr;
     bool shownInt = false;
@@ -984,10 +1034,135 @@ private:
     std::unique_ptr<juce::AlertWindow> dialog;
 };
 
+// The cables and the jacks' mouse handling. Drag between an output and an input to patch; pull a plug out of an input to
+// move or remove that cord; double-click an input to unplug everything in it.
+struct MillstoneEditor::PatchBay : juce::Component {
+    explicit PatchBay(MillstoneProcessor& p) : processor(p) {
+        setComponentID("patch_bay");
+        for (const auto& item : panelItems())
+            if (item.kind == "jack")
+                jacks.push_back({ juce::Point<float>((float)item.num("cx"), (float)(item.num("cy") - designH)), item.str("role") == "src", item.num("index") });
+    }
+
+    bool hitTest(int x, int y) override { return jackAt({ (float)x, (float)y }) != nullptr; }
+
+    void sync() {   // presets, automation and undo can all move cords
+        std::array<int, MillstoneProcessor::numCords * 2> now;
+        for (int c = 0; c < MillstoneProcessor::numCords; ++c) { now[(size_t)c * 2] = processor.cordSource(c); now[(size_t)c * 2 + 1] = processor.cordDest(c); }
+        if (now != seen) { seen = now; repaint(); }
+    }
+
+    void paint(juce::Graphics& g) override {
+        for (int c = 0; c < MillstoneProcessor::numCords; ++c) {
+            const auto* from = find(true, processor.cordSource(c)), *to = find(false, processor.cordDest(c));
+            if (from != nullptr && to != nullptr) drawCable(g, from->pos, to->pos, cordColours[c], c);
+        }
+        if (dragging != nullptr) {
+            const int cord = dragColour >= 0 ? dragColour : firstFree();
+            drawCable(g, dragging->pos, dragPos, cordColours[juce::jmax(0, cord)], 99);
+        }
+    }
+
+    void mouseDown(const juce::MouseEvent& e) override {
+        const auto* jack = jackAt(e.position);
+        if (jack == nullptr) return;
+        dragAmount = 50.0f;
+        dragColour = -1;
+        dragging = jack;
+        dragPos = e.position;
+        if (!jack->isSource) {   // pulling a plug out of an input: the newest cord in it comes away
+            for (int c = MillstoneProcessor::numCords - 1; c >= 0; --c)
+                if (processor.cordDest(c) == jack->index && processor.cordSource(c) != 0) {
+                    dragging = find(true, processor.cordSource(c));
+                    dragAmount = processor.cordAmount(c);
+                    dragColour = c;
+                    processor.disconnectCord(c);
+                    break;
+                }
+        }
+        repaint();
+    }
+
+    void mouseDrag(const juce::MouseEvent& e) override { dragPos = e.position; repaint(); }
+
+    void mouseUp(const juce::MouseEvent& e) override {
+        if (dragging == nullptr) return;
+        const auto* target = jackAt(e.position);
+        if (target != nullptr && target->isSource != dragging->isSource) {
+            const auto* source = dragging->isSource ? dragging : target, *dest = dragging->isSource ? target : dragging;
+            processor.connectCord(source->index, dest->index, dragAmount);
+        }
+        dragging = nullptr;
+        sync();
+        repaint();
+    }
+
+    void mouseDoubleClick(const juce::MouseEvent& e) override {
+        const auto* jack = jackAt(e.position);
+        if (jack == nullptr || jack->isSource) return;
+        for (int c = 0; c < MillstoneProcessor::numCords; ++c)
+            if (processor.cordDest(c) == jack->index) processor.disconnectCord(c);
+        sync();
+    }
+
+private:
+    struct Jack { juce::Point<float> pos; bool isSource; int index; };
+
+    const Jack* jackAt(juce::Point<float> p) const {
+        for (const auto& j : jacks) if (j.pos.getDistanceFrom(p) <= 14.0f) return &j;
+        return nullptr;
+    }
+    const Jack* find(bool source, int index) const {
+        for (const auto& j : jacks) if (j.isSource == source && j.index == index) return &j;
+        return nullptr;
+    }
+    int firstFree() const {
+        for (int c = 0; c < MillstoneProcessor::numCords; ++c) if (processor.cordSource(c) == 0 || processor.cordDest(c) == 0) return c;
+        return -1;
+    }
+
+    static void drawPlug(juce::Graphics& g, juce::Point<float> c, juce::Colour colour) {
+        g.setColour(juce::Colours::black.withAlpha(0.45f));
+        g.fillEllipse(juce::Rectangle<float>(19, 19).withCentre(c).translated(1.0f, 2.2f));
+        g.setGradientFill(juce::ColourGradient(colour.brighter(0.6f), c.x - 5, c.y - 7, colour.darker(0.7f), c.x + 5, c.y + 7, false));
+        g.fillEllipse(juce::Rectangle<float>(18, 18).withCentre(c));
+        g.setColour(colour.darker(0.9f));
+        g.drawEllipse(juce::Rectangle<float>(9, 9).withCentre(c), 1.0f);
+        g.setColour(juce::Colours::white.withAlpha(0.28f));
+        g.fillEllipse(c.x - 5.5f, c.y - 6.5f, 5, 3);
+    }
+
+    void drawCable(juce::Graphics& g, juce::Point<float> a, juce::Point<float> b, juce::Colour colour, int seed) const {
+        // Slack hangs under gravity, kept inside the drawer.
+        const float length = a.getDistanceFrom(b);
+        const float sag = juce::jmin((float)getHeight() - 8.0f - juce::jmax(a.y, b.y), 26.0f + length * 0.22f + (float)(seed % 4) * 5.0f);
+        juce::Path cable;
+        cable.startNewSubPath(a);
+        cable.cubicTo(a + juce::Point<float>(length * 0.12f * (b.x > a.x ? 1.0f : -1.0f), sag * 1.3f), b + juce::Point<float>(length * 0.12f * (b.x > a.x ? -1.0f : 1.0f), sag * 1.3f), b);
+        const juce::PathStrokeType stroke(4.2f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded);
+        g.setColour(juce::Colours::black.withAlpha(0.42f));
+        g.strokePath(cable, stroke, juce::AffineTransform::translation(1.8f, 3.2f));
+        g.setColour(colour.darker(0.35f));
+        g.strokePath(cable, stroke);
+        g.setColour(colour.brighter(0.25f));
+        g.strokePath(cable, juce::PathStrokeType(1.5f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded), juce::AffineTransform::translation(-0.5f, -0.8f));
+        drawPlug(g, a, colour);
+        drawPlug(g, b, colour);
+    }
+
+    MillstoneProcessor& processor;
+    std::vector<Jack> jacks;
+    std::array<int, MillstoneProcessor::numCords * 2> seen {};
+    const Jack* dragging = nullptr;
+    juce::Point<float> dragPos;
+    float dragAmount = 50.0f;
+    int dragColour = -1;
+};
+
 MillstoneEditor::MillstoneEditor(MillstoneProcessor& p)
     : juce::AudioProcessorEditor(p), processor(p), lnf(std::make_unique<LookAndFeel>()), art(makePanelArt()) {
     setLookAndFeel(lnf.get());
-    content.setBounds(0, 0, designW, designH);
+    content.setBounds(0, 0, designW, totalH);
     content.setInterceptsMouseClicks(false, true);
     addAndMakeVisible(content);
 
@@ -1013,16 +1188,29 @@ MillstoneEditor::MillstoneEditor(MillstoneProcessor& p)
 
     presetBar->setBounds(440, 13, 790, 66);
     presetBar->setInterceptsMouseClicks(false, true);
+    presetBar->onPatch = [this] { setPatchBayOpen(!processor.patchBayOpen); };
     content.addAndMakeVisible(*presetBar);
+
+    patchBay = std::make_unique<PatchBay>(processor);
+    patchBay->setBounds(0, designH, designW, drawerH);
+    content.addAndMakeVisible(*patchBay);
 
     timerCallback();
     startTimerHz(15);
 
     setResizable(true, true);
-    setResizeLimits(designW / 2, designH / 2, designW * 3 / 2, designH * 3 / 2);
-    if (auto* constrainer = getConstrainer())
-        constrainer->setFixedAspectRatio((double)designW / designH);
     setSize(designW * 85 / 100, designH * 85 / 100);
+    setPatchBayOpen(processor.patchBayOpen);
+}
+
+void MillstoneEditor::setPatchBayOpen(bool open) {
+    processor.patchBayOpen = open;
+    presetBar->setPatchLit(open);
+    const int height = open ? totalH : designH;
+    setResizeLimits(designW / 2, height / 2, designW * 3 / 2, height * 3 / 2);
+    if (auto* constrainer = getConstrainer())
+        constrainer->setFixedAspectRatio((double)designW / height);
+    setSize(getWidth(), juce::roundToInt((double)getWidth() * height / designW));   // keeps the panel's size; the window grows
 }
 
 MillstoneEditor::~MillstoneEditor() {
@@ -1038,13 +1226,15 @@ void MillstoneEditor::timerCallback() {
         c->setVisible(p != nullptr && p->getCurrentValueAsText() == c->whenValue);
     }
     presetBar->sync();
+    patchBay->sync();
 }
 
 void MillstoneEditor::paint(juce::Graphics& g) {
     g.setImageResamplingQuality(juce::Graphics::mediumResamplingQuality);
-    g.drawImage(art, getLocalBounds().toFloat());
+    const float scale = (float)getWidth() / (float)(designW * artScale);
+    g.drawImageTransformed(art, juce::AffineTransform::scale(scale));
 }
 
 void MillstoneEditor::resized() {
-    content.setTransform(juce::AffineTransform::scale((float)getWidth() / designW, (float)getHeight() / designH));
+    content.setTransform(juce::AffineTransform::scale((float)getWidth() / designW));
 }

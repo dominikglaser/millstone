@@ -38,6 +38,16 @@ public:
     void setStateInformation(const void*, int sizeInBytes) override;
 
     juce::AudioProcessorValueTreeState apvts;
+    // Patch bay. A cord is a source option, a destination option and an amount, kept as ordinary parameters so that
+    // Live sets and presets carry them. 0 means unplugged at either end.
+    static constexpr int numCords = 12;
+    int cordSource(int cord) const;
+    int cordDest(int cord) const;
+    float cordAmount(int cord) const;
+    int connectCord(int source, int dest, float amount = 50.0f);   // the cord used, the existing one if already patched, or -1 if all are in use
+    void disconnectCord(int cord);
+    bool patchBayOpen = false;                                     // the drawer, while the window is closed and reopened
+
     struct Preset {
         juce::String name, category;
         std::vector<std::pair<juce::String, float>> values;   // parameter id, value in its own units or option index
@@ -60,6 +70,8 @@ private:
     void pushParamsToEngine();
     juce::File userPresetFile(const juce::String& name) const;
     void applyDefaultsThenValues(const std::vector<std::pair<juce::String, float>>&);
+    float cordValue(int cord, const char* field) const;
+    void setCordValue(int cord, const char* field, float value);
 
     EngineHost engine;
     juce::String currentPresetName { "Init" };

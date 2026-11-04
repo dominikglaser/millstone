@@ -12,12 +12,14 @@ public:
     void paint(juce::Graphics&) override;
     void resized() override;
     void refreshFromProcessor() { timerCallback(); }   // what the UI timer does; tests call it directly
+    void setPatchBayOpen(bool);                        // the drawer below the panel
 
 private:
     void timerCallback() override;
 
     struct LookAndFeel;
     struct PresetBar;
+    struct PatchBay;
 
     MillstoneProcessor& processor;
     std::unique_ptr<LookAndFeel> lnf;
@@ -26,6 +28,7 @@ private:
     juce::Component content;   // laid out at the design size, scaled to the window
     std::vector<std::unique_ptr<juce::Component>> controls;
     std::unique_ptr<PresetBar> presetBar;
+    std::unique_ptr<PatchBay> patchBay;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MillstoneEditor)
 };

@@ -26,6 +26,7 @@ using namespace ms;
 
 const int kVoices = 8;
 const int kOscs = 3;
+const int kCords = 12;            // patch bay cords: each is a source, a destination and an amount
 const int kChunk = 12;            // Plaits renders in 12-frame blocks on the hardware too
 const int kOscRam = 16384;        // per-oscillator scratch for the Plaits engines
 const int kNoteStack = 16;
@@ -57,6 +58,13 @@ enum Global {
     G_LFO_SHAPE, G_LFO_RATE, G_LFO_RETRIG, G_LFO_SYNC, G_LFO_DIV, G_LFO_LOCK,
     G_WHEEL_LFO, G_AT_CUTOFF, G_AT_MORPH, G_AT_LFO, G_BEND_RANGE, G_COUNT
 };
+// Patch bay. These match the option order of cN_src and cN_dst in params.json.
+enum CordSource { S_OFF, S_LFO, S_VCA_ENV, S_MOD_ENV, S_VELOCITY, S_AFTERTOUCH, S_WHEEL, S_KEY, S_GATE, S_NOISE, S_OSC1, S_OSC2, S_OSC3 };
+enum CordDest { D_OFF, D_PITCH, D_CUTOFF, D_RESO, D_VCA, D_NOISE, D_OSC1, D_OSC_COUNT = 5, D_COUNT = D_OSC1 + 3 * D_OSC_COUNT };
+enum OscDest { OD_PITCH, OD_HARM, OD_TIMBRE, OD_MORPH, OD_LEVEL };
+const float kCordPitch = 24.0f;    // semitones at full amount and full signal
+const float kCordCutoff = 6.0f;    // octaves, the same reach as MOD DEPTH
+
 const char *const kGlobalKey[G_COUNT] = {
     "voices", "voice_mode", "glide", "vibrato", "noise", "lpg_decay", "lpg_colour",
     "cutoff", "reso", "f_mode", "f_mod", "f_src", "keytrack", "drive",
@@ -67,6 +75,7 @@ const char *const kGlobalKey[G_COUNT] = {
 struct Index {
     int g[G_COUNT];
     int o[kOscs][O_COUNT];
+    int cord[kCords][3];   // source, destination, amount
     bool ok;
     Index() : ok(true) {
         for (int i = 0; i < G_COUNT; i++) { g[i] = key_index(kGlobalKey[i]); if (g[i] < 0) ok = false; }
@@ -76,6 +85,13 @@ struct Index {
                 snprintf(k, sizeof k, "o%d_%s", n + 1, kOscSuffix[i]);
                 o[n][i] = key_index(k);
                 if (o[n][i] < 0) ok = false;
+            }
+        for (int c = 0; c < kCords; c++)
+            for (int i = 0; i < 3; i++) {
+                char k[32];
+                snprintf(k, sizeof k, "c%d_%s", c + 1, i == 0 ? "src" : i == 1 ? "dst" : "amt");
+                cord[c][i] = key_index(k);
+                if (cord[c][i] < 0) ok = false;
             }
     }
 };
@@ -116,6 +132,10 @@ struct Voice {
     uint32_t serial = 0;      // allocation order (oldest first)
     float gain_z = 0.0f;      // VCA smoothing (de-click for ON mode)
     plaits::Voice::Frame frames[kChunk];
+    float osc_audio[kOscs][kChunk];   // what each oscillator played this chunk, for cords that patch it
+    float noise_audio[kChunk];
+    float osc_last[kOscs];            // its last sample, for destinations that only change once per chunk
+    float noise_last;
 };
 
 struct Instance {
@@ -123,6 +143,7 @@ struct Instance {
     Voice *voices[kVoices];
     Lfo lfo;
     float lfo_value = 0.0f;
+    float lfo_raw = 0.0f;      // before the wheel and pressure scale it: the patch bay's LFO jack
     float bpm = 120.0f;
     double song_ppq = 0.0;     // host song position in beats, at the latest block start
     bool song_fresh = false;   // ...and the LFO has not lined up with it yet
@@ -174,6 +195,10 @@ void start_voice(Instance *in, Voice *v, int note, float vel, bool retrigger) {
         v->pitch_cur = (glide > 0.0f) ? (v->active ? v->pitch_cur : in->last_pitch) : (float)note;
         v->env.gate_on();
         v->menv.gate_on();
+        if (!v->active) {
+            for (int n = 0; n < kOscs; n++) v->osc_last[n] = 0.0f;
+            v->noise_last = 0.0f;
+        }
         if (v->active) v->trig_low_chunks = 2;   // already sounding: a new strike needs TRIG to drop first
         if (!v->active) { v->filter.reset(); v->gain_z = 0.0f; }
         v->velocity = vel;                       // a legato note continues the phrase at its level
@@ -310,7 +335,7 @@ void all_sound_off(Instance *in) {   // MIDI CC120: silence now, without the rel
 }
 
 // ---- rendering --------------------------------------------------------------------------------
-inline float cutoff_hz(const Instance *in, const Voice *v, float env, float lfo) {
+inline float cutoff_octaves(const Instance *in, const Voice *v, float env, float lfo) {
     float base_oct = 10.0f * in->P(G_CUTOFF) * 0.01f;               // 20 Hz .. 20.48 kHz
     float mod = in->P(G_FMOD) * 0.01f;
     float src = ((int)in->P(G_FSRC) == FS_ENV) ? env : lfo;
@@ -318,7 +343,57 @@ inline float cutoff_hz(const Instance *in, const Voice *v, float env, float lfo)
     oct += in->P(G_KEYTRACK) * 0.01f * (v->pitch_cur - 60.0f) / 12.0f;
     oct += in->P(G_VEL_FILT) * 0.01f * (v->velocity * 2.0f - 1.0f) * 3.0f;
     oct += in->P(G_AT_CUTOFF) * 0.01f * fmaxf(in->chan_at, v->aftertouch) * 4.0f;
-    return 20.0f * powf(2.0f, clampf(oct, 0.0f, 10.0f));
+    return oct;
+}
+
+inline float octaves_to_hz(float oct) { return 20.0f * powf(2.0f, clampf(oct, 0.0f, 10.0f)); }
+
+// One voice's view of the patch bay for one chunk.
+struct CordState {
+    float amount[D_COUNT] = {};            // summed: everything that only needs to change once per chunk
+    struct { int source; int dest; float amount; } fast[kCords];   // audio into the filter or VCA: applied every sample
+    int fast_count = 0;
+    bool osc_used[kOscs] = {};
+    bool noise_used = false;
+    bool fast_filter = false;
+    float osc_dest(int osc, int what) const { return amount[D_OSC1 + osc * D_OSC_COUNT + what]; }
+};
+
+inline bool audio_source(int s) { return s >= S_NOISE; }
+
+CordState read_cords(const Instance *in, const Voice *v, bool gated, float at) {
+    CordState st;
+    const Index &ix = IDX();
+    for (int c = 0; c < kCords; c++) {
+        const int source = (int)in->val[ix.cord[c][0]], dest = (int)in->val[ix.cord[c][1]];
+        const float amount = in->val[ix.cord[c][2]] * 0.01f;
+        if (source == S_OFF || dest == D_OFF || amount == 0.0f) continue;
+        if (source == S_NOISE) st.noise_used = true;
+        if (source >= S_OSC1) st.osc_used[source - S_OSC1] = true;
+        if (audio_source(source) && (dest == D_CUTOFF || dest == D_RESO || dest == D_VCA)) {
+            st.fast[st.fast_count].source = source;
+            st.fast[st.fast_count].dest = dest;
+            st.fast[st.fast_count].amount = amount;
+            st.fast_count++;
+            if (dest != D_VCA) st.fast_filter = true;
+            continue;
+        }
+        float value = 0.0f;
+        switch (source) {
+            case S_LFO: value = in->lfo_raw; break;
+            case S_VCA_ENV: value = v->env.value; break;
+            case S_MOD_ENV: value = v->menv.value; break;
+            case S_VELOCITY: value = v->velocity; break;
+            case S_AFTERTOUCH: value = at; break;
+            case S_WHEEL: value = in->modwheel; break;
+            case S_KEY: value = (v->pitch_cur - 60.0f) / 60.0f; break;
+            case S_GATE: value = gated ? 1.0f : 0.0f; break;
+            case S_NOISE: value = v->noise_last; break;
+            default: value = v->osc_last[source - S_OSC1]; break;   // stepped like a CV input on the real module
+        }
+        st.amount[dest] += value * amount;
+    }
+    return st;
 }
 
 void render_voice(Instance *in, Voice *v, int frames, float lfo) {
@@ -345,24 +420,31 @@ void render_voice(Instance *in, Voice *v, int frames, float lfo) {
 
     const bool gated = v->gate || v->sustained;
     const float trig = (gated && v->trig_low_chunks == 0) ? 1.0f : 0.0f;   // TRIG follows the gate (6-op FM needs it held)
+    const CordState cords = read_cords(in, v, gated, at);
+    const float noise_level = clampf(in->P(G_NOISE) * 0.01f + cords.amount[D_NOISE], 0.0f, 1.0f);
     bool any_self_env = false;
-    bool any_free_running = in->P(G_NOISE) > 0.0f;   // noise, or an oscillator that would sound forever without a gate
+    bool any_free_running = noise_level > 0.0f;   // noise, or an oscillator that would sound forever without a gate
     bool chip_clocked = false;
     for (int n = 0; n < kOscs; n++) {
+        if (cords.osc_used[n]) {   // a switched-off oscillator patches silence
+            for (int i = 0; i < frames; i++) v->osc_audio[n][i] = 0.0f;
+            v->osc_last[n] = 0.0f;
+        }
         if (in->O(n, O_ON) < 0.5f) continue;
-        float level = in->O(n, O_LEVEL) * 0.01f;
-        if (level <= 0.0f) continue;
+        const float level = clampf(in->O(n, O_LEVEL) * 0.01f + cords.osc_dest(n, OD_LEVEL), 0.0f, 1.0f);
+        if (level <= 0.0f && !cords.osc_used[n]) continue;   // LEVEL 0 with a cord: heard only through what it modulates
         int model = clampi((int)in->O(n, O_ENGINE), 0, 23);
         int engine = kEngineMap[model];
         bool trig_mode = (vca_mode == VCA_LPG) || self_enveloped(engine);
-        if (self_enveloped(engine)) any_self_env = true; else any_free_running = true;
+        if (level > 0.0f) { if (self_enveloped(engine)) any_self_env = true; else any_free_running = true; }
         if (trig_mode && engine == 7) chip_clocked = true;   // chiptune clocked by TRIG: it never fades by itself
 
         plaits::Patch p;
-        p.note = clampf(v->pitch_cur + bend + vibrato + in->O(n, O_OCT) * 12.0f + in->O(n, O_SEMI) + in->O(n, O_FINE) * 0.01f, 12.0f, 120.0f);
-        p.harmonics = in->O(n, O_HARM) * 0.01f;
-        p.timbre = in->O(n, O_TIMBRE) * 0.01f;
-        p.morph = clampf(in->O(n, O_MORPH) * 0.01f + in->P(G_AT_MORPH) * 0.01f * at, 0.0f, 1.0f);
+        p.note = clampf(v->pitch_cur + bend + vibrato + in->O(n, O_OCT) * 12.0f + in->O(n, O_SEMI) + in->O(n, O_FINE) * 0.01f
+                        + (cords.amount[D_PITCH] + cords.osc_dest(n, OD_PITCH)) * kCordPitch, 12.0f, 120.0f);
+        p.harmonics = clampf(in->O(n, O_HARM) * 0.01f + cords.osc_dest(n, OD_HARM), 0.0f, 1.0f);
+        p.timbre = clampf(in->O(n, O_TIMBRE) * 0.01f + cords.osc_dest(n, OD_TIMBRE), 0.0f, 1.0f);
+        p.morph = clampf(in->O(n, O_MORPH) * 0.01f + in->P(G_AT_MORPH) * 0.01f * at + cords.osc_dest(n, OD_MORPH), 0.0f, 1.0f);
         p.frequency_modulation_amount = in->O(n, O_FM) * 0.01f;
         p.timbre_modulation_amount = in->O(n, O_TMOD) * 0.01f;
         p.morph_modulation_amount = in->O(n, O_MMOD) * 0.01f;
@@ -387,6 +469,10 @@ void render_voice(Instance *in, Voice *v, int frames, float lfo) {
         m.level_patched = trig_mode && vca_mode != VCA_LPG;   // LPG mode: TRIG strikes, LEVEL unpatched = accent fixed
 
         v->osc[n].voice.Render(p, m, v->frames, (size_t)frames);
+        if (cords.osc_used[n]) {
+            for (int i = 0; i < frames; i++) v->osc_audio[n][i] = clampf(v->frames[i].out * (1.5f / 32768.0f), -1.0f, 1.0f);
+            v->osc_last[n] = v->osc_audio[n][frames - 1];
+        }
         float wet = in->O(n, O_MIX) * 0.01f;
         float dry = 1.0f - wet;
         float g = level * level / 32768.0f;
@@ -396,18 +482,25 @@ void render_voice(Instance *in, Voice *v, int frames, float lfo) {
     if (v->trig_low_chunks > 0) v->trig_low_chunks--;
 
     // noise before the filter
-    float noise = in->P(G_NOISE) * 0.01f;
-    if (noise > 0.0f) {
-        float g = noise * noise * 0.5f;
+    if (cords.noise_used) {
+        for (int i = 0; i < frames; i++) v->noise_audio[i] = v->noise.tick();
+        v->noise_last = v->noise_audio[frames - 1];
+    }
+    if (noise_level > 0.0f) {
+        float g = noise_level * noise_level * 0.5f;
         if (vca_mode == VCA_LPG) g *= v->env.value;   // Plaits' gate does not reach the noise, so the envelope shapes it
-        for (int i = 0; i < frames; i++) mix[i] += g * v->noise.tick();
+        for (int i = 0; i < frames; i++) mix[i] += g * (cords.noise_used ? v->noise_audio[i] : v->noise.tick());
     }
 
     // filter, envelope, VCA
     float drive = in->P(G_DRIVE) * 0.01f;
     float pre = 1.0f + drive * 6.0f;
     float post = 1.0f / (1.0f + drive * 2.0f);
-    v->filter.set(cutoff_hz(in, v, env_now, lfo), in->P(G_RESO) * 0.01f, (int)in->P(G_FMODE) == 1);
+    const float base_oct = cutoff_octaves(in, v, env_now, lfo) + cords.amount[D_CUTOFF] * kCordCutoff;
+    const float base_reso = in->P(G_RESO) * 0.01f + cords.amount[D_RESO];
+    const int highpass = (int)in->P(G_FMODE) == 1;
+    v->filter.set(octaves_to_hz(base_oct), base_reso, highpass);
+    const float base_vca = cords.amount[D_VCA];
     v->env.set(in->P(G_ATTACK) * 0.01f, in->P(G_DECAY) * 0.01f, in->P(G_SUSTAIN) * 0.01f, in->P(G_RELEASE) * 0.01f);
     v->menv.set(in->P(G_M_ATTACK) * 0.01f, in->P(G_M_DECAY) * 0.01f, in->P(G_M_SUSTAIN) * 0.01f, in->P(G_M_RELEASE) * 0.01f);
     float vel_amp = in->P(G_VEL_AMP) * 0.01f;
@@ -425,10 +518,19 @@ void render_voice(Instance *in, Voice *v, int frames, float lfo) {
     for (int i = 0; i < frames; i++) {
         float e = v->env.tick();
         v->menv.tick();
+        float cutoff_mod = 0.0f, reso_mod = 0.0f, vca_mod = base_vca;
+        for (int c = 0; c < cords.fast_count; c++) {   // audio-rate cords: the sidebands come from doing this every sample
+            const int source = cords.fast[c].source;
+            const float signal = (source == S_NOISE ? v->noise_audio[i] : v->osc_audio[source - S_OSC1][i]) * cords.fast[c].amount;
+            if (cords.fast[c].dest == D_CUTOFF) cutoff_mod += signal;
+            else if (cords.fast[c].dest == D_RESO) reso_mod += signal;
+            else vca_mod += signal;
+        }
+        if (cords.fast_filter) v->filter.set(octaves_to_hz(base_oct + cutoff_mod * kCordCutoff), base_reso + reso_mod, highpass);
         float y = v->filter.tick(mix[i] * pre) * post;
         v->gain_z += (target_gain - v->gain_z) * 0.01f;   // ~2 ms de-click
         float gain = vca_mode == VCA_ENV ? e * vel_gain : v->gain_z;
-        y *= gain;
+        y *= gain * clampf(1.0f + vca_mod, 0.0f, 2.0f);
         in->out[i] += y;
         float a = fabsf(y);
         if (a > peak) peak = a;
@@ -468,6 +570,7 @@ void render_chunk(Instance *in, int16_t *out_lr, int frames) {
     for (int i = 0; i < kVoices; i++)
         if (in->voices[i]->active) pressure = fmaxf(pressure, in->voices[i]->aftertouch);
     float scale = (1.0f - w) + w * in->modwheel + in->P(G_AT_LFO) * 0.01f * pressure;
+    in->lfo_raw = raw;
     in->lfo_value = raw * clampf(scale, 0.0f, 1.5f);
 
     for (int i = 0; i < frames; i++) in->out[i] = 0.0f;

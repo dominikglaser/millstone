@@ -59,6 +59,10 @@ full three-oscillator sound.
 - `src/PluginEditor.{h,cpp}` and `panel.conf` — the one-screen panel: worn metal and wood, all drawn in code, placed by
   `panel.conf`. The MPC skin stays in `../vst/layout.conf`. Point at or move a control to see it on the display; double-click
   a control to reset it, or the value on the display to type one.
+- The patch bay drawer (PATCH button) holds 12 cords between 12 outputs and 20 inputs. Drag from an output to an input to
+  patch, pull a plug out of an input to move or remove it, double-click an input to clear it. Oscillators and noise reach the
+  filter and VCA every sample; into an oscillator they step every 12 samples, like CV into the real module. Set an
+  oscillator's LEVEL to 0 to use it only as a modulator. Cords are ordinary parameters (`cN_src`, `cN_dst`, `cN_amt`).
 - `tools/` — optional checks, built with `-DMILLSTONE_UI_SNAPSHOT=ON`. `ui_snapshot` renders each page to a PNG and
   tests the controls. `behaviour_test` drives the whole plugin and measures pitch, filter, envelope, VCA, LFO, glide,
   voice handling, MIDI and state against what each section should do.

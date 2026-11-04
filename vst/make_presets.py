@@ -25,6 +25,9 @@ for n in (1, 2, 3):
         on="ON" if n == 1 else "OFF", engine="Virtual Analog", harm=50, timbre=50, morph=50, fm=0, timbre_mod=0, morph_mod=0,
         cv_src="LFO", oct=0, semi=0, fine=0, level=100, mix=0).items()})
 
+for n in range(1, 13):   # the patch bay: nothing plugged in unless a preset says so
+    BASE.update({"c%d_src" % n: "OFF", "c%d_dst" % n: "OFF", "c%d_amt" % n: 50})
+
 def o(n, model=None, **kw):
     out = {"o%d_on" % n: "ON"}
     if model: out["o%d_engine" % n] = model

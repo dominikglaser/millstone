@@ -118,6 +118,41 @@ void MillstoneProcessor::setStateInformation(const void* data, int sizeInBytes) 
     }
 }
 
+// ---- patch bay --------------------------------------------------------------------------------------------------
+float MillstoneProcessor::cordValue(int cord, const char* field) const {
+    return apvts.getRawParameterValue("c" + juce::String(cord + 1) + "_" + field)->load();
+}
+
+void MillstoneProcessor::setCordValue(int cord, const char* field, float value) {
+    auto* p = apvts.getParameter("c" + juce::String(cord + 1) + "_" + field);
+    p->beginChangeGesture();
+    p->setValueNotifyingHost(p->convertTo0to1(value));
+    p->endChangeGesture();
+}
+
+int MillstoneProcessor::cordSource(int cord) const { return juce::roundToInt(cordValue(cord, "src")); }
+int MillstoneProcessor::cordDest(int cord) const { return juce::roundToInt(cordValue(cord, "dst")); }
+float MillstoneProcessor::cordAmount(int cord) const { return cordValue(cord, "amt"); }
+
+int MillstoneProcessor::connectCord(int source, int dest, float amount) {
+    if (source <= 0 || dest <= 0) return -1;
+    int freeCord = -1;
+    for (int c = numCords - 1; c >= 0; --c) {
+        if (cordSource(c) == source && cordDest(c) == dest) return c;
+        if (cordSource(c) == 0 || cordDest(c) == 0) freeCord = c;
+    }
+    if (freeCord < 0) return -1;
+    setCordValue(freeCord, "amt", amount);
+    setCordValue(freeCord, "src", (float)source);
+    setCordValue(freeCord, "dst", (float)dest);
+    return freeCord;
+}
+
+void MillstoneProcessor::disconnectCord(int cord) {
+    setCordValue(cord, "src", 0.0f);
+    setCordValue(cord, "dst", 0.0f);
+}
+
 // ---- presets ----------------------------------------------------------------------------------------------------
 const std::vector<MillstoneProcessor::Preset>& MillstoneProcessor::factoryPresets() {
     static const std::vector<Preset> library = [] {

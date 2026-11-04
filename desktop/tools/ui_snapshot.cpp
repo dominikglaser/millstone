@@ -59,6 +59,7 @@ int main(int argc, char** argv) {
     // Every engine parameter should be on the panel, except the popups' internal open/closed helpers.
     for (int i = 0; i < NPARAMS; ++i) {
         const juce::String key(PARAMS[i].key);
+        if (key.startsWithChar('c') && (key.endsWith("_src") || key.endsWith("_dst"))) continue;   // cables, tested below
         if (PARAMS[i].popup_of >= 0 || (PARAMS[i].momentary && PARAMS[i].step_target < 0)) continue;
         const bool found = find(editor, key) != nullptr || find(editor, key + ":0") != nullptr;
         check(found, "on panel: " + key);
@@ -86,6 +87,24 @@ int main(int argc, char** argv) {
     click("lfo_sync");
     editor.refreshFromProcessor();
     check(phase != nullptr && !phase->getParentComponent()->isVisible(), "PHASE hides when SYNC is off");
+
+    // The drawer.
+    const int closedH = editor.getHeight(), width = editor.getWidth();
+    auto* patch = dynamic_cast<juce::Button*>(find(editor, "patch_toggle"));
+    check(patch != nullptr, "PATCH button exists");
+    patch->onClick();
+    check(editor.getWidth() == width && editor.getHeight() > closedH, "PATCH opens the drawer: the window grows and the panel keeps its size");
+    check(proc.patchBayOpen, "the drawer state is remembered");
+    proc.connectCord(1, 7);      // LFO > O1 HARM
+    proc.connectCord(11, 6);     // OSC 2 > O1 PITCH
+    proc.connectCord(12, 2);     // OSC 3 > CUTOFF
+    proc.connectCord(3, 3);      // MOD ENV > RESO
+    proc.connectCord(9, 4);      // NOISE > VCA
+    proc.connectCord(6, 20);     // WHEEL > O3 LEVEL
+    editor.refreshFromProcessor();
+    render("panel_patch");
+    patch->onClick();
+    check(editor.getHeight() == closedH, "and closes back to the same size");
 
     std::cout << (failures == 0 ? "PASSED" : "FAILED") << std::endl;
     return failures == 0 ? 0 : 1;

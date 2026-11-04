@@ -3,7 +3,9 @@
 #include "workout_clock.h"
 #include "fx/Reverb.h"
 #include "fx/SpringReverb.h"
+#include <algorithm>
 #include <array>
+#include <complex>
 #include <map>
 
 namespace {
@@ -270,7 +272,7 @@ struct HeightMap {
 std::vector<juce::Point<float>> screwPositions() {
     const float left = (float)woodW, right = (float)(designW - woodW);
     return { {left + 12, 12}, {right - 12, 12}, {left + 12, designH - 12.0f}, {right - 12, designH - 12.0f}, {740, designH - 12.0f}, {right - 12, 44},
-             {1255, 44}, {1429, 44}, {left + 12, totalH - 10.0f}, {right - 12, totalH - 10.0f}, {left + 12, designH + 11.0f}, {right - 12, designH + 11.0f} };
+             {1269, 44}, {1429, 44}, {left + 12, totalH - 10.0f}, {right - 12, totalH - 10.0f}, {left + 12, designH + 11.0f}, {right - 12, designH + 11.0f} };
 }
 
 // pad grows raised parts, so a scratch stops short of them rather than running under their shadow.
@@ -294,6 +296,8 @@ HeightMap buildHeightMap(float pad) {
         } else if (item.kind == "popup") {
             const float w = (float)item.num("w", 200), h = (float)item.num("h", 38);
             map.rect(cx - w * 0.5f - pad, cy - h * 0.5f - pad, w + 2 * pad, h + 2 * pad, raised);
+        } else if (item.kind == "screen") {
+            map.rect((float)item.num("x") - pad, (float)item.num("y") - pad, (float)item.num("w") + 2 * pad, (float)item.num("h") + 2 * pad, raised);
         } else if (item.kind == "hold") {
             const float w = (float)item.num("w", 60), h = (float)item.num("h", 26);
             map.rect(cx - w * 0.5f - pad, cy - h * 0.5f - pad, w + 2 * pad, h + 2 * pad, raised);
@@ -404,9 +408,35 @@ void paintMetalWear(juce::Graphics& g, const juce::Image& printed, WearCounts* c
     const auto anywhere = [&] { return juce::Point<float>(left + rng.nextFloat() * width, rng.nextFloat() * totalH); };
     WearCounts local;
     // Keeps trying fresh strokes, but never bends the rule to reach the number: a wanted count is only an upper limit.
+    // Old is fine, unreadable is not: no scratch through a control's name.
+    std::vector<juce::Rectangle<float>> names { { left + 14, 12, 400, 60 } };
+    for (const auto& item : panelItems()) {
+        if (item.str("page") == "rack") continue;
+        const float cx = (float)item.num("cx"), cy = (float)item.num("cy"), r = (float)item.num("r", 20);
+        const auto label = item.str("label");
+        if (item.kind == "frame") names.push_back({ (float)item.num("x"), (float)item.num("y"), juce::GlyphArrangement::getStringWidth(printFont(11.5f, true, 0.20f), item.str("title")) + 22.0f, 19.0f });
+        else if (item.kind == "knob") { const float w = juce::GlyphArrangement::getStringWidth(printFont(11.0f), label) + 8.0f; names.push_back({ cx - w * 0.5f, cy + r + 8, w, 17 }); }
+        else if (item.kind == "fader") names.push_back({ cx - 12, cy + (float)item.num("h", 160) * 0.5f + 5, 24, 18 });
+        else if (item.kind == "toggle") names.push_back({ cx - 44, cy - 8, 88, 44 });
+        else if (label.isNotEmpty() && (item.kind == "enum_v" || item.kind == "enum_h" || item.kind == "popup")) {
+            const auto* def = findEngineParam(item.str("key"));
+            const float h = item.kind == "enum_v" ? (float)((def != nullptr ? def->nopts : 1) * (item.num("sh", 26) + 3)) : (float)item.num("h", item.num("sh", 26));
+            const float w = juce::GlyphArrangement::getStringWidth(printFont(10.5f), label) + 8.0f;
+            names.push_back({ cx - w * 0.5f, cy - h * 0.5f - 18, w, 16 });
+        }
+    }
+    const auto missesNames = [&names](const std::vector<juce::Point<float>>& stroke) {
+        for (size_t i = 0; i < stroke.size(); ++i) {
+            const auto a = stroke[i], b = stroke[juce::jmin(i + 1, stroke.size() - 1)];
+            for (const auto& name : names)
+                for (int k = 0; k <= 4; ++k)
+                    if (name.contains(a + (b - a) * (float)k * 0.25f)) return false;
+        }
+        return true;
+    };
     const auto attempt = [&](const HeightMap& clearance, const std::vector<juce::Point<float>>& stroke, float maxTurn, float w, float alpha) {
         ++local.tried;
-        if (!scratchIsFeasible(clearance, stroke, maxTurn)) return false;
+        if (!scratchIsFeasible(clearance, stroke, maxTurn) || !missesNames(stroke)) return false;
         ++local.drawn;
         drawScratch(g, ink, stroke, w, alpha);
         return true;
@@ -425,7 +455,7 @@ void paintMetalWear(juce::Graphics& g, const juce::Image& printed, WearCounts* c
         bool possible = true;
         for (int i = 0; i < lines && possible; ++i) {
             strokes.push_back(scratchStroke(rng, origin + across * ((float)i * 2.2f + rng.nextFloat() * 1.6f), angle, length * (0.6f + rng.nextFloat() * 0.5f), 0.02f));
-            possible = scratchIsFeasible(heavy, strokes.back(), 0.15f);
+            possible = scratchIsFeasible(heavy, strokes.back(), 0.15f) && missesNames(strokes.back());
         }
         ++local.tried;
         if (!possible) continue;
@@ -456,6 +486,7 @@ void paintMetalWear(juce::Graphics& g, const juce::Image& printed, WearCounts* c
     const auto fleck = [&](juce::Point<float> p) {
         if (!ink.at(p.x, p.y) || map.at(p.x, p.y) != flat) return;
         const float d = 0.3f + rng.nextFloat() * rng.nextFloat() * 1.5f;
+        if (d > 0.7f) for (const auto& name : names) if (name.contains(p)) return;
         g.setColour(bare.withAlpha(0.35f + rng.nextFloat() * 0.55f));
         g.fillEllipse(p.x, p.y, d, d * (0.5f + rng.nextFloat()));
     };
@@ -546,7 +577,8 @@ juce::Image makePanelArt(bool wear = true, WearCounts* counts = nullptr) {
         } else if (item.kind == "toggle") {
             g.setColour(ink);
             g.setFont(printFont(10.5f));
-            g.drawText(item.str("label"), juce::Rectangle<float>((float)item.num("cx") - 40, (float)item.num("cy") + 20, 80, 13), juce::Justification::centred);
+            if (item.str("labelpos") == "left") g.drawText(item.str("label"), juce::Rectangle<float>((float)item.num("cx") - 44, (float)item.num("cy") - 7, 26, 13), juce::Justification::centredRight);
+            else g.drawText(item.str("label"), juce::Rectangle<float>((float)item.num("cx") - 40, (float)item.num("cy") + 20, 80, 13), juce::Justification::centred);
         }
     }
 
@@ -649,6 +681,7 @@ public:
     juce::String whenKey, whenValue;   // panel.conf's `when=key:VALUE`
     juce::String page;                 // which drawer page it is on, if any
     int channel = -1;                  // which clock output, if any
+    virtual void refresh() {}          // for what has to follow parameters by hand
 };
 
 class SliderControl : public Control {
@@ -700,23 +733,38 @@ public:
     void paintButton(juce::Graphics& g, bool over, bool down) override {
         const bool on = getToggleState();
         if (dark) { paintDark(g, on, over, down); return; }
-        auto r = getLocalBounds().toFloat().reduced(0.5f);
-        g.setColour(juce::Colours::black.withAlpha(0.55f));
-        g.fillRoundedRectangle(r.translated(0, 1.2f), 2.5f);
-        const float press = (on || down) ? 0.9f : 0.0f;
-        const auto cap = r.withTrimmedBottom(1.2f - press * 0.6f).translated(0, press * 0.6f);
-        auto top = capFill.brighter(over ? 0.1f : 0.04f), bottom = capFill.darker(0.28f);
-        if (on) { top = top.darker(0.10f); bottom = bottom.darker(0.05f); }
-        g.setGradientFill(juce::ColourGradient(top, 0, cap.getY(), bottom, 0, cap.getBottom(), false));
-        g.fillRoundedRectangle(cap, 2.5f);
-        g.setColour(juce::Colours::white.withAlpha(0.45f));
-        g.drawLine(cap.getX() + 2, cap.getY() + 0.6f, cap.getRight() - 2, cap.getY() + 0.6f, 0.8f);
+        const auto r = getLocalBounds().toFloat().reduced(0.5f);
+        const bool pressed = on || down;
+        juce::Rectangle<float> cap;
+        if (pressed) {
+            // Pushed in: down inside its well, darker, with the edge of the panel throwing a shadow across its top.
+            g.setColour(juce::Colour(0xff17150f));
+            g.fillRoundedRectangle(r, 3.0f);
+            g.setColour(juce::Colours::white.withAlpha(0.35f));
+            g.drawLine(r.getX() + 2, r.getBottom() + 0.3f, r.getRight() - 2, r.getBottom() + 0.3f, 0.8f);
+            cap = r.reduced(1.3f).withTrimmedTop(1.2f);
+            g.setGradientFill(juce::ColourGradient(capFill.darker(0.62f), 0, cap.getY(), capFill.darker(0.34f), 0, cap.getBottom(), false));
+            g.fillRoundedRectangle(cap, 2.0f);
+            g.setGradientFill(juce::ColourGradient(juce::Colours::black.withAlpha(0.5f), 0, cap.getY(), juce::Colours::transparentBlack, 0, cap.getY() + 5.0f, false));
+            g.fillRoundedRectangle(cap.withHeight(5.0f), 2.0f);
+        } else {
+            // Standing proud: a shadow on the panel, its front wall in view, a lit top edge.
+            g.setColour(juce::Colours::black.withAlpha(0.45f));
+            g.fillRoundedRectangle(r.translated(0.6f, 2.0f), 3.0f);
+            g.setColour(capFill.darker(0.75f));
+            g.fillRoundedRectangle(r, 3.0f);
+            cap = r.withTrimmedBottom(3.0f);
+            g.setGradientFill(juce::ColourGradient(capFill.brighter(over ? 0.22f : 0.14f), 0, cap.getY(), capFill.darker(0.08f), 0, cap.getBottom(), false));
+            g.fillRoundedRectangle(cap, 2.5f);
+            g.setColour(juce::Colours::white.withAlpha(0.7f));
+            g.drawLine(cap.getX() + 2, cap.getY() + 0.7f, cap.getRight() - 2, cap.getY() + 0.7f, 1.0f);
+        }
         // lamp
         const auto lamp = juce::Rectangle<float>(5.0f, 5.0f).withCentre({ cap.getX() + 8.5f, cap.getCentreY() });
-        if (on) { g.setColour(ledOn.withAlpha(0.28f)); g.fillEllipse(lamp.expanded(2.5f)); }
+        if (on) { g.setColour(ledOn.withAlpha(0.32f)); g.fillEllipse(lamp.expanded(3.0f)); }
         g.setColour(on ? ledOn : ledOff);
         g.fillEllipse(lamp);
-        g.setColour(capInk);
+        g.setColour(pressed ? capInk.brighter(0.05f) : capInk);
         g.setFont(printFont(10.5f, true, 0.04f));
         g.drawFittedText(getButtonText(), cap.withTrimmedLeft(13).toNearestInt(), juce::Justification::centred, 1, 0.7f);
     }
@@ -881,24 +929,37 @@ private:
 
 // The - / + model buttons, small rubber caps. Same behaviour as the MPC build: wraps around the list.
 void Segment::paintDark(juce::Graphics& g, bool on, bool over, bool down) {
-    auto r = getLocalBounds().toFloat().reduced(0.5f);
-    g.setColour(juce::Colours::black.withAlpha(0.8f));
-    g.fillRoundedRectangle(r.translated(0, 1.5f), 2.5f);
-    const float press = (on || down) ? 1.0f : 0.0f;
-    const auto cap = r.withTrimmedBottom(1.5f - press * 0.7f).translated(0, press * 0.7f);
-    auto top = juce::Colour(over ? 0xff3a3a3d : 0xff303033), bottom = juce::Colour(0xff121214);
-    if (on || down) { top = top.darker(0.25f); bottom = bottom.darker(0.2f); }
-    g.setGradientFill(juce::ColourGradient(top, 0, cap.getY(), bottom, 0, cap.getBottom(), false));
-    g.fillRoundedRectangle(cap, 2.5f);
-    g.setColour(juce::Colours::white.withAlpha(0.20f));
-    g.drawLine(cap.getX() + 2, cap.getY() + 0.6f, cap.getRight() - 2, cap.getY() + 0.6f, 0.8f);
+    const auto r = getLocalBounds().toFloat().reduced(0.5f);
+    const bool pressed = on || down;
+    juce::Rectangle<float> cap;
+    if (pressed) {
+        g.setColour(juce::Colour(0xff020203));
+        g.fillRoundedRectangle(r, 3.0f);
+        g.setColour(juce::Colours::white.withAlpha(0.14f));
+        g.drawLine(r.getX() + 2, r.getBottom() + 0.3f, r.getRight() - 2, r.getBottom() + 0.3f, 0.8f);
+        cap = r.reduced(1.3f).withTrimmedTop(1.2f);
+        g.setGradientFill(juce::ColourGradient(juce::Colour(0xff09090a), 0, cap.getY(), juce::Colour(0xff17171a), 0, cap.getBottom(), false));
+        g.fillRoundedRectangle(cap, 2.0f);
+        g.setColour(lampOn.withAlpha(on ? 0.6f : 0.25f));
+        g.drawRoundedRectangle(cap, 2.0f, 0.9f);
+    } else {
+        g.setColour(juce::Colours::black.withAlpha(0.8f));
+        g.fillRoundedRectangle(r.translated(0.5f, 2.0f), 3.0f);
+        g.setColour(juce::Colour(0xff0b0b0c));
+        g.fillRoundedRectangle(r, 3.0f);
+        cap = r.withTrimmedBottom(3.0f);
+        g.setGradientFill(juce::ColourGradient(juce::Colour(over ? 0xff4a4a4e : 0xff3e3e42), 0, cap.getY(), juce::Colour(0xff1b1b1e), 0, cap.getBottom(), false));
+        g.fillRoundedRectangle(cap, 2.5f);
+        g.setColour(juce::Colours::white.withAlpha(0.28f));
+        g.drawLine(cap.getX() + 2, cap.getY() + 0.7f, cap.getRight() - 2, cap.getY() + 0.7f, 1.0f);
+    }
     if (lamp) {
         const auto led = juce::Rectangle<float>(5.0f, 5.0f).withCentre({ cap.getX() + 8.5f, cap.getCentreY() });
         if (on) { g.setColour(lampOn.withAlpha(0.32f)); g.fillEllipse(led.expanded(3.0f)); }
         g.setColour(on ? lampOn : lampOn.withMultipliedBrightness(0.22f));
         g.fillEllipse(led);
     }
-    g.setColour(cream);
+    g.setColour(on ? lampOn.brighter(0.5f) : cream);
     g.setFont(printFont(juce::jlimit(10.5f, 15.0f, (float)getHeight() * 0.40f), true, 0.05f));
     g.drawFittedText(getButtonText(), cap.withTrimmedLeft(lamp ? 13.0f : 0.0f).toNearestInt(), juce::Justification::centred, 1, 0.7f);
 }
@@ -957,10 +1018,10 @@ private:
         explicit Cap(const juce::String& text) : juce::Button(text) {}
         void paintButton(juce::Graphics& g, bool over, bool down) override {
             auto r = getLocalBounds().toFloat().reduced(2.0f);
-            g.setColour(juce::Colours::black.withAlpha(0.55f));
-            g.fillRoundedRectangle(r.translated(0, 1.5f), 4.0f);
-            if (down) r = r.translated(0, 1.0f);
-            g.setGradientFill(juce::ColourGradient(juce::Colour(over ? 0xff46453f : 0xff3a3934), 0, r.getY(), juce::Colour(0xff15140f), 0, r.getBottom(), false));
+            g.setColour(juce::Colours::black.withAlpha(down ? 0.9f : 0.55f));
+            g.fillRoundedRectangle(down ? r : r.translated(0.5f, 2.0f), 4.0f);
+            if (down) r = r.reduced(1.2f).translated(0, 0.8f);
+            g.setGradientFill(juce::ColourGradient(juce::Colour(down ? 0xff0b0a08 : over ? 0xff46453f : 0xff3a3934), 0, r.getY(), juce::Colour(down ? 0xff23221d : 0xff15140f), 0, r.getBottom(), false));
             g.fillRoundedRectangle(r, 4.0f);
             g.setColour(juce::Colours::white.withAlpha(0.2f));
             g.drawLine(r.getX() + 3, r.getY() + 0.7f, r.getRight() - 3, r.getY() + 0.7f, 0.8f);
@@ -975,6 +1036,7 @@ private:
 };
 
 #include "RackPage.inc"
+#include "PanelScreens.inc"
 
 } // namespace
 
@@ -1126,13 +1188,27 @@ struct MillstoneEditor::LookAndFeel : juce::LookAndFeel_V4 {
     juce::Font getPopupMenuFont() override { return displayFont(14.0f); }
 
     void drawButtonBackground(juce::Graphics& g, juce::Button& b, const juce::Colour&, bool over, bool down) override {
-        auto r = b.getLocalBounds().toFloat().reduced(1.0f);
-        g.setColour(juce::Colours::black.withAlpha(0.55f));
-        g.fillRoundedRectangle(r.translated(0, 1.4f), 3.0f);
-        if (down) r = r.translated(0, 1.0f);
+        const auto well = b.getLocalBounds().toFloat().reduced(1.0f);
         const float alpha = b.isEnabled() ? 1.0f : 0.55f;
-        g.setGradientFill(juce::ColourGradient(juce::Colour(over ? 0xff46453f : 0xff3a3934).withMultipliedAlpha(alpha), 0, r.getY(), juce::Colour(0xff15140f).withMultipliedAlpha(alpha), 0, r.getBottom(), false));
-        g.fillRoundedRectangle(r, 3.0f);
+        if (down || b.getToggleState()) {   // pushed in, as on the panel's other keys
+            g.setColour(juce::Colour(0xff020202));
+            g.fillRoundedRectangle(well, 3.0f);
+            g.setColour(juce::Colours::white.withAlpha(0.28f));
+            g.drawLine(well.getX() + 2, well.getBottom() + 0.3f, well.getRight() - 2, well.getBottom() + 0.3f, 0.8f);
+            const auto cap = well.reduced(1.3f).withTrimmedTop(1.2f);
+            g.setGradientFill(juce::ColourGradient(juce::Colour(0xff08080a), 0, cap.getY(), juce::Colour(0xff1b1a16), 0, cap.getBottom(), false));
+            g.fillRoundedRectangle(cap, 2.0f);
+        } else {
+            g.setColour(juce::Colours::black.withAlpha(0.6f));
+            g.fillRoundedRectangle(well.translated(0.5f, 2.0f), 3.0f);
+            g.setColour(juce::Colour(0xff060605));
+            g.fillRoundedRectangle(well, 3.0f);
+            const auto cap = well.withTrimmedBottom(3.0f);
+            g.setGradientFill(juce::ColourGradient(juce::Colour(over ? 0xff53524a : 0xff45443d).withMultipliedAlpha(alpha), 0, cap.getY(), juce::Colour(0xff1c1b17).withMultipliedAlpha(alpha), 0, cap.getBottom(), false));
+            g.fillRoundedRectangle(cap, 2.5f);
+            g.setColour(juce::Colours::white.withAlpha(0.22f * alpha));
+            g.drawLine(cap.getX() + 2, cap.getY() + 0.7f, cap.getRight() - 2, cap.getY() + 0.7f, 1.0f);
+        }
     }
     juce::Font getTextButtonFont(juce::TextButton&, int) override { return printFont(11.5f); }
 
@@ -1148,13 +1224,11 @@ struct MillstoneEditor::PresetBar : juce::Component {
         patch.onClick = [this] { if (onPatch) onPatch(); };
         rack.setComponentID("rack_toggle");
         rack.onClick = [this] { if (onRack) onRack(); };
-        category.setComponentID("preset_category");
-        presetList.setComponentID("preset_list");
+        current.setComponentID("preset_open");
+        current.onClick = [this] { if (onBrowse) onBrowse(); };
         previous.setComponentID("preset_prev");
         next.setComponentID("preset_next");
-        presetList.setTextWhenNothingSelected("Custom");
-        addAndMakeVisible(category);
-        addAndMakeVisible(presetList);
+        addAndMakeVisible(current);
         readoutName.setFont(displayFont(13.0f));
         readoutName.setColour(juce::Label::textColourId, amberDim.brighter(0.5f));
         readoutName.setJustificationType(juce::Justification::centredLeft);
@@ -1173,20 +1247,17 @@ struct MillstoneEditor::PresetBar : juce::Component {
             if (shown != nullptr) { shown->setValue(readoutValue.getText().getDoubleValue(), juce::sendNotificationSync); showValue(); }
         };
         addAndMakeVisible(readoutValue);
-        category.onChange = [this] { categoryChanged(); };
-        presetList.onChange = [this] { if (presetList.getSelectedId() > 0) load(entries[(size_t)presetList.getSelectedId() - 1]); };
         previous.onClick = [this] { step(-1); };
         next.onClick = [this] { step(1); };
         save.onClick = [this] { askToSave(); };
         remove.onClick = [this] { askToDelete(); };
-        rebuild();
+        reloadLibrary();
         sync(true);
     }
 
     void resized() override {
         // Inside the display; the buttons sit on the metal to its right.
-        category.setBounds(8, 2, 150, 28);
-        presetList.setBounds(166, 2, 300, 28);
+        current.setBounds(0, 0, 610, 31);
         readoutName.setBounds(8, 32, 330, 24);
         readoutValue.setBounds(336, 32, 266, 24);
         previous.setBounds(626, 4, 28, 26);
@@ -1208,8 +1279,8 @@ struct MillstoneEditor::PresetBar : juce::Component {
         g.fillRoundedRectangle(glass.withHeight(26), 3.0f);
     }
 
-    std::function<void()> onPatch, onRack;
-    void setPatchLit(bool lit) { patch.setColour(juce::TextButton::textColourOffId, lit ? amber : cream); patch.repaint(); }
+    std::function<void()> onPatch, onRack, onBrowse, onLibraryChanged;
+    void setPatchLit(bool lit) { patch.setToggleState(lit, juce::dontSendNotification); patch.setColour(juce::TextButton::textColourOffId, lit ? amber : cream); patch.repaint(); }
     void stepPreset(int delta) { step(delta); }
 
     void show(juce::Slider* slider, juce::RangedAudioParameter* param) {
@@ -1235,14 +1306,82 @@ struct MillstoneEditor::PresetBar : juce::Component {
         const auto name = processor.getCurrentPresetName();
         if (!force && name == lastName) return;
         lastName = name;
-        const auto* current = find(name);
-        if (current != nullptr && category.getSelectedId() > 1 && category.getText() != current->category)
-            category.setSelectedId(1, juce::dontSendNotification);
         fillList();
     }
 
+    // The library in the order the browser lists it, and which of it the filter leaves.
+    struct Entry { juce::String name; int program; const MillstoneProcessor::Preset* preset; };   // program < 0: a user preset
+    const std::vector<Entry>& allEntries() const { return entries; }
+    const std::vector<int>& filteredEntries() const { return filtered; }
+    void loadEntry(int index) { load(entries[(size_t)index]); }
+
+    static juce::String typeOf(const Entry& e) { return e.preset != nullptr ? e.preset->type : juce::String("User"); }
+
+    static bool matches(const Entry& e, const MillstoneProcessor::BrowserFilter& f, const juce::StringArray& favourites, const std::map<juce::String, juce::String>& flags) {
+        const auto any = [](const juce::StringArray& wanted, const juce::StringArray& has) {
+            if (wanted.isEmpty()) return true;
+            for (const auto& w : wanted) if (has.contains(w)) return true;
+            return false;
+        };
+        const auto* p = e.preset;
+        if (!f.types.isEmpty() && !f.types.contains(typeOf(e))) return false;
+        if (!f.packs.isEmpty() && !f.packs.contains(p != nullptr ? p->pack : juce::String("User"))) return false;
+        if (f.favouritesOnly && !favourites.contains(e.name)) return false;
+        if (f.flaggedOnly && flags.find(e.name) == flags.end()) return false;
+        if (p == nullptr) {
+            if (!f.styles.isEmpty() || !f.character.isEmpty() || !f.uses.isEmpty() || !f.plays.isEmpty()) return false;
+        } else if (!any(f.styles, p->styles) || !any(f.character, p->character) || !any(f.uses, p->uses) || !any(f.plays, p->plays)) {
+            return false;
+        }
+        if (f.search.isNotEmpty()) {   // every word has to be somewhere about it
+            juce::String hay = e.name + " " + typeOf(e);
+            if (p != nullptr) hay << " " << p->note << " " << p->pack << " " << p->styles.joinIntoString(" ") << " " << p->character.joinIntoString(" ") << " " << p->uses.joinIntoString(" ") << " " << p->plays.joinIntoString(" ");
+            juce::StringArray tokens;
+            tokens.addTokens(f.search, " ", "");
+            for (const auto& token : tokens)
+                if (token.isNotEmpty() && !hay.containsIgnoreCase(token)) return false;
+        }
+        return true;
+    }
+
+    void refilter() {
+        const auto favourites = processor.favourites();
+        const auto flags = processor.flags();
+        filtered.clear();
+        for (int i = 0; i < (int)entries.size(); ++i)
+            if (matches(entries[(size_t)i], processor.browserFilter, favourites, flags)) filtered.push_back(i);
+        fillList();
+    }
+
+    void reloadLibrary() { rebuild(); refilter(); }
+
+    void paintDisplayName(juce::Graphics& g, bool over) const {
+        const auto name = processor.getCurrentPresetName();
+        const auto* e = find(name);
+        const auto type = e != nullptr ? typeOf(*e) : juce::String();
+        g.setFont(displayFont(13.0f));
+        g.setColour(amberDim.brighter(over ? 0.7f : 0.4f));
+        if (type != name) g.drawText(type, 10, 3, 92, 24, juce::Justification::centredLeft);
+        g.setFont(displayFont(16.0f));
+        drawGlowText(g, name.isEmpty() ? juce::String("Custom") : name, { 104, 3, 300, 24 }, juce::Justification::centredLeft);
+        g.setFont(displayFont(11.0f));
+        g.setColour(amberDim.brighter(over ? 0.7f : 0.3f));
+        const bool narrowed = (int)filtered.size() != (int)entries.size();
+        g.drawText((narrowed ? juce::String((int)filtered.size()) + " of " + juce::String((int)entries.size()) : juce::String((int)entries.size()) + " presets"), 400, 3, 110, 24, juce::Justification::centredRight);
+        g.setFont(displayFont(11.0f));
+        g.setColour(amber.withAlpha(over ? 1.0f : 0.75f));
+        g.drawText("BROWSE", 520, 3, 54, 24, juce::Justification::centredRight);
+        juce::Path arrow;
+        arrow.addTriangle(580.0f, 12.0f, 592.0f, 12.0f, 586.0f, 19.0f);
+        g.fillPath(arrow);
+    }
+
 private:
-    struct Entry { juce::String name, category; int program; };   // program < 0: a user preset
+    struct NameButton : juce::Button {
+        explicit NameButton(PresetBar& b) : juce::Button("preset"), bar(b) {}
+        void paintButton(juce::Graphics& g, bool over, bool) override { bar.paintDisplayName(g, over); }
+        PresetBar& bar;
+    };
 
     void showValue() { if (shown != nullptr) readoutValue.setText(sliderText(*shown, shownInt), juce::dontSendNotification); }
 
@@ -1252,36 +1391,24 @@ private:
     }
 
     void rebuild() {
-        const auto shownCategory = category.getSelectedId() > 1 ? category.getText() : juce::String();
-        entries.clear();
         const auto& library = MillstoneProcessor::factoryPresets();
-        for (int i = 0; i < (int)library.size(); ++i)
-            entries.push_back({ library[(size_t)i].name, library[(size_t)i].category, i });
+        // Init, then by type in the order players look for them, then by name. User presets last.
+        static const juce::StringArray order { "Init", "Bass", "Lead", "Pad", "Keys", "Pluck", "Perc", "Sequence", "Riser/FX", "Texture", "Drone" };
+        std::vector<Entry> factory;
+        for (int i = 0; i < (int)library.size(); ++i) factory.push_back({ library[(size_t)i].name, i, &library[(size_t)i] });
+        std::stable_sort(factory.begin(), factory.end(), [](const Entry& a, const Entry& b) {
+            const int ta = order.indexOf(a.preset->type), tb = order.indexOf(b.preset->type);
+            return ta != tb ? ta < tb : a.name.compareIgnoreCase(b.name) < 0;
+        });
+        entries = std::move(factory);
         for (const auto& name : processor.userPresetNames())
-            entries.push_back({ name, "User", -1 });
-        category.clear(juce::dontSendNotification);
-        category.addItem("All", 1);
-        juce::StringArray seen;
-        for (const auto& e : entries)
-            if (seen.addIfNotAlreadyThere(e.category))
-                category.addItem(e.category, seen.size() + 1);
-        const int restored = seen.indexOf(shownCategory);
-        category.setSelectedId(restored >= 0 ? restored + 2 : 1, juce::dontSendNotification);
+            entries.push_back({ name, -1, nullptr });
     }
 
     void fillList() {
-        presetList.clear(juce::dontSendNotification);
-        const bool all = category.getSelectedId() <= 1;
-        const auto shownCategory = category.getText();
-        for (int i = 0; i < (int)entries.size(); ++i)
-            if (all || entries[(size_t)i].category == shownCategory)
-                presetList.addItem(entries[(size_t)i].name, i + 1);
-        const auto name = processor.getCurrentPresetName();
-        for (int i = 0; i < (int)entries.size(); ++i)
-            if (entries[(size_t)i].name == name && (all || entries[(size_t)i].category == shownCategory))
-                presetList.setSelectedId(i + 1, juce::dontSendNotification);
-        const auto* current = find(name);
-        remove.setEnabled(current != nullptr && current->program < 0);
+        const auto* e = find(processor.getCurrentPresetName());
+        remove.setEnabled(e != nullptr && e->program < 0);
+        current.repaint();
     }
 
     void load(const Entry& e) {
@@ -1290,19 +1417,15 @@ private:
         sync(true);
     }
 
-    void categoryChanged() {
-        fillList();
-        // Land on something playable, unless what is playing already belongs here.
-        if (presetList.getSelectedId() == 0 && presetList.getNumItems() > 0)
-            load(entries[(size_t)presetList.getItemId(0) - 1]);
-    }
-
+    // Through what the browser left, wherever the current preset is.
     void step(int delta) {
-        const int count = presetList.getNumItems();
-        if (count == 0) return;
-        const int at = presetList.indexOfItemId(presetList.getSelectedId());
-        const int to = at < 0 ? 0 : ((at + delta) % count + count) % count;
-        load(entries[(size_t)presetList.getItemId(to) - 1]);
+        if (filtered.empty()) return;
+        const auto name = processor.getCurrentPresetName();
+        int at = -1;
+        for (int i = 0; i < (int)filtered.size(); ++i) if (entries[(size_t)filtered[(size_t)i]].name == name) at = i;
+        const int count = (int)filtered.size();
+        const int to = at < 0 ? (delta > 0 ? 0 : count - 1) : ((at + delta) % count + count) % count;
+        load(entries[(size_t)filtered[(size_t)to]]);
     }
 
     void saved(const juce::String& name) {
@@ -1312,9 +1435,9 @@ private:
                 .withButton("OK").withAssociatedComponent(this), nullptr);
             return;
         }
-        rebuild();
-        category.setSelectedId(1, juce::dontSendNotification);
+        reloadLibrary();
         sync(true);
+        if (onLibraryChanged) onLibraryChanged();
     }
 
     void askToSave() {
@@ -1342,21 +1465,25 @@ private:
             juce::ModalCallbackFunction::create([self, name](int ok) {
                 if (self == nullptr || ok == 0) return;
                 self->processor.deleteUserPreset(name);
-                self->rebuild();
+                self->reloadLibrary();
                 self->sync(true);
+                if (self->onLibraryChanged) self->onLibraryChanged();
             }));
     }
 
     MillstoneProcessor& processor;
-    juce::ComboBox category, presetList;
+    NameButton current { *this };
     juce::TextButton previous { "<" }, next { ">" }, patch { "PATCH" }, rack { "RACK" }, save { "SAVE" }, remove { "DELETE" };
     juce::Label readoutName, readoutValue;
     juce::Slider* shown = nullptr;
     bool shownInt = false;
     std::vector<Entry> entries;
+    std::vector<int> filtered;
     juce::String lastName;
     std::unique_ptr<juce::AlertWindow> dialog;
 };
+
+#include "PresetBrowser.inc"
 
 // The cables and the jacks' mouse handling. Drag between an output and an input to patch; pull a plug out of an input to
 // move or remove that cord; double-click an input to unplug everything in it.
@@ -1716,6 +1843,10 @@ struct MillstoneEditor::RackMaster : juce::Component {
         previous.setBounds((int)screen.getRight() + 16, 49, 40, 32);
         next.setBounds((int)screen.getRight() + 60, 49, 40, 32);
         panel.setBounds(1270, 49, 90, 32);
+        browse.setBounds(screen.withWidth(280).toNearestInt());
+        browse.setComponentID("rack_browse");
+        browse.setAlpha(0.0f);
+        addAndMakeVisible(browse);
         previous.setComponentID("rack_preset_prev");
         next.setComponentID("rack_preset_next");
         panel.setComponentID("rack_back");
@@ -1748,6 +1879,7 @@ struct MillstoneEditor::RackMaster : juce::Component {
     const juce::Rectangle<float> screen { 420, 44, 640, 42 };
     MillstoneProcessor& processor;
     Segment previous { "<" }, next { ">" }, panel { "PANEL" };
+    juce::TextButton browse;
     juce::Slider* shown = nullptr;
     juce::RangedAudioParameter* param = nullptr;
     juce::String name, valueText, lastStamp;
@@ -1803,6 +1935,7 @@ MillstoneEditor::MillstoneEditor(MillstoneProcessor& p)
         else if (item.kind == "popup") c = std::make_unique<PopupControl>(item, processor.apvts, *lnf);
         else if (item.kind == "button") c = std::make_unique<StepControl>(item, processor.apvts);
         else if (item.kind == "hold") c = std::make_unique<HoldControl>(item, processor.apvts);
+        else if (item.kind == "screen") c = std::make_unique<ScreenControl>(item, processor);
         if (c == nullptr) continue;
         const auto when = item.str("when");
         c->whenKey = when.upToFirstOccurrenceOf(":", false, false);
@@ -1817,6 +1950,8 @@ MillstoneEditor::MillstoneEditor(MillstoneProcessor& p)
     presetBar->setInterceptsMouseClicks(false, true);
     presetBar->onPatch = [this] { setPatchBayOpen(!processor.patchBayOpen); };
     presetBar->onRack = [this] { setRackOpen(true); };
+    presetBar->onBrowse = [this] { setBrowserOpen(true); };
+    rack->master->browse.onClick = [this] { setBrowserOpen(true); };
     rack->master->panel.onClick = [this] { setRackOpen(false); };
     rack->master->previous.onClick = [this] { presetBar->stepPreset(-1); };
     rack->master->next.onClick = [this] { presetBar->stepPreset(1); };
@@ -1839,11 +1974,25 @@ MillstoneEditor::MillstoneEditor(MillstoneProcessor& p)
 
     setResizable(true, true);
     setSize(designW * 85 / 100, designH * 85 / 100);
+    browser = std::make_unique<PresetBrowser>(processor, *presetBar, [this] { setBrowserOpen(false); });
+    content.addChildComponent(*browser);
+
     setPatchBayOpen(processor.patchBayOpen);
     setRackOpen(processor.rackOpen);
 }
 
+void MillstoneEditor::setBrowserOpen(bool open) {
+    if (open) {
+        browser->setBounds(0, 0, designW, processor.rackOpen ? rackH : processor.patchBayOpen ? totalH : designH);
+        browser->toFront(false);
+        browser->opened();
+    }
+    browser->setVisible(open);
+    if (open) browser->grabKeyboardFocus();
+}
+
 void MillstoneEditor::setRackOpen(bool open) {
+    setBrowserOpen(false);
     processor.rackOpen = open;
     rack->setVisible(open);
     if (open) rack->toFront(false);
@@ -1855,6 +2004,7 @@ void MillstoneEditor::setRackOpen(bool open) {
 }
 
 void MillstoneEditor::setPatchBayOpen(bool open) {
+    if (browser != nullptr) setBrowserOpen(false);
     processor.patchBayOpen = open;
     presetBar->setPatchLit(open);
     fitWindowHeight();
@@ -1895,8 +2045,10 @@ void MillstoneEditor::timerCallback() {
             show = p != nullptr && same != negate;
         }
         if (c->isVisible() != show) c->setVisible(show);
+        if (show) c->refresh();
     }
     if (processor.rackOpen) rack->refresh();
+    if (browser != nullptr && browser->isVisible()) browser->sync();
     clockLcd->refresh();
     presetBar->sync();
     patchBay->sync();
@@ -1942,11 +2094,14 @@ juce::StringArray MillstoneEditor::layoutProblems() {
             if (label.isNotEmpty()) parts.push_back({ name + " label", textRect(label, printFont(10.5f), cx, cy - h * 0.5f - 15, 12), &item, true });
         } else if (item.kind == "toggle") {
             parts.push_back({ name, { cx - 15, cy - 18, 44, 36 }, &item, true });
-            parts.push_back({ name + " label", textRect(label, printFont(10.5f), cx, cy + 20, 12), &item, true });
+            if (item.str("labelpos") == "left") parts.push_back({ name + " label", { cx - 44, cy - 7, 26, 13 }, &item, true });
+            else parts.push_back({ name + " label", textRect(label, printFont(10.5f), cx, cy + 20, 12), &item, true });
         } else if (item.kind == "popup") {
             const float w = (float)item.num("w", 200), h = (float)item.num("h", 38);
             parts.push_back({ name, { cx - w * 0.5f, cy - h * 0.5f, w, h }, &item, true });
             if (label.isNotEmpty()) parts.push_back({ name + " label", textRect(label, printFont(10.5f), cx, cy - h * 0.5f - 15, 12), &item, true });
+        } else if (item.kind == "screen") {
+            parts.push_back({ name + " screen", { (float)item.num("x"), (float)item.num("y"), (float)item.num("w"), (float)item.num("h") }, &item, true });
         } else if (item.kind == "hold") {
             const float w = (float)item.num("w", 60), h = (float)item.num("h", 26);
             parts.push_back({ name, { cx - w * 0.5f, cy - h * 0.5f, w, h }, &item, true });

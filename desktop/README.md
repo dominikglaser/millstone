@@ -90,6 +90,20 @@ full three-oscillator sound.
 Parameters, their ranges and defaults all come from `../vst/params.json`, the same file the MPC skin is built
 from, so the two builds never drift.
 
+## The panel's screens
+
+The filter, both envelopes and the LFO each have a small screen showing the real curve and the real numbers, using the engine's own formulas: cutoff in Hz, envelope times in ms and s, LFO rate in Hz or the division it is locked to. Envelope time is drawn compressed, so a 2 ms attack and a 10 s release both fit.
+
+## Presets
+
+Click the preset name in the display, or in the rack's top unit, to open the browser. Search looks through names, notes and tags. Within a group, several choices widen the list; between groups they narrow it, and a filter that would leave nothing is dimmed. Click a row to hear it, double-click to load and close. < > step through whatever the filter left.
+
+Each preset has one Type, several Styles and Characters, and a Pack, all written in `vst/preset_tags.py`. Uses and Plays With are worked out from its values by `make_presets.py`, so they cannot be wrong. `vst/preset_fx.py` holds the effects on the first library. New names can only be added, because a Live set finds its preset by name.
+
+The star marks a favourite. FLAG asks for a note. Both are plain text files beside your user presets, in `~/Library/Application Support/Glaser/Millstone/`: `favourites.txt` and `preset-flags.txt`, which OPEN FLAG FILE shows in the Finder, ready to hand back.
+
+`preset_test` listens for duplicates: it compares every pair over time in third-octave bands and fails anything under 1 dB apart.
+
 ## The rack
 
 RACK, beside the preset buttons, swaps the panel for a second page: a road-case rack of black units, each with its own colour. It always fills

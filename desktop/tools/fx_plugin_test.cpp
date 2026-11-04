@@ -13,7 +13,7 @@ struct Synth {
     std::unique_ptr<MillstoneProcessor> p = std::make_unique<MillstoneProcessor>();
     double sr = 44100; int block = 256; juce::MidiBuffer m; Head head;
     Synth() { p->setRateAndBufferSizeDetails(sr, block); p->prepareToPlay(sr, block); p->setPlayHead(&head); }
-    void preset(const juce::String& name) { const auto& l = MillstoneProcessor::factoryPresets(); for (int i = 0; i < (int)l.size(); ++i) if (l[(size_t)i].name == name) p->setCurrentProgram(i); }
+    void preset(const juce::String& name) { const auto& l = MillstoneProcessor::factoryPresets(); for (int i = 0; i < (int)l.size(); ++i) if (l[(size_t)i].name == name) p->setCurrentProgram(i); set("fx_dl_mix", 0); set("fx_rv_mix", 0); set("fx_ph_mix", 0); opt("fx_ch_mode", "OFF"); }   // these test one effect at a time
     void set(const char* k, float v) { auto* q = p->apvts.getParameter(k); jassert(q); q->setValueNotifyingHost(q->convertTo0to1(v)); }
     void opt(const char* k, const char* name) { auto* q = p->apvts.getParameter(k); const int i = q->getAllValueStrings().indexOf(name); jassert(i >= 0); q->setValueNotifyingHost(q->convertTo0to1((float)i)); }
     void on(int n, int v = 100) { m.addEvent(juce::MidiMessage::noteOn(1, n, (juce::uint8)v), 0); }

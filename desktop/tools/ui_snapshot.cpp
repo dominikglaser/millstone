@@ -21,6 +21,8 @@ int main(int argc, char** argv) {
     juce::ScopedJuceInitialiser_GUI gui;
     juce::File dir(argv[1]);
     MillstoneProcessor proc;
+    const auto scratchDir = juce::File::getSpecialLocation(juce::File::tempDirectory).getChildFile("millstone_ui_test").getChildFile("Presets");
+    proc.setUserPresetDirectory(scratchDir);   // favourites and flags go beside this, not in the real ones
     const auto openStart = juce::Time::getMillisecondCounterHiRes();
     MillstoneEditor editor(proc);
     editor.setVisible(true);   // what the mouse hit-testing needs; no window is opened
@@ -99,6 +101,22 @@ int main(int argc, char** argv) {
     click("lfo_sync");
     editor.refreshFromProcessor();
     check(phase != nullptr && !phase->getParentComponent()->isVisible(), "PHASE hides when SYNC is off");
+
+    // The screens say what the engine would do with the knobs.
+    {
+        auto* envelope = find(editor, "screen_env"), *modEnvelope = find(editor, "screen_env_m_"), *filter = find(editor, "screen_filter"), *lfo = find(editor, "screen_lfo");
+        check(envelope && modEnvelope && filter && lfo, "the envelope, filter and LFO screens exist");
+        const auto says = [&](juce::Component* c) { editor.refreshFromProcessor(); return c->getProperties()["text"].toString(); };
+        const auto set = [&](const char* key, float value) { auto* q = ps.getParameter(key); q->setValueNotifyingHost(q->convertTo0to1(value)); };
+        const float cut = ps.getRawParameterValue("cutoff")->load(), attack = ps.getRawParameterValue("attack")->load(), rate = ps.getRawParameterValue("lfo_rate")->load(), mAttack = ps.getRawParameterValue("m_attack")->load();
+        set("cutoff", 50); check(says(filter).contains("640 Hz"), "cutoff 50 is 640 Hz, says " + says(filter));
+        set("cutoff", 100); check(says(filter).contains("20.48 kHz"), "cutoff 100 is 20.48 kHz, says " + says(filter));
+        set("attack", 0); check(says(envelope).startsWith("2 ms"), "attack 0 is 2 ms, says " + says(envelope));
+        set("attack", 100); check(says(envelope).startsWith("3.00 s"), "attack 100 is 3 s, says " + says(envelope));
+        set("m_attack", 0); check(says(modEnvelope).startsWith("2 ms") && says(envelope).startsWith("3.00 s"), "each envelope screen reads its own faders");
+        set("lfo_rate", 0); check(says(lfo).contains("0.010 Hz"), "rate 0 is 0.01 Hz, says " + says(lfo));
+        set("cutoff", cut); set("attack", attack); set("lfo_rate", rate); set("m_attack", mAttack); editor.refreshFromProcessor();
+    }
 
     // OSC 1 swaps its controls between Plaits and Elements.
     auto* plaitsKnob = find(editor, "o1_timbre"), *elementsKnob = find(editor, "e_geom");
@@ -235,6 +253,10 @@ int main(int argc, char** argv) {
     proc.connectCord(14, 22);    // TIDES 2 > T SHAPE
     editor.refreshFromProcessor();
     render("panel_patch");
+    click("preset_open"); click("chip:Dub"); click("chip:Bass"); click("chip:Keys"); editor.refreshFromProcessor();
+    proc.setFavourite("Round Sub", true); click("browser_close"); click("preset_open"); editor.refreshFromProcessor();
+    render("panel_browser");
+    click("browser_clear"); click("browser_close"); proc.setFavourite("Round Sub", false);
     { const auto t0 = juce::Time::getMillisecondCounterHiRes(); click("rack_toggle"); editor.refreshFromProcessor(); render("panel_rack_first"); std::cout << "info first time the rack is drawn: " << juce::roundToInt(juce::Time::getMillisecondCounterHiRes() - t0) << " ms" << std::endl; }
     check(proc.rackOpen && find(editor, "rack_page")->isVisible(), "RACK opens the rack");
     check(editor.getHeight() > closedH, "and takes its tall window");
@@ -242,7 +264,7 @@ int main(int argc, char** argv) {
     check(!find(editor, "cutoff")->getParentComponent()->isVisible(), "the panel's knobs step aside");
     check(find(editor, "t_rate")->getParentComponent()->isVisible(), "Tides is in the rack");
     { bool jackShowing = false; for (auto* child : find(editor, "rack_page")->getParentComponent()->getChildren()) if (child != find(editor, "rack_page") && child->isVisible() && child->getBottom() > 864) jackShowing = true; check(!jackShowing, "nothing of the drawer is left showing"); }
-    check(!find(editor, "preset_list")->getParentComponent()->isVisible(), "so does the panel's display");
+    check(!find(editor, "preset_open")->getParentComponent()->isVisible(), "so does the panel's display");
     render("panel_rack");
     {
         check(find(editor, "fx_dl_div")->getParentComponent()->isVisible() && !find(editor, "fx_dl_time")->getParentComponent()->isVisible(), "SYNC shows the division, not the time");

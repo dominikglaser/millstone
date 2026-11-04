@@ -1,7 +1,9 @@
 // Developer check, built only with -DMILLSTONE_UI_SNAPSHOT=ON: plays every factory preset and checks it is valid,
 // audible, level-matched and ends. It cannot judge whether a preset sounds good: that takes ears.
 // Run: millstone_preset_test [--trim <vst/preset_trim.json>]  (--trim also writes the volume each preset needs)
+#include "BinaryData.h"
 #include "PluginEditor.h"
+#include <complex>
 #include <cstdio>
 #include <map>
 
@@ -34,9 +36,9 @@ int main(int argc, char** argv) {
     std::map<juce::String, int> perCategory;
     juce::StringArray names;
     int testing = 0;
-    for (const auto& preset : library) testing += preset.category == "Testing";
-    check((int)library.size() - testing >= 65, "the library has at least Init + 64, has " + juce::String((int)library.size() - testing));
-    printf("%d presets in Testing\n", testing);
+    for (const auto& preset : library) testing += preset.unmatched;
+    check((int)library.size() - testing >= 65, "the library has at least Init + 64 level-matched, has " + juce::String((int)library.size() - testing));
+    printf("%d presets are not level-matched\n", testing);
     check(!library.empty() && library[0].name == "Init", "Init comes first");
     MillstoneProcessor probe;
     int exposed = 0;
@@ -56,12 +58,33 @@ int main(int argc, char** argv) {
         }
     }
     for (const auto& [category, count] : perCategory)
-        if (category != "Init" && category != "Testing") check(count == 8, category + " has 8 presets, has " + juce::String(count));
+        check(count >= 1 && category != "Testing", category + " is a real type");
+    for (const auto& preset : library) {   // filing: every preset can be found, and every tag is one the browser offers
+        static const juce::StringArray types { "Init", "Bass", "Lead", "Pad", "Keys", "Pluck", "Perc", "Sequence", "Riser/FX", "Texture", "Drone" };
+        static const juce::StringArray styles { "Classic", "Techno", "Dub", "House", "Rave", "Ambient", "Cinematic", "Experimental" };
+        static const juce::StringArray characters { "Dark", "Bright", "Warm", "Metallic", "Evolving", "Aggressive", "Soft" };
+        check(types.contains(preset.type), preset.name + " has a type: " + preset.type);
+        check(preset.name == "Init" || !preset.styles.isEmpty(), preset.name + " has a style");
+        check(preset.name == "Init" || !preset.character.isEmpty(), preset.name + " has a character");
+        for (const auto& w : preset.styles) check(styles.contains(w), preset.name + " style " + w);
+        for (const auto& w : preset.character) check(characters.contains(w), preset.name + " character " + w);
+        check(preset.pack.isNotEmpty() && preset.note.isNotEmpty(), preset.name + " has a pack and a note");
+    }
+    {   // What was worked out from the values, spot checked against sounds whose behaviour is known.
+        const auto get = [&](const char* name) -> const MillstoneProcessor::Preset& { for (const auto& q : library) if (q.name == name) return q; return library[0]; };
+        check(get("Four On The Floor").uses.contains("Clock") && get("Four On The Floor").plays.contains("Hold key"), "a clocked pattern says it plays by holding a key");
+        check(get("Glass Marimba").uses.contains("Elements"), "Elements presets say so");
+        check(get("Slow Tide Pad").uses.contains("Tides") && get("Slow Tide Pad").uses.contains("Patch Bay"), "Tides presets say so");
+        check(get("Classic Lead").plays.contains("Wheel"), "the mod wheel lead says so");
+        check(!get("Round Sub").uses.contains("Patch Bay"), "and an unpatched one does not");
+    }
 
     // Each one, played. Fresh processor: presets must not depend on what came before.
     printf("%-22s %-11s %9s %8s %8s %7s %6s\n", "preset", "category", "loudest", "peak", "treble", "volume", "tail");
-    struct Signature { juce::String name; float loud, treble; };
+    struct Signature { juce::String name; float loud, treble; std::vector<float> map; };
     std::vector<Signature> signatures;
+    float closestDistance = 1e9f; juce::String closestPair;
+    static constexpr float duplicateDb = 1.0f;
     int fullVolume = 0;
     for (int i = 0; i < (int)library.size(); ++i) {
         const auto& preset = library[(size_t)i];
@@ -98,6 +121,26 @@ int main(int argc, char** argv) {
         double d = 0, e = 0; for (size_t k = 2; k < x.size(); ++k) { const double v = x[k] - 2 * x[k - 1] + x[k - 2]; d += v * v; e += x[k] * x[k]; }
         const float treble = 20 * std::log10((float)std::sqrt(d / juce::jmax(1e-12, e)) + 1e-6f);
         const float loudDb = 20 * std::log10((float)loud + 1e-9f), peakDb = 20 * std::log10(peak + 1e-9f);
+        // A picture of the sound for the duplicate check: third-octave bands over time, in dB, whatever its overall level.
+        std::vector<float> soundMap;
+        {
+            constexpr int order = 12, size = 1 << order, bandsCount = 30;
+            std::vector<std::complex<double>> f((size_t)size);
+            for (size_t at = 0; at + size <= x.size(); at += (size_t)(0.1 * sr)) {
+                for (int i = 0; i < size; ++i) f[(size_t)i] = x[at + (size_t)i] * (0.5 - 0.5 * std::cos(6.283185307 * i / size));
+                for (int i = 1, j = 0; i < size; ++i) { int bit = size >> 1; for (; j & bit; bit >>= 1) j ^= bit; j ^= bit; if (i < j) std::swap(f[(size_t)i], f[(size_t)j]); }
+                for (int len = 2; len <= size; len <<= 1) { const auto w = std::polar(1.0, -6.283185307 / len); for (int i = 0; i < size; i += len) { std::complex<double> u(1.0); for (int k = 0; k < len / 2; ++k, u *= w) { const auto c = f[(size_t)(i + k)], d2 = f[(size_t)(i + k + len / 2)] * u; f[(size_t)(i + k)] = c + d2; f[(size_t)(i + k + len / 2)] = c - d2; } } }
+                double bands[bandsCount] = {};
+                for (int bin = 1; bin < size / 2; ++bin) {
+                    const double hz = bin * sr / size;
+                    const int band = (int)std::floor(std::log2(juce::jmax(hz, 40.0) / 40.0) * 3.0);
+                    if (band < bandsCount) bands[band] += std::norm(f[(size_t)bin]);
+                }
+                for (double energy : bands) soundMap.push_back((float)juce::jmax(-60.0, 10.0 * std::log10(energy + 1e-9)));
+            }
+            float top = -1e9f; for (float v : soundMap) top = juce::jmax(top, v);
+            for (auto& v : soundMap) v = juce::jmax(-50.0f, v - top);   // silence is the same in every preset, so it must not count
+        }
         const float volume = p.apvts.getRawParameterValue("volume")->load();
         printf("%-22s %-11s %9.1f %8.1f %8.1f %7.1f %6.1f\n", preset.name.toRawUTF8(), preset.category.toRawUTF8(), loudDb, peakDb, treble, volume, tail);
         check(!bad, preset.name + " produces only finite samples");
@@ -107,18 +150,25 @@ int main(int argc, char** argv) {
         if (preset.name != "Init") {
             const bool capped = volume >= 99.9f && loudDb < targetDb;
             const bool peakLimited = peakDb > peakLimitDb - 1.5f && loudDb < targetDb;
-            if (volume >= 99.9f && preset.category != "Testing") ++fullVolume;   // Testing presets are temporary
+            if (volume >= 99.9f && !preset.unmatched) ++fullVolume;
             if (capped) printf("info %s is at full volume, %.1f dB under the target\n", preset.name.toRawUTF8(), targetDb - loudDb);
-            // Testing presets are temporary and some depend on the shared random generator, so only the library is held to this.
-            check(preset.category == "Testing" || capped || peakLimited || std::abs(loudDb - targetDb) <= toleranceDb, preset.name + " is level-matched (" + juce::String(loudDb, 1) + " dB, peak " + juce::String(peakDb, 1) + ", want " + juce::String(targetDb, 0) + ")");
+            // Some depend on the shared random generator, so those are not held to this.
+            check(preset.unmatched || capped || peakLimited || std::abs(loudDb - targetDb) <= toleranceDb, preset.name + " is level-matched (" + juce::String(loudDb, 1) + " dB, peak " + juce::String(peakDb, 1) + ", want " + juce::String(targetDb, 0) + ")");
             if (trimFile != juce::File())   // volume is squared in the gain law
                 trims->setProperty(preset.name, juce::roundToInt(juce::jlimit(5.0f, 100.0f, volume * std::pow(10.0f, juce::jmin(targetDb - loudDb, peakLimitDb - peakDb) / 40.0f)) * 10) / 10.0);
         }
-        for (const auto& s : signatures)
-            if (std::abs(s.loud - loudDb) < 0.05f && std::abs(s.treble - treble) < 0.05f)
-                printf("info %s and %s measure alike\n", preset.name.toRawUTF8(), s.name.toRawUTF8());
-        signatures.push_back({ preset.name, loudDb, treble });
+        for (const auto& s : signatures) {   // two presets that are really one sound waste a place in the library
+            float distance = 0; int cells = 0;
+            for (size_t k = 0; k < soundMap.size() && k < s.map.size(); ++k)
+                if (soundMap[k] > -50.0f || s.map[k] > -50.0f) { distance += std::abs(soundMap[k] - s.map[k]); ++cells; }
+            distance /= (float)juce::jmax(1, cells);
+            if (distance < closestDistance) { closestDistance = distance; closestPair = preset.name + " and " + s.name; }
+            if (distance < 3.0f) printf("info %s and %s sound close: %.1f dB apart\n", preset.name.toRawUTF8(), s.name.toRawUTF8(), distance);
+            check(distance >= duplicateDb, preset.name + " and " + s.name + " are not the same sound (" + juce::String(distance, 2) + " dB apart)");
+        }
+        signatures.push_back({ preset.name, loudDb, treble, std::move(soundMap) });
     }
+    printf("info the closest two sounds are %s, %.1f dB apart\n", closestPair.toRawUTF8(), closestDistance);
     printf("%d presets are at full volume\n", fullVolume);
     check(fullVolume <= (int)library.size() / 6, "VOLUME keeps headroom on nearly every preset");
     if (trimFile != juce::File()) trimFile.replaceWithText(juce::JSON::toString(juce::var(trims.release()), false) + "\n");
@@ -253,31 +303,111 @@ int main(int argc, char** argv) {
     }
     // The browser.
     {
+        const auto dir = juce::File::getSpecialLocation(juce::File::tempDirectory).getChildFile("millstone_browser_test").getChildFile("Presets");
+        dir.getParentDirectory().deleteRecursively();
         MillstoneProcessor p;
+        p.setUserPresetDirectory(dir);
         MillstoneEditor editor(p);
-        std::function<juce::Component*(juce::Component&, const juce::String&)> find = [&](juce::Component& r, const juce::String& id) -> juce::Component* { if (r.getComponentID() == id) return &r; for (auto* c : r.getChildren()) if (auto* h = find(*c, id)) return h; return nullptr; };
-        auto* list = dynamic_cast<juce::ComboBox*>(find(editor, "preset_list"));
-        auto* cat = dynamic_cast<juce::ComboBox*>(find(editor, "preset_category"));
+        std::function<juce::Component*(juce::Component&, const juce::String&)> find = [&](juce::Component& r, const juce::String& id) -> juce::Component* { if (r.getComponentID() == id) return &r; for (auto* c : r.getChildren()) if (auto* hit = find(*c, id)) return hit; return nullptr; };
+        const auto click = [&](const juce::String& id) { auto* b = dynamic_cast<juce::Button*>(find(editor, id)); check(b != nullptr, "button exists: " + id); if (b != nullptr && b->onClick) b->onClick(); };
         auto* next = dynamic_cast<juce::Button*>(find(editor, "preset_next"));
         auto* prev = dynamic_cast<juce::Button*>(find(editor, "preset_prev"));
-        check(list && cat && next && prev, "browser controls exist");
-        check(list->getNumItems() == (int)library.size(), "All lists every preset");
-        check(list->getText() == "Init", "starts on Init");
-        next->onClick(); check(p.getCurrentPresetName() == library[1].name, "> steps forward");
-        prev->onClick(); prev->onClick(); check(p.getCurrentPresetName() == library.back().name, "< wraps around");
-        int padId = 0; for (int i = 0; i < cat->getNumItems(); ++i) if (cat->getItemText(i) == "Pad") padId = cat->getItemId(i);
-        cat->setSelectedId(padId, juce::sendNotificationSync);
-        check(list->getNumItems() == 8, "a category narrows the list to 8");
-        check(p.getCurrentPresetName() == "Warm Strings", "and loads its first preset, is " + p.getCurrentPresetName());
-        next->onClick(); check(p.getCurrentPresetName() == "Analog Pad", "> stays inside the category");
+        auto* browserPage = find(editor, "preset_browser");
+        auto* list = dynamic_cast<juce::ListBox*>(find(editor, "browser_list"));
+        auto* search = dynamic_cast<juce::TextEditor*>(find(editor, "browser_search"));
+        check(next && prev && browserPage && list && search, "browser controls exist");
+        const auto rows = [&] { return list->getModel()->getNumRows(); };
         const auto tick = [&] { editor.refreshFromProcessor(); };
-        p.setCurrentProgram(1);   // the host picks a preset outside the category being shown
+        check(!browserPage->isVisible(), "the browser starts closed");
+        click("preset_open");
+        check(browserPage->isVisible(), "the display opens it");
+        check(rows() == (int)library.size(), "with every preset listed");
+        check(list->getSelectedRow() == 0 && p.getCurrentPresetName() == "Init", "and Init selected, first");
+
+        // Type narrows, a second type widens, another group narrows.
+        int bass = 0, lead = 0; for (const auto& q : library) { bass += q.type == "Bass"; lead += q.type == "Lead"; }
+        click("chip:Bass"); check(rows() == bass, "TYPE narrows, to " + juce::String(rows()));
+        click("chip:Lead"); check(rows() == bass + lead, "a second type adds to it");
+        int dubBassLead = 0; for (const auto& q : library) dubBassLead += (q.type == "Bass" || q.type == "Lead") && q.styles.contains("Dub");
+        click("chip:Dub"); check(rows() == dubBassLead, "STYLE then narrows that, to " + juce::String(rows()));
+        const juce::String before = p.getCurrentPresetName();
+        check(before == "Init", "filtering does not change the sound, is " + before);
+        click("browser_clear"); check(rows() == (int)library.size(), "CLEAR brings everything back");
+
+        // Search.
+        const auto type = [&](const char* text) { search->setText(text, false); search->onTextChange(); };
+        type("hold key");
+        check(rows() > 0 && rows() < (int)library.size(), "search finds things by what they do, " + juce::String(rows()));
+        type("slow tide"); check(rows() == 1, "every word has to match, " + juce::String(rows()));
+        type("zzzz"); check(rows() == 0, "nothing found is fine");
+        next->onClick(); check(p.getCurrentPresetName() == "Init", "and < > with nothing to step to do nothing");
+        type("");
+
+        // Choosing from the list loads it, and < > step through what is left.
+        click("chip:Pad");
+        const int pads = rows();
+        list->selectRow(1);
+        const auto second = p.getCurrentPresetName();
+        check(second != "Init", "selecting a row loads it, " + second);
+        check(browserPage->isVisible(), "and the browser stays open to audition");
+        const auto isPad = [&] { for (const auto& q : library) if (q.name == p.getCurrentPresetName()) return q.type == "Pad"; return false; };
+        next->onClick(); check(isPad() && p.getCurrentPresetName() != second, "> stays inside the filter");
+        for (int i = 0; i < pads + 2; ++i) { next->onClick(); check(isPad(), "stepping wraps inside the filter"); }
+        prev->onClick(); check(isPad(), "< as well");
         tick();
-        check(list->getText() == library[1].name && cat->getText() == "All", "the browser follows the host, shows " + list->getText());
-        cat->setSelectedId(padId, juce::sendNotificationSync);
-        const int stayed = list->getNumItems();
-        tick();
-        check(cat->getText() == "Pad" && stayed == 8, "the filter is not reset by the timer");
+        check(list->getSelectedRow() >= 0, "the list follows");
+        p.setCurrentProgram(1); tick();
+        check(p.getCurrentPresetName() == library[1].name && list->getSelectedRow() < 0, "a host can pick outside the filter; nothing is forced");
+        check(rows() == pads, "the filter is not reset by the timer");
+        next->onClick(); check(isPad(), "and > returns to it");
+        click("browser_clear");
+
+        // Favourites and flags, in files, by name.
+        list->selectRow(3);
+        const auto starred = p.getCurrentPresetName();
+        click("browser_star");
+        check(p.isFavourite(starred), "the star makes a favourite");
+        check(p.favouritesFile().loadFileAsString().contains(starred), "in its file");
+        click("browser_favourites"); check(rows() == 1, "FAVOURITES shows it alone");
+        click("browser_favourites");
+        { MillstoneProcessor other; other.setUserPresetDirectory(dir); check(other.isFavourite(starred), "another instance sees it"); }
+        p.setFlag(starred, "too loud\tfor a pad\nreally");
+        check(p.flags()[starred] == "too loud for a pad really", "a flag's note stays on one line, is " + p.flags()[starred]);
+        check(p.flagsFile().loadFileAsString().contains(starred + "\ttoo loud"), "and is readable in the file");
+        click("browser_flagged"); check(rows() == 1, "FLAGGED shows it alone");
+        click("browser_flagged");
+        p.clearFlag(starred); check(p.flags().empty(), "a flag can be removed");
+        click("browser_star"); check(!p.isFavourite(starred), "the star comes off again");
+
+        // User presets are in the list, under the User pack.
+        check(p.saveUserPreset("Mine"), "a user preset saves");
+        click("preset_open");
+        check(rows() == (int)library.size() + 1, "and is listed");
+        click("chip:User"); check(rows() == 1, "the User pack holds it");
+        click("browser_clear");
+        p.deleteUserPreset("Mine");
+
+        click("browser_close"); check(!browserPage->isVisible(), "CLOSE closes");
+        click("browser_clear");
+        click("preset_open"); click("rack_toggle"); check(!browserPage->isVisible() && p.rackOpen, "switching page closes the browser");
+        click("rack_browse"); check(browserPage->isVisible() && browserPage->getHeight() > 1000, "the rack opens it too, at the rack's size");
+        click("browser_close"); click("rack_back");
+        p.browserFilter.types.add("Bass");
+        {
+            MillstoneEditor reopened(p);
+            auto* l = dynamic_cast<juce::ListBox*>(find(reopened, "browser_list"));
+            auto* open = dynamic_cast<juce::Button*>(find(reopened, "preset_open"));
+            open->onClick();
+            check(l->getModel()->getNumRows() == bass, "the filter survives closing the window");
+        }
+        p.browserFilter = {};
+        dir.getParentDirectory().deleteRecursively();
+    }
+    {   // A big library must still be quick to parse. This is the 127 we have, scaled by what 1200 would cost.
+        const auto t0 = juce::Time::getMillisecondCounterHiRes();
+        const auto json = juce::JSON::parse(juce::String::fromUTF8(BinaryData::presets_json, BinaryData::presets_jsonSize));
+        const double ms = juce::Time::getMillisecondCounterHiRes() - t0;
+        printf("info parsing %d presets: %.1f ms, about %.0f ms at 1200\n", (int)library.size(), ms, ms * 1200.0 / (double)library.size());
     }
     printf("\n%s (%d failed)\n", failures == 0 ? "PASSED" : "FAILED", failures);
     return failures == 0 ? 0 : 1;

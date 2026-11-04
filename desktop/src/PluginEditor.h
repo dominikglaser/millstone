@@ -14,6 +14,7 @@ public:
     void refreshFromProcessor() { timerCallback(); }   // what the UI timer does; tests call it directly
     void setPatchBayOpen(bool);                        // the drawer below the panel
     void setRackOpen(bool);                            // the effects rack, in place of the panel
+    void setBrowserOpen(bool);                         // the preset browser, over whichever page is showing
 
     // For tests: how many art pixels the wear changed on each kind of surface.
     struct WearCheck { int onFlat = 0, onRaised = 0, onRecessed = 0, tried = 0, drawn = 0; };
@@ -27,6 +28,7 @@ private:
 
     struct LookAndFeel;
     struct PresetBar;
+    struct PresetBrowser;
     struct PatchBay;
     struct ClockOutputs;
     struct RackMaster;
@@ -42,6 +44,7 @@ private:
     juce::Component content;   // laid out at the design size, scaled to the window
     std::vector<std::unique_ptr<juce::Component>> controls;
     std::unique_ptr<PresetBar> presetBar;
+    std::unique_ptr<PresetBrowser> browser;
     std::unique_ptr<RackPage> rack;
     std::unique_ptr<ClockOutputs> clockOutputs;
     std::unique_ptr<ClockLcd> clockLcd;

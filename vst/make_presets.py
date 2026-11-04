@@ -6,6 +6,8 @@ values a preset lists, so anything left out would leak in from the preset before
 parameter's default cannot alter a saved sound. preset_trim.json holds each preset's measured VOLUME, set by
 desktop/tools/preset_test --trim so that a library played one after the other stays even."""
 import json, os
+from preset_tags import TAGS, TYPES, STYLES, CHARACTERS
+from preset_fx import FX
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 MODELS = ["Virtual Analog", "Waveshaper", "FM 2-Op", "Grain Formant", "Additive", "Wavetable", "Chords", "Speech", "Swarm",
@@ -159,39 +161,39 @@ SINE = dict(timbre=0)
 
 TESTING = [
     # Elements
-    P("E Struck Bell", "Modal, struck: rings and fades. Elements' reverb on", dict(ELEMENTS), e_model="MODAL", e_strike=90, e_mallet=60, e_geom=70, e_bright=65, e_damp=35, e_pos=30, e_space=55),
-    P("E Bowed String", "Bow only: sustains while held", dict(ELEMENTS), e_model="STRING", e_strike=0, e_bow=80, e_geom=15, e_bright=45, e_damp=70, e_space=40),
-    P("E Blown Pipe", "Blow only: breathy and sustained", dict(ELEMENTS), e_model="MODAL", e_strike=0, e_blow=80, e_flow=60, e_blow_t=40, e_geom=10, e_bright=50, e_damp=70, e_space=45),
-    P("E String Pluck", "A single struck string", dict(ELEMENTS), e_model="STRING", e_strike=90, e_mallet=30, e_geom=10, e_bright=55, e_damp=45, e_space=25),
-    P("E Chord Strings", "STRINGS: each key plays a resonant chord", dict(ELEMENTS), e_model="STRINGS", e_strike=70, e_bow=30, e_geom=30, e_damp=55, e_space=50),
-    P("E Clock Strikes", "Hold a key: the clock strikes the resonator in a Euclidean pattern", dict(ELEMENTS), cords(("CLOCK 1", "O1 TRIG", 100)), clock(1, div="x2", shape="TRIG", steps=16, fill=7), e_model="MODAL", e_strike=90, e_geom=60, e_damp=40, e_space=40),
-    P("E OSC Resonator", "OSC 2 is heard only through the resonator", dict(ELEMENTS), cords(("OSC 2", "E STK IN", 80)), o(2, "Wavetable", level=0, harm=50, timbre=60), e_model="MODAL", e_strike=0, e_geom=40, e_damp=60, e_bright=60, e_space=30),
-    P("E Noise Breath", "Noise through the exciter: wind in a resonator", dict(ELEMENTS), cords(("NOISE", "E BLW IN", 70)), e_model="MODAL", e_strike=0, e_geom=25, e_damp=70, e_bright=55, e_space=40),
-    P("E LFO Geometry", "Bowed, with the LFO moving the resonator's shape", dict(ELEMENTS), cords(("LFO", "E GEOM", 35)), lfo_rate=34, e_model="MODAL", e_strike=0, e_bow=70, e_geom=45, e_damp=70),
-    P("E Tides Swell", "Tides breathing the bow in and out", dict(ELEMENTS), cords(("TIDES 1", "E BOW", 80)), t_trig="FREE", t_mode="LOOP", t_rate=42, e_model="STRING", e_strike=0, e_bow=20, e_geom=15, e_damp=70),
+    P("Struck Bell", "Modal, struck: rings and fades. Elements' reverb on", dict(ELEMENTS), e_model="MODAL", e_strike=90, e_mallet=60, e_geom=70, e_bright=65, e_damp=35, e_pos=30, e_space=55),
+    P("Bowed String", "Bow only: sustains while held", dict(ELEMENTS), e_model="STRING", e_strike=0, e_bow=80, e_geom=15, e_bright=45, e_damp=70, e_space=40),
+    P("Blown Pipe", "Blow only: breathy and sustained", dict(ELEMENTS), e_model="MODAL", e_strike=0, e_blow=80, e_flow=60, e_blow_t=40, e_geom=10, e_bright=50, e_damp=70, e_space=45),
+    P("String Pluck", "A single struck string", dict(ELEMENTS), e_model="STRING", e_strike=90, e_mallet=30, e_geom=10, e_bright=55, e_damp=45, e_space=25),
+    P("Chord Strings", "STRINGS: each key plays a resonant chord", dict(ELEMENTS), e_model="STRINGS", e_strike=70, e_bow=30, e_geom=30, e_damp=55, e_space=50),
+    P("Clock Strikes", "Hold a key: the clock strikes the resonator in a Euclidean pattern", dict(ELEMENTS), cords(("CLOCK 1", "O1 TRIG", 100)), clock(1, div="x2", shape="TRIG", steps=16, fill=7), e_model="MODAL", e_strike=90, e_geom=60, e_damp=40, e_space=40),
+    P("OSC Resonator", "OSC 2 is heard only through the resonator", dict(ELEMENTS), cords(("OSC 2", "E STK IN", 80)), o(2, "Wavetable", level=0, harm=50, timbre=60), e_model="MODAL", e_strike=0, e_geom=40, e_damp=60, e_bright=60, e_space=30),
+    P("Noise Breath", "Noise through the exciter: wind in a resonator", dict(ELEMENTS), cords(("NOISE", "E BLW IN", 70)), e_model="MODAL", e_strike=0, e_geom=25, e_damp=70, e_bright=55, e_space=40),
+    P("LFO Geometry", "Bowed, with the LFO moving the resonator's shape", dict(ELEMENTS), cords(("LFO", "E GEOM", 35)), lfo_rate=34, e_model="MODAL", e_strike=0, e_bow=70, e_geom=45, e_damp=70),
+    P("Tides Swell", "Tides breathing the bow in and out", dict(ELEMENTS), cords(("TIDES 1", "E BOW", 80)), t_trig="FREE", t_mode="LOOP", t_rate=42, e_model="STRING", e_strike=0, e_bow=20, e_geom=15, e_damp=70),
     # Tides
-    P("T Note Envelope", "Tides as a one-shot on each note, opening the filter", o(1, "Virtual Analog", morph=100), cords(("TIDES 1", "CUTOFF", 85)), t_trig="NOTE", t_mode="AD", t_rate=54, cutoff=30, reso=25, vca_mode="ON", release=30),
-    P("T Free Drift", "Four outputs moving a held chord, each voice drifting apart", o(1, "Virtual Analog", morph=100), o(2, "Wavetable", fine=6, level=80), cords(("TIDES 1", "CUTOFF", 40), ("TIDES 2", "O1 TIMB", 50), ("TIDES 3", "O2 MRPH", 50), ("TIDES 4", "O2 TIMB", 40)), t_trig="FREE", t_mode="LOOP", t_out="PHASE", t_rate=38, t_shift=70, cutoff=48, attack=55, release=65),
-    P("T Clock Filter", "Tides locked to the song's tempo in eighths", o(1, "Virtual Analog", morph=100), cords(("TIDES 1", "CUTOFF", 70)), t_trig="CLOCK", t_mode="LOOP", t_div="1/8", cutoff=38, reso=40, vca_mode="ON", release=25),
-    P("T Fired By Clock", "PATCH: only our clock fires Tides, a note does not", o(1, "Virtual Analog", morph=100), cords(("TIDES 1", "CUTOFF", 90), ("CLOCK 1", "T TRIG", 100)), clock(1, div="x2", shape="TRIG", steps=16, fill=9), t_trig="PATCH", t_mode="AD", t_rate=62, cutoff=26, reso=35, vca_mode="ON", release=25),
-    P("T Gate Chop", "GATES output chopping the note", o(1, "Virtual Analog", morph=100), o(2, "Virtual Analog", morph=100, fine=7), cords(("TIDES 3", "VCA", -100)), t_trig="FREE", t_mode="LOOP", t_out="GATES", t_rate=52, cutoff=62, vca_mode="ON", release=25),
-    P("T Shape Sweep", "A second Tides output reshaping the first", o(1, "Virtual Analog", morph=100), cords(("TIDES 1", "CUTOFF", 75), ("TIDES 2", "T SLOPE", 70)), t_trig="FREE", t_mode="LOOP", t_rate=46, t_shift=75, cutoff=36, reso=30, vca_mode="ON", release=25),
+    P("Note Envelope", "Tides as a one-shot on each note, opening the filter", o(1, "Virtual Analog", morph=100), cords(("TIDES 1", "CUTOFF", 85)), t_trig="NOTE", t_mode="AD", t_rate=54, cutoff=30, reso=25, vca_mode="ON", release=30),
+    P("Free Drift", "Four outputs moving a held chord, each voice drifting apart", o(1, "Virtual Analog", morph=100), o(2, "Wavetable", fine=6, level=80), cords(("TIDES 1", "CUTOFF", 40), ("TIDES 2", "O1 TIMB", 50), ("TIDES 3", "O2 MRPH", 50), ("TIDES 4", "O2 TIMB", 40)), t_trig="FREE", t_mode="LOOP", t_out="PHASE", t_rate=38, t_shift=70, cutoff=48, attack=55, release=65),
+    P("Clock Filter", "Tides locked to the song's tempo in eighths", o(1, "Virtual Analog", morph=100), cords(("TIDES 1", "CUTOFF", 70)), t_trig="CLOCK", t_mode="LOOP", t_div="1/8", cutoff=38, reso=40, vca_mode="ON", release=25),
+    P("Fired By Clock", "PATCH: only our clock fires Tides, a note does not", o(1, "Virtual Analog", morph=100), cords(("TIDES 1", "CUTOFF", 90), ("CLOCK 1", "T TRIG", 100)), clock(1, div="x2", shape="TRIG", steps=16, fill=9), t_trig="PATCH", t_mode="AD", t_rate=62, cutoff=26, reso=35, vca_mode="ON", release=25),
+    P("Gate Chop", "GATES output chopping the note", o(1, "Virtual Analog", morph=100), o(2, "Virtual Analog", morph=100, fine=7), cords(("TIDES 3", "VCA", -100)), t_trig="FREE", t_mode="LOOP", t_out="GATES", t_rate=52, cutoff=62, vca_mode="ON", release=25),
+    P("Shape Sweep", "A second Tides output reshaping the first", o(1, "Virtual Analog", morph=100), cords(("TIDES 1", "CUTOFF", 75), ("TIDES 2", "T SLOPE", 70)), t_trig="FREE", t_mode="LOOP", t_rate=46, t_shift=75, cutoff=36, reso=30, vca_mode="ON", release=25),
     # Clock
-    P("C Euclid Kick", "Hold a key: a Euclidean kick, 5 hits in 16", o(1, "Bass Drum", harm=25, timbre=35, morph=45), cords(("CLOCK 1", "O1 TRIG", 100)), clock(1, div="x2", shape="TRIG", steps=16, fill=5), vca_mode="ON", cutoff=100, reso=0, keytrack=0, vel_filt=0, release=40),
-    P("C Drum Machine", "Hold a key: kick, snare and hats on three clock outputs", o(1, "Bass Drum", harm=25, timbre=35, morph=45), o(2, "Snare Drum", harm=45, timbre=50, morph=40), o(3, "Hi-Hat", harm=30, timbre=60, morph=20), cords(("CLOCK 1", "O1 TRIG", 100), ("CLOCK 2", "O2 TRIG", 100), ("CLOCK 3", "O3 TRIG", 100)), clock(1, div="x2", shape="TRIG", steps=16, fill=5), clock(2, div="x1", shape="TRIG", phase=50), clock(3, div="x4", shape="TRIG", prob=80), vca_mode="ON", cutoff=100, reso=0, keytrack=0, vel_filt=0, release=40, voices=2),
-    P("C Trance Gate", "16th-note gate over saws", o(1, "Virtual Analog", morph=100), o(2, "Virtual Analog", morph=100, fine=8), cords(("CLOCK 1", "VCA", -100)), clock(1, div="x4", shape="GATE", width=45), cutoff=66, vca_mode="ON", release=30),
-    P("C Random Pitch", "Sample and hold on pitch, a new note each step", o(1, "Virtual Analog", morph=0), cords(("CLOCK 1", "O1 PITCH", 25)), clock(1, div="x2", shape="S/H"), cutoff=75, vca_mode="ON", release=25),
-    P("C Random Filter", "Sample and hold on the filter", o(1, "Virtual Analog", morph=100), cords(("CLOCK 1", "CUTOFF", 45)), clock(1, div="x4", shape="S/H"), cutoff=46, reso=50, vca_mode="ON", release=25),
-    P("C Swing Stabs", "The clock restarts the envelope, with swing", o(1, "Virtual Analog", morph=100), o(2, "Virtual Analog", morph=100, fine=8), cords(("CLOCK 1", "ENV TRIG", 100)), clock(1, div="x4", shape="TRIG", swing=70), decay=42, sustain=0, cutoff=55, release=20),
-    P("C Maybe Hats", "Hats at 60% probability", o(1, "Hi-Hat", harm=30, timbre=65, morph=15), cords(("CLOCK 1", "O1 TRIG", 100)), clock(1, div="x4", shape="TRIG", prob=60), vca_mode="ON", cutoff=100, reso=0, keytrack=0, vel_filt=0, release=30),
-    P("C Slow Sweeps", "Two slow clock shapes on the filter and the wave", o(1, "Wavetable", harm=50, timbre=55, morph=30), cords(("CLOCK 1", "CUTOFF", 55), ("CLOCK 2", "O1 MRPH", 60)), clock(1, div="/2", shape="SAW"), clock(2, div="/4", shape="TRI"), cutoff=44, reso=30, vca_mode="ON", release=30),
+    P("Euclid Kick", "Hold a key: a Euclidean kick, 5 hits in 16", o(1, "Bass Drum", harm=25, timbre=35, morph=45), cords(("CLOCK 1", "O1 TRIG", 100)), clock(1, div="x2", shape="TRIG", steps=16, fill=5), vca_mode="ON", cutoff=100, reso=0, keytrack=0, vel_filt=0, release=40),
+    P("Drum Machine", "Hold a key: kick, snare and hats on three clock outputs", o(1, "Bass Drum", harm=25, timbre=35, morph=45), o(2, "Snare Drum", harm=45, timbre=50, morph=40), o(3, "Hi-Hat", harm=30, timbre=60, morph=20), cords(("CLOCK 1", "O1 TRIG", 100), ("CLOCK 2", "O2 TRIG", 100), ("CLOCK 3", "O3 TRIG", 100)), clock(1, div="x2", shape="TRIG", steps=16, fill=5), clock(2, div="x1", shape="TRIG", phase=50), clock(3, div="x4", shape="TRIG", prob=80), vca_mode="ON", cutoff=100, reso=0, keytrack=0, vel_filt=0, release=40, voices=2),
+    P("Trance Gate", "16th-note gate over saws", o(1, "Virtual Analog", morph=100), o(2, "Virtual Analog", morph=100, fine=8), cords(("CLOCK 1", "VCA", -100)), clock(1, div="x4", shape="GATE", width=45), cutoff=66, vca_mode="ON", release=30),
+    P("Random Pitch", "Sample and hold on pitch, a new note each step", o(1, "Virtual Analog", morph=0), cords(("CLOCK 1", "O1 PITCH", 25)), clock(1, div="x2", shape="S/H"), cutoff=75, vca_mode="ON", release=25),
+    P("Random Filter", "Sample and hold on the filter", o(1, "Virtual Analog", morph=100), cords(("CLOCK 1", "CUTOFF", 45)), clock(1, div="x4", shape="S/H"), cutoff=46, reso=50, vca_mode="ON", release=25),
+    P("Swing Stabs", "The clock restarts the envelope, with swing", o(1, "Virtual Analog", morph=100), o(2, "Virtual Analog", morph=100, fine=8), cords(("CLOCK 1", "ENV TRIG", 100)), clock(1, div="x4", shape="TRIG", swing=70), decay=42, sustain=0, cutoff=55, release=20),
+    P("Maybe Hats", "Hats at 60% probability", o(1, "Hi-Hat", harm=30, timbre=65, morph=15), cords(("CLOCK 1", "O1 TRIG", 100)), clock(1, div="x4", shape="TRIG", prob=60), vca_mode="ON", cutoff=100, reso=0, keytrack=0, vel_filt=0, release=30),
+    P("Slow Sweeps", "Two slow clock shapes on the filter and the wave", o(1, "Wavetable", harm=50, timbre=55, morph=30), cords(("CLOCK 1", "CUTOFF", 55), ("CLOCK 2", "O1 MRPH", 60)), clock(1, div="/2", shape="SAW"), clock(2, div="/4", shape="TRI"), cutoff=44, reso=30, vca_mode="ON", release=30),
     # Patch bay
-    P("P Ring Mod", "OSC 2 ring modulating OSC 1, bell-like. Try OSC 2's SEMI", o(1, "FM 2-Op", **SINE), o(2, "FM 2-Op", semi=7, level=0, **SINE), cords(("OSC 2", "VCA", 100)), cutoff=100, reso=0, keytrack=0, vel_filt=0, attack=1, decay=60, sustain=40, release=45),
-    P("P Osc FM", "OSC 3 modulating OSC 1's pitch: gritty, stepped FM", o(1, "FM 2-Op", **SINE), o(3, "FM 2-Op", semi=6, level=0, **SINE), cords(("OSC 3", "O1 PITCH", 28)), cutoff=100, reso=0, keytrack=0, vel_filt=0, decay=60, sustain=50, release=40),
-    P("P Filter Growl", "OSC 2 at audio rate on the cutoff", o(1, "Virtual Analog", morph=100), o(2, "FM 2-Op", semi=-12, level=0, **SINE), cords(("OSC 2", "CUTOFF", 70)), cutoff=44, reso=50, vca_mode="ON", release=30),
-    P("P Noise Grit", "Noise roughing up the level and the wave", o(1, "Virtual Analog", morph=100), cords(("NOISE", "VCA", 55), ("NOISE", "O1 TIMB", 30)), cutoff=70, vca_mode="ON", release=30),
-    P("P Self Feedback", "OSC 1 into its own pitch and the filter", o(1, "FM 2-Op", timbre=20), cords(("OSC 1", "O1 PITCH", 18), ("OSC 1", "CUTOFF", 40)), cutoff=52, reso=25, vca_mode="ON", release=30),
-    P("P Pressure Play", "Velocity, wheel and pressure patched to the filter and wave", o(1, "Virtual Analog", morph=100), cords(("VEL", "CUTOFF", 60), ("WHEEL", "O1 TIMB", 80), ("AT", "CUTOFF", 40)), cutoff=30, reso=30, release=30),
+    P("Ring Mod", "OSC 2 ring modulating OSC 1, bell-like. Try OSC 2's SEMI", o(1, "FM 2-Op", **SINE), o(2, "FM 2-Op", semi=7, level=0, **SINE), cords(("OSC 2", "VCA", 100)), cutoff=100, reso=0, keytrack=0, vel_filt=0, attack=1, decay=60, sustain=40, release=45),
+    P("Osc FM", "OSC 3 modulating OSC 1's pitch: gritty, stepped FM", o(1, "FM 2-Op", **SINE), o(3, "FM 2-Op", semi=6, level=0, **SINE), cords(("OSC 3", "O1 PITCH", 28)), cutoff=100, reso=0, keytrack=0, vel_filt=0, decay=60, sustain=50, release=40),
+    P("Filter Growl", "OSC 2 at audio rate on the cutoff", o(1, "Virtual Analog", morph=100), o(2, "FM 2-Op", semi=-12, level=0, **SINE), cords(("OSC 2", "CUTOFF", 70)), cutoff=44, reso=50, vca_mode="ON", release=30),
+    P("Noise Grit", "Noise roughing up the level and the wave", o(1, "Virtual Analog", morph=100), cords(("NOISE", "VCA", 55), ("NOISE", "O1 TIMB", 30)), cutoff=70, vca_mode="ON", release=30),
+    P("Self Feedback", "OSC 1 into its own pitch and the filter", o(1, "FM 2-Op", timbre=20), cords(("OSC 1", "O1 PITCH", 18), ("OSC 1", "CUTOFF", 40)), cutoff=52, reso=25, vca_mode="ON", release=30),
+    P("Pressure Play", "Velocity, wheel and pressure patched to the filter and wave", o(1, "Virtual Analog", morph=100), cords(("VEL", "CUTOFF", 60), ("WHEEL", "O1 TIMB", 80), ("AT", "CUTOFF", 40)), cutoff=30, reso=30, release=30),
 ]
 
 # Built around what the newer modules do best. Anything clocked plays while a key is held, and follows the song when it runs.
@@ -240,6 +242,44 @@ SONG = {
 ],
 }
 
+OFF_VALUES = ("OFF", 0)
+
+def analyse(values):
+    """What a preset uses and plays with, read from its values so that it cannot be wrong or forgotten."""
+    cords = [(values["c%d_src" % n], values["c%d_dst" % n]) for n in range(1, 13) if values["c%d_src" % n] != "OFF" and values["c%d_dst" % n] != "OFF"]
+    sources = [src for src, _ in cords]
+    oscillators = [n for n in (1, 2, 3) if values["o%d_on" % n] == "ON"]
+    elements = values["o1_type"] == "ELEMENTS"
+    tides = any(src.startswith("TIDES") for src in sources)
+    clocked = any(src.startswith("CLOCK") for src in sources)
+    uses = []
+    if [n for n in oscillators if not (n == 1 and elements)]: uses.append("Plaits")
+    if elements: uses.append("Elements")
+    if tides: uses.append("Tides")
+    if clocked: uses.append("Clock")
+    if cords: uses.append("Patch Bay")
+    if values["vca_mode"] == "LPG" or any(values["o%d_amp" % n] == "LPG" for n in oscillators): uses.append("LPG")
+    if values["fx_dl_mix"] > 0: uses.append("Delay")
+    if values["fx_rv_mix"] > 0: uses.append("Reverb")
+    if values["fx_ph_mix"] > 0 or values["fx_ch_mode"] != "OFF": uses.append("Colour FX")
+    plays = []
+    if clocked: plays.append("Hold key")
+    if values["lfo_sync"] == "ON" or clocked or (tides and values["t_trig"] == "CLOCK"): plays.append("Song tempo")
+    if values["wheel_lfo"] > 0 or "WHEEL" in sources: plays.append("Wheel")
+    if values["at_cutoff"] > 0 or values["at_morph"] > 0 or values["at_lfo"] > 0 or "AFTERTOUCH" in sources: plays.append("Pressure")
+    return uses, plays
+
+def filed(name, values, note, unmatched=False):
+    assert name in TAGS, "%s has no tags in preset_tags.py" % name
+    type_, styles, characters = TAGS[name]
+    assert type_ in TYPES, "%s: type %s" % (name, type_)
+    assert styles and all(x in STYLES for x in styles), "%s: styles %s" % (name, styles)
+    assert characters and all(x in CHARACTERS for x in characters), "%s: character %s" % (name, characters)
+    uses, plays = analyse(values)
+    entry = {"name": name, "category": type_, "type": type_, "styles": styles, "character": characters, "uses": uses, "plays": plays, "pack": "Factory 1", "note": note}
+    if unmatched: entry["unmatched"] = True   # not level-matched: some depend on the shared random generator
+    return entry
+
 def main():
     spec = json.load(open(os.path.join(HERE, "params.json")))
     params = [p for p in spec["params"] if not p.get("momentary")]
@@ -251,29 +291,30 @@ def main():
 
     def default(p):
         return p["default"]
-    out = [{"name": "Init", "category": "Init", "values": {p["key"]: default(p) for p in params}}]
-    seen = {"Init"}
+    out = [{"name": "Init", "category": "Init", "type": "Init", "styles": [], "character": [], "uses": ["Plaits"], "plays": [], "pack": "Factory 1", "note": "The starting point", "values": {p["key"]: default(p) for p in params}}]
+    seen = {"init"}
     table = []
     for category, entries in LIBRARY.items():
         assert len(entries) == 8, "%s has %d" % (category, len(entries))
         for name, note, delta in entries:
-            assert len(name) <= 24 and name not in seen, name
-            seen.add(name)
+            assert len(name) <= 24 and name.lower() not in seen, name
+            seen.add(name.lower())
             values = dict(BASE)
             for k, v in delta.items():
                 assert k in values, "%s: %s is not a parameter" % (name, k)
                 values[k] = v
+            values.update(FX.get(name, {}))
             if name in trim:
                 values["volume"] = trim[name]
-            out.append({"name": name, "category": category, "values": {k: values[k] for k in keys}})
-            table.append((category, name, note))
+            out.append(dict(filed(name, values, note), values={k: values[k] for k in keys}))
+            table.append((TAGS[name][0], name, note))
     options = {p["key"]: p.get("options") for p in params}
     ranges = {p["key"]: (p.get("min"), p.get("max")) for p in params}
     aliases = {"VEL": "VELOCITY", "AT": "AFTERTOUCH"}   # the jack labels, for readability above
     checked = [(category, entry) for category, entries in SONG.items() for entry in entries] + [("Testing", entry) for entry in TESTING]
     for category, (name, note, delta) in checked:
-        assert len(name) <= 24 and name not in seen, name
-        seen.add(name)
+        assert len(name) <= 24 and name.lower() not in seen, name
+        seen.add(name.lower())
         values = dict(BASE)
         for k, v in delta.items():
             assert k in values, "%s: %s is not a parameter" % (name, k)
@@ -284,21 +325,26 @@ def main():
             else:
                 assert ranges[k][0] <= v <= ranges[k][1], "%s: %s=%r is out of range" % (name, k, v)
             values[k] = v
+        values.update(FX.get(name, {}))
         if name in trim:
             values["volume"] = trim[name]
-        out.append({"name": name, "category": category, "values": {k: values[k] for k in keys}})
-        table.append((category, name, note))
+        out.append(dict(filed(name, values, note, unmatched=category == "Testing"), values={k: values[k] for k in keys}))
+        table.append((TAGS[name][0], name, note))
     with open(os.path.join(HERE, "presets.json"), "w") as f:
         json.dump({"presets": out}, f, indent=1)
         f.write("\n")
     with open(os.path.join(HERE, "PRESETS.md"), "w") as f:
         f.write("# Millstone presets\n\nGenerated by `make_presets.py`. Init is the default patch; the other %d are below.\n" % len(table))
-        last = None
-        for category, name, note in table:
-            if category != last:
-                f.write("\n## %s\n\n| Preset | Character |\n|---|---|\n" % category)
-                last = category
-            f.write("| %s | %s |\n" % (name, note))
+        for type_ in TYPES:
+            f.write("\n## %s\n\n| Preset | Style | Character | Notes |\n|---|---|---|---|\n" % type_)
+            for category, name, note in sorted((x for x in table if x[0] == type_), key=lambda x: x[1].lower()):
+                f.write("| %s | %s | %s | %s |\n" % (name, ", ".join(TAGS[name][1]), ", ".join(TAGS[name][2]), note))
+    for name, delta in FX.items():
+        assert name in TAGS, "preset_fx.py names %s, which does not exist" % name
+        for k, v in delta.items():
+            assert k in options and (v in options[k] if options[k] else ranges[k][0] <= v <= ranges[k][1]), "%s: %s=%r" % (name, k, v)
+    unused = set(TAGS) - {e["name"] for e in out}
+    assert not unused, "tags for presets that do not exist: %s" % sorted(unused)
     print("wrote %d presets" % len(out))
 
 if __name__ == "__main__":

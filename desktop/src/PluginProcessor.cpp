@@ -214,25 +214,41 @@ void MillstoneProcessor::disconnectCord(int cord) {
 const std::vector<MillstoneProcessor::Preset>& MillstoneProcessor::factoryPresets() {
     static const std::vector<Preset> library = [] {
         std::vector<Preset> out;
+        std::map<juce::String, const param_t*> params;   // a lookup per value of per preset: this is what a big library spends its time on
+        for (int i = 0; i < NPARAMS; ++i) params[PARAMS[i].key] = &PARAMS[i];
+        const auto words = [](const juce::var& list) { juce::StringArray result; if (const auto* a = list.getArray()) for (const auto& v : *a) result.add(v.toString()); return result; };
         const auto json = juce::JSON::parse(juce::String::fromUTF8(BinaryData::presets_json, BinaryData::presets_jsonSize));
-        if (const auto* list = json["presets"].getArray())
+        if (const auto* list = json["presets"].getArray()) {
+            out.reserve((size_t)list->size());
             for (const auto& entry : *list) {
-                Preset preset { entry["name"].toString(), entry["category"].toString(), {} };
-                if (const auto* obj = entry["values"].getDynamicObject())
+                Preset preset;
+                preset.name = entry["name"].toString();
+                preset.category = entry["category"].toString();
+                preset.type = entry["type"].toString();
+                preset.pack = entry["pack"].toString();
+                preset.note = entry["note"].toString();
+                preset.styles = words(entry["styles"]);
+                preset.character = words(entry["character"]);
+                preset.uses = words(entry["uses"]);
+                preset.plays = words(entry["plays"]);
+                preset.unmatched = (bool)entry.getProperty("unmatched", false);
+                if (const auto* obj = entry["values"].getDynamicObject()) {
+                    preset.values.reserve((size_t)obj->getProperties().size());
                     for (const auto& property : obj->getProperties()) {
                         const auto key = property.name.toString();
-                        const param_t* def = nullptr;
-                        for (int i = 0; i < NPARAMS && def == nullptr; ++i)
-                            if (key == PARAMS[i].key) def = &PARAMS[i];
-                        if (def == nullptr) { jassertfalse; continue; }
+                        const auto found = params.find(key);
+                        if (found == params.end()) { jassertfalse; continue; }
+                        const param_t* def = found->second;
                         float value = (float)property.value;
                         if (property.value.isString())
                             for (int o = 0; o < def->nopts; ++o)
                                 if (property.value.toString() == def->opts[o]) value = (float)o;
                         preset.values.emplace_back(key, value);
                     }
+                }
                 out.push_back(std::move(preset));
             }
+        }
         return out;
     }();
     return library;
@@ -330,6 +346,55 @@ bool MillstoneProcessor::deleteUserPreset(const juce::String& name) {
     if (!file.existsAsFile() || !file.deleteFile()) return false;
     if (currentPresetName == name) currentPresetName.clear();   // the sound stays, it just no longer has that name
     return true;
+}
+
+// ---- favourites and flags ----------------------------------------------------------------------------------------
+juce::File MillstoneProcessor::favouritesFile() const { return userPresetDirectory().getSiblingFile("favourites.txt"); }
+juce::File MillstoneProcessor::flagsFile() const { return userPresetDirectory().getSiblingFile("preset-flags.txt"); }
+
+juce::StringArray MillstoneProcessor::favourites() const {
+    juce::StringArray lines;
+    favouritesFile().readLines(lines);
+    lines.removeEmptyStrings();
+    return lines;
+}
+
+void MillstoneProcessor::setFavourite(const juce::String& name, bool on) {
+    auto lines = favourites();
+    lines.removeString(name);
+    if (on) lines.add(name);
+    favouritesFile().getParentDirectory().createDirectory();
+    favouritesFile().replaceWithText(lines.joinIntoString("\n") + "\n");
+}
+
+std::map<juce::String, juce::String> MillstoneProcessor::flags() const {
+    std::map<juce::String, juce::String> out;
+    juce::StringArray lines;
+    flagsFile().readLines(lines);
+    for (const auto& line : lines)
+        if (line.isNotEmpty()) out[line.upToFirstOccurrenceOf("\t", false, false)] = line.fromFirstOccurrenceOf("\t", false, false);
+    return out;
+}
+
+namespace {
+void writeFlags(const juce::File& file, const std::map<juce::String, juce::String>& flags) {
+    juce::String text;
+    for (const auto& [name, note] : flags) text << name << "\t" << note << "\n";
+    file.getParentDirectory().createDirectory();
+    file.replaceWithText(text);
+}
+}
+
+void MillstoneProcessor::setFlag(const juce::String& name, const juce::String& note) {
+    auto all = flags();
+    all[name] = note.replaceCharacters("\t\r\n", "   ").trim();
+    writeFlags(flagsFile(), all);
+}
+
+void MillstoneProcessor::clearFlag(const juce::String& name) {
+    auto all = flags();
+    all.erase(name);
+    writeFlags(flagsFile(), all);
 }
 
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter() { return new MillstoneProcessor(); }

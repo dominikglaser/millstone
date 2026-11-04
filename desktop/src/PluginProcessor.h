@@ -7,6 +7,7 @@
 #include "engine_host.h"
 #include "fx/FxChain.h"
 #include <array>
+#include <map>
 
 class MillstoneProcessor : public juce::AudioProcessor {
 public:
@@ -57,6 +58,9 @@ public:
     struct Preset {
         juce::String name, category;
         std::vector<std::pair<juce::String, float>> values;   // parameter id, value in its own units or option index
+        juce::String type, pack, note;
+        juce::StringArray styles, character, uses, plays;
+        bool unmatched = false;                               // not level-matched against the rest of the library
     };
     static const std::vector<Preset>& factoryPresets();       // from vst/presets.json, shared with the MPC build
 
@@ -70,6 +74,25 @@ public:
     bool saveUserPreset(const juce::String& name);
     bool loadUserPreset(const juce::String& name);
     bool deleteUserPreset(const juce::String& name);
+
+    // What you think of them. Plain text beside the user presets, by name, so reordering the library cannot confuse them and
+    // the flags can simply be handed back to whoever is writing the next batch.
+    juce::File favouritesFile() const;
+    juce::File flagsFile() const;
+    bool isFavourite(const juce::String& name) const { return favourites().contains(name); }
+    void setFavourite(const juce::String& name, bool on);
+    juce::StringArray favourites() const;
+    std::map<juce::String, juce::String> flags() const;                 // preset name, your note
+    void setFlag(const juce::String& name, const juce::String& note);
+    void clearFlag(const juce::String& name);
+
+    // What the browser is showing, kept here so that closing the window does not lose it.
+    struct BrowserFilter {
+        juce::String search;
+        juce::StringArray types, styles, character, uses, plays, packs;
+        bool favouritesOnly = false, flaggedOnly = false;
+    };
+    BrowserFilter browserFilter;
 
 private:
     static juce::AudioProcessorValueTreeState::ParameterLayout makeLayout();

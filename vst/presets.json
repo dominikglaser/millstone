@@ -3,6 +3,15 @@
   {
    "name": "Init",
    "category": "Init",
+   "type": "Init",
+   "styles": [],
+   "character": [],
+   "uses": [
+    "Plaits"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "The starting point",
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -269,6 +278,22 @@
   {
    "name": "Round Sub",
    "category": "Bass",
+   "type": "Bass",
+   "styles": [
+    "Classic",
+    "Dub",
+    "House"
+   ],
+   "character": [
+    "Warm",
+    "Soft"
+   ],
+   "uses": [
+    "Plaits"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Clean low end, slides between held notes",
    "values": {
     "voices": 1,
     "voice_mode": "LEGATO",
@@ -535,6 +560,22 @@
   {
    "name": "Acid Line",
    "category": "Bass",
+   "type": "Bass",
+   "styles": [
+    "Techno",
+    "House",
+    "Rave"
+   ],
+   "character": [
+    "Aggressive",
+    "Bright"
+   ],
+   "uses": [
+    "Plaits"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Squelchy resonant line. Velocity opens it",
    "values": {
     "voices": 1,
     "voice_mode": "LEGATO",
@@ -801,6 +842,21 @@
   {
    "name": "FM Slap",
    "category": "Bass",
+   "type": "Bass",
+   "styles": [
+    "Classic",
+    "House"
+   ],
+   "character": [
+    "Bright",
+    "Metallic"
+   ],
+   "uses": [
+    "Plaits"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Hard attack, quick decay",
    "values": {
     "voices": 1,
     "voice_mode": "MONO",
@@ -1067,6 +1123,21 @@
   {
    "name": "Reese",
    "category": "Bass",
+   "type": "Bass",
+   "styles": [
+    "Rave",
+    "Techno"
+   ],
+   "character": [
+    "Dark",
+    "Evolving"
+   ],
+   "uses": [
+    "Plaits"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Slow beating detuned pair",
    "values": {
     "voices": 1,
     "voice_mode": "LEGATO",
@@ -1333,6 +1404,23 @@
   {
    "name": "Tempo Growl",
    "category": "Bass",
+   "type": "Bass",
+   "styles": [
+    "Techno",
+    "Experimental"
+   ],
+   "character": [
+    "Aggressive",
+    "Evolving"
+   ],
+   "uses": [
+    "Plaits"
+   ],
+   "plays": [
+    "Song tempo"
+   ],
+   "pack": "Factory 1",
+   "note": "Wavetable moving in eighths with the song",
    "values": {
     "voices": 1,
     "voice_mode": "MONO",
@@ -1599,6 +1687,21 @@
   {
    "name": "Pluck Bass",
    "category": "Bass",
+   "type": "Bass",
+   "styles": [
+    "Classic",
+    "Dub",
+    "House"
+   ],
+   "character": [
+    "Warm"
+   ],
+   "uses": [
+    "Plaits"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Driven and short, sits well in a groove",
    "values": {
     "voices": 1,
     "voice_mode": "MONO",
@@ -1865,6 +1968,21 @@
   {
    "name": "Modal Thump",
    "category": "Bass",
+   "type": "Bass",
+   "styles": [
+    "Dub",
+    "Experimental"
+   ],
+   "character": [
+    "Warm",
+    "Soft"
+   ],
+   "uses": [
+    "Plaits"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Struck body with a triangle underneath",
    "values": {
     "voices": 1,
     "voice_mode": "MONO",
@@ -2131,6 +2249,21 @@
   {
    "name": "Phase Bass",
    "category": "Bass",
+   "type": "Bass",
+   "styles": [
+    "Classic",
+    "Techno"
+   ],
+   "character": [
+    "Bright",
+    "Aggressive"
+   ],
+   "uses": [
+    "Plaits"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Bright bite that closes as the envelope falls",
    "values": {
     "voices": 1,
     "voice_mode": "LEGATO",
@@ -2397,6 +2530,22 @@
   {
    "name": "Classic Lead",
    "category": "Lead",
+   "type": "Lead",
+   "styles": [
+    "Classic"
+   ],
+   "character": [
+    "Warm"
+   ],
+   "uses": [
+    "Plaits",
+    "Delay"
+   ],
+   "plays": [
+    "Wheel"
+   ],
+   "pack": "Factory 1",
+   "note": "Fat detuned saws. Mod wheel adds vibrato",
    "values": {
     "voices": 1,
     "voice_mode": "LEGATO",
@@ -2455,7 +2604,7 @@
     "decay": 50,
     "sustain": 100,
     "vca_mode": "ENV",
-    "volume": 64.9,
+    "volume": 60.7,
     "vel_amp": 40,
     "vel_filt": 15,
     "lfo_shape": "TRI",
@@ -2640,18 +2789,18 @@
     "fx_dl_sync": "SYNC",
     "fx_dl_time": 375,
     "fx_dl_div": "1/8 D",
-    "fx_dl_fb": 45,
+    "fx_dl_fb": 35,
     "fx_dl_in": "OPEN",
     "fx_dl_throw": "OFF",
     "fx_dl_heads": "1",
     "fx_dl_pp": "OFF",
     "fx_dl_width": 100,
-    "fx_dl_low": 25,
-    "fx_dl_high": 70,
+    "fx_dl_low": 30,
+    "fx_dl_high": 65,
     "fx_dl_drive": 25,
-    "fx_dl_wow": 20,
+    "fx_dl_wow": 15,
     "fx_dl_duck": 0,
-    "fx_dl_mix": 0,
+    "fx_dl_mix": 16,
     "fx_rv_type": "NORMAL",
     "fx_rv_decay": 50,
     "fx_rv_diff": 60,
@@ -2663,6 +2812,23 @@
   {
    "name": "Sync Scream",
    "category": "Lead",
+   "type": "Lead",
+   "styles": [
+    "Classic",
+    "Rave"
+   ],
+   "character": [
+    "Aggressive",
+    "Bright"
+   ],
+   "uses": [
+    "Plaits"
+   ],
+   "plays": [
+    "Wheel"
+   ],
+   "pack": "Factory 1",
+   "note": "Timbre sweeps down from the envelope",
    "values": {
     "voices": 1,
     "voice_mode": "MONO",
@@ -2929,6 +3095,23 @@
   {
    "name": "Square Hero",
    "category": "Lead",
+   "type": "Lead",
+   "styles": [
+    "Classic"
+   ],
+   "character": [
+    "Warm"
+   ],
+   "uses": [
+    "Plaits",
+    "Delay"
+   ],
+   "plays": [
+    "Wheel",
+    "Pressure"
+   ],
+   "pack": "Factory 1",
+   "note": "Hollow square, pressure brightens it",
    "values": {
     "voices": 1,
     "voice_mode": "LEGATO",
@@ -2987,7 +3170,7 @@
     "decay": 50,
     "sustain": 100,
     "vca_mode": "ENV",
-    "volume": 81.2,
+    "volume": 78.6,
     "vel_amp": 40,
     "vel_filt": 15,
     "lfo_shape": "TRI",
@@ -3171,19 +3354,19 @@
     "fx_ch_mix": 100,
     "fx_dl_sync": "SYNC",
     "fx_dl_time": 375,
-    "fx_dl_div": "1/8 D",
-    "fx_dl_fb": 45,
+    "fx_dl_div": "1/4",
+    "fx_dl_fb": 30,
     "fx_dl_in": "OPEN",
     "fx_dl_throw": "OFF",
     "fx_dl_heads": "1",
     "fx_dl_pp": "OFF",
     "fx_dl_width": 100,
-    "fx_dl_low": 25,
-    "fx_dl_high": 70,
+    "fx_dl_low": 30,
+    "fx_dl_high": 65,
     "fx_dl_drive": 25,
-    "fx_dl_wow": 20,
+    "fx_dl_wow": 15,
     "fx_dl_duck": 0,
-    "fx_dl_mix": 0,
+    "fx_dl_mix": 15,
     "fx_rv_type": "NORMAL",
     "fx_rv_decay": 50,
     "fx_rv_diff": 60,
@@ -3195,6 +3378,26 @@
   {
    "name": "Glass FM",
    "category": "Lead",
+   "type": "Lead",
+   "styles": [
+    "Classic",
+    "Ambient"
+   ],
+   "character": [
+    "Bright",
+    "Metallic"
+   ],
+   "uses": [
+    "Plaits",
+    "Delay",
+    "Reverb"
+   ],
+   "plays": [
+    "Wheel",
+    "Pressure"
+   ],
+   "pack": "Factory 1",
+   "note": "Clear and bell-like",
    "values": {
     "voices": 1,
     "voice_mode": "MONO",
@@ -3253,7 +3456,7 @@
     "decay": 60,
     "sustain": 70,
     "vca_mode": "ENV",
-    "volume": 66.9,
+    "volume": 65.1,
     "vel_amp": 40,
     "vel_filt": 15,
     "lfo_shape": "TRI",
@@ -3437,30 +3640,45 @@
     "fx_ch_mix": 100,
     "fx_dl_sync": "SYNC",
     "fx_dl_time": 375,
-    "fx_dl_div": "1/8 D",
-    "fx_dl_fb": 45,
+    "fx_dl_div": "1/8",
+    "fx_dl_fb": 30,
     "fx_dl_in": "OPEN",
     "fx_dl_throw": "OFF",
     "fx_dl_heads": "1",
     "fx_dl_pp": "OFF",
     "fx_dl_width": 100,
-    "fx_dl_low": 25,
-    "fx_dl_high": 70,
+    "fx_dl_low": 30,
+    "fx_dl_high": 65,
     "fx_dl_drive": 25,
-    "fx_dl_wow": 20,
+    "fx_dl_wow": 15,
     "fx_dl_duck": 0,
-    "fx_dl_mix": 0,
+    "fx_dl_mix": 12,
     "fx_rv_type": "NORMAL",
     "fx_rv_decay": 50,
-    "fx_rv_diff": 60,
-    "fx_rv_damp": 40,
+    "fx_rv_diff": 65,
+    "fx_rv_damp": 35,
     "fx_rv_kick": "OFF",
-    "fx_rv_mix": 0
+    "fx_rv_mix": 18
    }
   },
   {
    "name": "Formant Cry",
    "category": "Lead",
+   "type": "Lead",
+   "styles": [
+    "Cinematic",
+    "Experimental"
+   ],
+   "character": [
+    "Evolving"
+   ],
+   "uses": [
+    "Plaits",
+    "Reverb"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Vocal, with a slow moving formant",
    "values": {
     "voices": 1,
     "voice_mode": "LEGATO",
@@ -3519,7 +3737,7 @@
     "decay": 50,
     "sustain": 100,
     "vca_mode": "ENV",
-    "volume": 75.9,
+    "volume": 67.0,
     "vel_amp": 40,
     "vel_filt": 15,
     "lfo_shape": "TRI",
@@ -3718,15 +3936,29 @@
     "fx_dl_mix": 0,
     "fx_rv_type": "NORMAL",
     "fx_rv_decay": 50,
-    "fx_rv_diff": 60,
-    "fx_rv_damp": 40,
+    "fx_rv_diff": 65,
+    "fx_rv_damp": 35,
     "fx_rv_kick": "OFF",
-    "fx_rv_mix": 0
+    "fx_rv_mix": 20
    }
   },
   {
    "name": "Chip Lead",
    "category": "Lead",
+   "type": "Lead",
+   "styles": [
+    "Classic",
+    "Experimental"
+   ],
+   "character": [
+    "Bright"
+   ],
+   "uses": [
+    "Plaits"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "8-bit arpeggio voice",
    "values": {
     "voices": 1,
     "voice_mode": "MONO",
@@ -3993,6 +4225,23 @@
   {
    "name": "Wave Solo",
    "category": "Lead",
+   "type": "Lead",
+   "styles": [
+    "Classic",
+    "Techno"
+   ],
+   "character": [
+    "Bright"
+   ],
+   "uses": [
+    "Plaits",
+    "Delay"
+   ],
+   "plays": [
+    "Wheel"
+   ],
+   "pack": "Factory 1",
+   "note": "Wavetable that opens on each note",
    "values": {
     "voices": 1,
     "voice_mode": "LEGATO",
@@ -4051,7 +4300,7 @@
     "decay": 50,
     "sustain": 100,
     "vca_mode": "ENV",
-    "volume": 67.6,
+    "volume": 62.1,
     "vel_amp": 40,
     "vel_filt": 15,
     "lfo_shape": "TRI",
@@ -4236,18 +4485,18 @@
     "fx_dl_sync": "SYNC",
     "fx_dl_time": 375,
     "fx_dl_div": "1/8 D",
-    "fx_dl_fb": 45,
+    "fx_dl_fb": 35,
     "fx_dl_in": "OPEN",
     "fx_dl_throw": "OFF",
     "fx_dl_heads": "1",
-    "fx_dl_pp": "OFF",
-    "fx_dl_width": 100,
-    "fx_dl_low": 25,
-    "fx_dl_high": 70,
+    "fx_dl_pp": "ON",
+    "fx_dl_width": 70,
+    "fx_dl_low": 30,
+    "fx_dl_high": 65,
     "fx_dl_drive": 25,
-    "fx_dl_wow": 20,
+    "fx_dl_wow": 15,
     "fx_dl_duck": 0,
-    "fx_dl_mix": 0,
+    "fx_dl_mix": 16,
     "fx_rv_type": "NORMAL",
     "fx_rv_decay": 50,
     "fx_rv_diff": 60,
@@ -4259,6 +4508,22 @@
   {
    "name": "Overdrive",
    "category": "Lead",
+   "type": "Lead",
+   "styles": [
+    "Rave",
+    "Techno"
+   ],
+   "character": [
+    "Aggressive"
+   ],
+   "uses": [
+    "Plaits"
+   ],
+   "plays": [
+    "Pressure"
+   ],
+   "pack": "Factory 1",
+   "note": "Hot and resonant. Pressure opens the filter",
    "values": {
     "voices": 1,
     "voice_mode": "LEGATO",
@@ -4525,6 +4790,22 @@
   {
    "name": "Tine Piano",
    "category": "Keys",
+   "type": "Keys",
+   "styles": [
+    "Classic",
+    "House"
+   ],
+   "character": [
+    "Warm",
+    "Soft"
+   ],
+   "uses": [
+    "Plaits",
+    "Colour FX"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Electric piano. Plays softer and darker gently",
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -4583,7 +4864,7 @@
     "decay": 78,
     "sustain": 0,
     "vca_mode": "ENV",
-    "volume": 63.8,
+    "volume": 82.9,
     "vel_amp": 70,
     "vel_filt": 40,
     "lfo_shape": "TRI",
@@ -4763,8 +5044,8 @@
     "fx_ph_depth": 70,
     "fx_ph_fb": 30,
     "fx_ph_mix": 0,
-    "fx_ch_mode": "OFF",
-    "fx_ch_mix": 100,
+    "fx_ch_mode": "I",
+    "fx_ch_mix": 70,
     "fx_dl_sync": "SYNC",
     "fx_dl_time": 375,
     "fx_dl_div": "1/8 D",
@@ -4791,6 +5072,23 @@
   {
    "name": "DX Keys",
    "category": "Keys",
+   "type": "Keys",
+   "styles": [
+    "Classic",
+    "House"
+   ],
+   "character": [
+    "Bright",
+    "Metallic"
+   ],
+   "uses": [
+    "Plaits",
+    "Reverb",
+    "Colour FX"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "A six-op patch, HARMONICS picks another",
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -4849,7 +5147,7 @@
     "decay": 50,
     "sustain": 100,
     "vca_mode": "ENV",
-    "volume": 69.3,
+    "volume": 79.8,
     "vel_amp": 60,
     "vel_filt": 15,
     "lfo_shape": "TRI",
@@ -5029,8 +5327,8 @@
     "fx_ph_depth": 70,
     "fx_ph_fb": 30,
     "fx_ph_mix": 0,
-    "fx_ch_mode": "OFF",
-    "fx_ch_mix": 100,
+    "fx_ch_mode": "I",
+    "fx_ch_mix": 50,
     "fx_dl_sync": "SYNC",
     "fx_dl_time": 375,
     "fx_dl_div": "1/8 D",
@@ -5048,15 +5346,32 @@
     "fx_dl_mix": 0,
     "fx_rv_type": "NORMAL",
     "fx_rv_decay": 50,
-    "fx_rv_diff": 60,
-    "fx_rv_damp": 40,
+    "fx_rv_diff": 65,
+    "fx_rv_damp": 35,
     "fx_rv_kick": "OFF",
-    "fx_rv_mix": 0
+    "fx_rv_mix": 12
    }
   },
   {
    "name": "Soft Organ",
    "category": "Keys",
+   "type": "Keys",
+   "styles": [
+    "Classic",
+    "Dub"
+   ],
+   "character": [
+    "Warm",
+    "Soft"
+   ],
+   "uses": [
+    "Plaits",
+    "Reverb",
+    "Colour FX"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Steady and rounded",
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -5115,7 +5430,7 @@
     "decay": 50,
     "sustain": 100,
     "vca_mode": "ENV",
-    "volume": 62.0,
+    "volume": 60.6,
     "vel_amp": 0,
     "vel_filt": 0,
     "lfo_shape": "TRI",
@@ -5295,8 +5610,8 @@
     "fx_ph_depth": 70,
     "fx_ph_fb": 30,
     "fx_ph_mix": 0,
-    "fx_ch_mode": "OFF",
-    "fx_ch_mix": 100,
+    "fx_ch_mode": "I",
+    "fx_ch_mix": 60,
     "fx_dl_sync": "SYNC",
     "fx_dl_time": 375,
     "fx_dl_div": "1/8 D",
@@ -5312,17 +5627,32 @@
     "fx_dl_wow": 20,
     "fx_dl_duck": 0,
     "fx_dl_mix": 0,
-    "fx_rv_type": "NORMAL",
+    "fx_rv_type": "SPRING",
     "fx_rv_decay": 50,
-    "fx_rv_diff": 60,
-    "fx_rv_damp": 40,
+    "fx_rv_diff": 70,
+    "fx_rv_damp": 30,
     "fx_rv_kick": "OFF",
-    "fx_rv_mix": 0
+    "fx_rv_mix": 10
    }
   },
   {
    "name": "Reed Organ",
    "category": "Keys",
+   "type": "Keys",
+   "styles": [
+    "Classic",
+    "Dub"
+   ],
+   "character": [
+    "Warm"
+   ],
+   "uses": [
+    "Plaits",
+    "Reverb"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Buzzier, with a slower swell",
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -5381,7 +5711,7 @@
     "decay": 50,
     "sustain": 100,
     "vca_mode": "ENV",
-    "volume": 68.7,
+    "volume": 65.9,
     "vel_amp": 10,
     "vel_filt": 15,
     "lfo_shape": "TRI",
@@ -5578,17 +5908,32 @@
     "fx_dl_wow": 20,
     "fx_dl_duck": 0,
     "fx_dl_mix": 0,
-    "fx_rv_type": "NORMAL",
+    "fx_rv_type": "SPRING",
     "fx_rv_decay": 50,
-    "fx_rv_diff": 60,
-    "fx_rv_damp": 40,
+    "fx_rv_diff": 70,
+    "fx_rv_damp": 30,
     "fx_rv_kick": "OFF",
-    "fx_rv_mix": 0
+    "fx_rv_mix": 14
    }
   },
   {
    "name": "Funk Clav",
    "category": "Keys",
+   "type": "Keys",
+   "styles": [
+    "Classic",
+    "House"
+   ],
+   "character": [
+    "Bright"
+   ],
+   "uses": [
+    "Plaits",
+    "Colour FX"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Bright and percussive through the high-pass",
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -5647,7 +5992,7 @@
     "decay": 58,
     "sustain": 0,
     "vca_mode": "ENV",
-    "volume": 90.4,
+    "volume": 100.0,
     "vel_amp": 70,
     "vel_filt": 15,
     "lfo_shape": "TRI",
@@ -5823,10 +6168,10 @@
     "o1_amp": "AUTO",
     "o2_amp": "AUTO",
     "o3_amp": "AUTO",
-    "fx_ph_rate": 30,
+    "fx_ph_rate": 35,
     "fx_ph_depth": 70,
     "fx_ph_fb": 30,
-    "fx_ph_mix": 0,
+    "fx_ph_mix": 35,
     "fx_ch_mode": "OFF",
     "fx_ch_mix": 100,
     "fx_dl_sync": "SYNC",
@@ -5855,6 +6200,19 @@
   {
    "name": "Harpsi",
    "category": "Keys",
+   "type": "Keys",
+   "styles": [
+    "Classic"
+   ],
+   "character": [
+    "Bright"
+   ],
+   "uses": [
+    "Plaits"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Octave-doubled, sharp attack",
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -6121,6 +6479,23 @@
   {
    "name": "Mellow Poly",
    "category": "Keys",
+   "type": "Keys",
+   "styles": [
+    "Classic",
+    "House"
+   ],
+   "character": [
+    "Warm",
+    "Soft"
+   ],
+   "uses": [
+    "Plaits",
+    "Reverb",
+    "Colour FX"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Warm eighties polysynth",
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -6179,7 +6554,7 @@
     "decay": 58,
     "sustain": 70,
     "vca_mode": "ENV",
-    "volume": 66.3,
+    "volume": 78.1,
     "vel_amp": 40,
     "vel_filt": 15,
     "lfo_shape": "TRI",
@@ -6359,8 +6734,8 @@
     "fx_ph_depth": 70,
     "fx_ph_fb": 30,
     "fx_ph_mix": 0,
-    "fx_ch_mode": "OFF",
-    "fx_ch_mix": 100,
+    "fx_ch_mode": "II",
+    "fx_ch_mix": 80,
     "fx_dl_sync": "SYNC",
     "fx_dl_time": 375,
     "fx_dl_div": "1/8 D",
@@ -6378,15 +6753,31 @@
     "fx_dl_mix": 0,
     "fx_rv_type": "NORMAL",
     "fx_rv_decay": 50,
-    "fx_rv_diff": 60,
-    "fx_rv_damp": 40,
+    "fx_rv_diff": 65,
+    "fx_rv_damp": 35,
     "fx_rv_kick": "OFF",
-    "fx_rv_mix": 0
+    "fx_rv_mix": 15
    }
   },
   {
    "name": "Chord Memory",
    "category": "Keys",
+   "type": "Keys",
+   "styles": [
+    "House",
+    "Techno"
+   ],
+   "character": [
+    "Warm"
+   ],
+   "uses": [
+    "Plaits",
+    "Delay",
+    "Reverb"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "One key plays a whole chord",
    "values": {
     "voices": 4,
     "voice_mode": "POLY",
@@ -6445,7 +6836,7 @@
     "decay": 62,
     "sustain": 0,
     "vca_mode": "ENV",
-    "volume": 98.4,
+    "volume": 98.6,
     "vel_amp": 40,
     "vel_filt": 15,
     "lfo_shape": "TRI",
@@ -6630,29 +7021,46 @@
     "fx_dl_sync": "SYNC",
     "fx_dl_time": 375,
     "fx_dl_div": "1/8 D",
-    "fx_dl_fb": 45,
+    "fx_dl_fb": 40,
     "fx_dl_in": "OPEN",
     "fx_dl_throw": "OFF",
     "fx_dl_heads": "1",
     "fx_dl_pp": "OFF",
     "fx_dl_width": 100,
-    "fx_dl_low": 25,
-    "fx_dl_high": 70,
+    "fx_dl_low": 45,
+    "fx_dl_high": 65,
     "fx_dl_drive": 25,
-    "fx_dl_wow": 20,
-    "fx_dl_duck": 0,
-    "fx_dl_mix": 0,
+    "fx_dl_wow": 15,
+    "fx_dl_duck": 30,
+    "fx_dl_mix": 18,
     "fx_rv_type": "NORMAL",
     "fx_rv_decay": 50,
-    "fx_rv_diff": 60,
-    "fx_rv_damp": 40,
+    "fx_rv_diff": 65,
+    "fx_rv_damp": 35,
     "fx_rv_kick": "OFF",
-    "fx_rv_mix": 0
+    "fx_rv_mix": 15
    }
   },
   {
    "name": "Warm Strings",
    "category": "Pad",
+   "type": "Pad",
+   "styles": [
+    "Classic",
+    "Cinematic"
+   ],
+   "character": [
+    "Warm",
+    "Soft"
+   ],
+   "uses": [
+    "Plaits",
+    "Reverb",
+    "Colour FX"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "String machine ensemble",
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -6891,7 +7299,7 @@
     "fx_ph_depth": 70,
     "fx_ph_fb": 30,
     "fx_ph_mix": 0,
-    "fx_ch_mode": "OFF",
+    "fx_ch_mode": "II",
     "fx_ch_mix": 100,
     "fx_dl_sync": "SYNC",
     "fx_dl_time": 375,
@@ -6910,15 +7318,32 @@
     "fx_dl_mix": 0,
     "fx_rv_type": "NORMAL",
     "fx_rv_decay": 50,
-    "fx_rv_diff": 60,
-    "fx_rv_damp": 40,
+    "fx_rv_diff": 65,
+    "fx_rv_damp": 35,
     "fx_rv_kick": "OFF",
-    "fx_rv_mix": 0
+    "fx_rv_mix": 20
    }
   },
   {
    "name": "Analog Pad",
    "category": "Pad",
+   "type": "Pad",
+   "styles": [
+    "Classic",
+    "Ambient"
+   ],
+   "character": [
+    "Warm",
+    "Evolving"
+   ],
+   "uses": [
+    "Plaits",
+    "Reverb",
+    "Colour FX"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Three saws, filter opens slowly",
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -6977,7 +7402,7 @@
     "decay": 50,
     "sustain": 100,
     "vca_mode": "ENV",
-    "volume": 60.5,
+    "volume": 79.8,
     "vel_amp": 15,
     "vel_filt": 15,
     "lfo_shape": "TRI",
@@ -7157,7 +7582,7 @@
     "fx_ph_depth": 70,
     "fx_ph_fb": 30,
     "fx_ph_mix": 0,
-    "fx_ch_mode": "OFF",
+    "fx_ch_mode": "I",
     "fx_ch_mix": 100,
     "fx_dl_sync": "SYNC",
     "fx_dl_time": 375,
@@ -7176,15 +7601,31 @@
     "fx_dl_mix": 0,
     "fx_rv_type": "NORMAL",
     "fx_rv_decay": 50,
-    "fx_rv_diff": 60,
-    "fx_rv_damp": 40,
+    "fx_rv_diff": 65,
+    "fx_rv_damp": 35,
     "fx_rv_kick": "OFF",
-    "fx_rv_mix": 0
+    "fx_rv_mix": 22
    }
   },
   {
    "name": "Swarm Pad",
    "category": "Pad",
+   "type": "Pad",
+   "styles": [
+    "Ambient",
+    "Cinematic"
+   ],
+   "character": [
+    "Warm",
+    "Evolving"
+   ],
+   "uses": [
+    "Plaits",
+    "Reverb"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Dense cloud of detuned voices",
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -7243,7 +7684,7 @@
     "decay": 50,
     "sustain": 100,
     "vca_mode": "ENV",
-    "volume": 65.9,
+    "volume": 64.9,
     "vel_amp": 15,
     "vel_filt": 15,
     "lfo_shape": "TRI",
@@ -7442,15 +7883,31 @@
     "fx_dl_mix": 0,
     "fx_rv_type": "NORMAL",
     "fx_rv_decay": 50,
-    "fx_rv_diff": 60,
-    "fx_rv_damp": 40,
+    "fx_rv_diff": 65,
+    "fx_rv_damp": 35,
     "fx_rv_kick": "OFF",
-    "fx_rv_mix": 0
+    "fx_rv_mix": 20
    }
   },
   {
    "name": "Glass Pad",
    "category": "Pad",
+   "type": "Pad",
+   "styles": [
+    "Ambient",
+    "Cinematic"
+   ],
+   "character": [
+    "Bright",
+    "Evolving"
+   ],
+   "uses": [
+    "Plaits",
+    "Reverb"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Wavetable shimmer, slow movement",
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -7509,7 +7966,7 @@
     "decay": 50,
     "sustain": 100,
     "vca_mode": "ENV",
-    "volume": 83.8,
+    "volume": 79.4,
     "vel_amp": 15,
     "vel_filt": 15,
     "lfo_shape": "TRI",
@@ -7707,16 +8164,31 @@
     "fx_dl_duck": 0,
     "fx_dl_mix": 0,
     "fx_rv_type": "NORMAL",
-    "fx_rv_decay": 50,
-    "fx_rv_diff": 60,
-    "fx_rv_damp": 40,
+    "fx_rv_decay": 70,
+    "fx_rv_diff": 65,
+    "fx_rv_damp": 35,
     "fx_rv_kick": "OFF",
-    "fx_rv_mix": 0
+    "fx_rv_mix": 28
    }
   },
   {
    "name": "Formant Choir",
    "category": "Pad",
+   "type": "Pad",
+   "styles": [
+    "Cinematic",
+    "Ambient"
+   ],
+   "character": [
+    "Soft"
+   ],
+   "uses": [
+    "Plaits",
+    "Reverb"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Breathy choir",
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -7775,7 +8247,7 @@
     "decay": 50,
     "sustain": 100,
     "vca_mode": "ENV",
-    "volume": 60.6,
+    "volume": 56.8,
     "vel_amp": 15,
     "vel_filt": 15,
     "lfo_shape": "TRI",
@@ -7973,16 +8445,30 @@
     "fx_dl_duck": 0,
     "fx_dl_mix": 0,
     "fx_rv_type": "NORMAL",
-    "fx_rv_decay": 50,
-    "fx_rv_diff": 60,
-    "fx_rv_damp": 40,
+    "fx_rv_decay": 70,
+    "fx_rv_diff": 65,
+    "fx_rv_damp": 35,
     "fx_rv_kick": "OFF",
-    "fx_rv_mix": 0
+    "fx_rv_mix": 25
    }
   },
   {
    "name": "Terrain Drift",
    "category": "Pad",
+   "type": "Pad",
+   "styles": [
+    "Ambient",
+    "Experimental"
+   ],
+   "character": [
+    "Evolving"
+   ],
+   "uses": [
+    "Plaits"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Waveform slowly wandering",
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -8249,6 +8735,22 @@
   {
    "name": "Chord Cloud",
    "category": "Pad",
+   "type": "Pad",
+   "styles": [
+    "Ambient",
+    "House"
+   ],
+   "character": [
+    "Warm"
+   ],
+   "uses": [
+    "Plaits",
+    "Delay",
+    "Reverb"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Each key blooms into a chord",
    "values": {
     "voices": 4,
     "voice_mode": "POLY",
@@ -8307,7 +8809,7 @@
     "decay": 50,
     "sustain": 100,
     "vca_mode": "ENV",
-    "volume": 72.2,
+    "volume": 68.3,
     "vel_amp": 15,
     "vel_filt": 15,
     "lfo_shape": "TRI",
@@ -8491,30 +8993,45 @@
     "fx_ch_mix": 100,
     "fx_dl_sync": "SYNC",
     "fx_dl_time": 375,
-    "fx_dl_div": "1/8 D",
-    "fx_dl_fb": 45,
+    "fx_dl_div": "1/4 D",
+    "fx_dl_fb": 40,
     "fx_dl_in": "OPEN",
     "fx_dl_throw": "OFF",
     "fx_dl_heads": "1",
     "fx_dl_pp": "OFF",
     "fx_dl_width": 100,
-    "fx_dl_low": 25,
-    "fx_dl_high": 70,
+    "fx_dl_low": 30,
+    "fx_dl_high": 65,
     "fx_dl_drive": 25,
-    "fx_dl_wow": 20,
+    "fx_dl_wow": 15,
     "fx_dl_duck": 0,
-    "fx_dl_mix": 0,
+    "fx_dl_mix": 15,
     "fx_rv_type": "NORMAL",
     "fx_rv_decay": 50,
-    "fx_rv_diff": 60,
-    "fx_rv_damp": 40,
+    "fx_rv_diff": 65,
+    "fx_rv_damp": 35,
     "fx_rv_kick": "OFF",
-    "fx_rv_mix": 0
+    "fx_rv_mix": 22
    }
   },
   {
    "name": "Dark Drone",
-   "category": "Pad",
+   "category": "Drone",
+   "type": "Drone",
+   "styles": [
+    "Ambient",
+    "Cinematic"
+   ],
+   "character": [
+    "Dark"
+   ],
+   "uses": [
+    "Plaits",
+    "Reverb"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Low and heavy, long release",
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -8573,7 +9090,7 @@
     "decay": 50,
     "sustain": 100,
     "vca_mode": "ENV",
-    "volume": 71.5,
+    "volume": 71.8,
     "vel_amp": 0,
     "vel_filt": 0,
     "lfo_shape": "TRI",
@@ -8771,16 +9288,31 @@
     "fx_dl_duck": 0,
     "fx_dl_mix": 0,
     "fx_rv_type": "NORMAL",
-    "fx_rv_decay": 50,
-    "fx_rv_diff": 60,
-    "fx_rv_damp": 40,
+    "fx_rv_decay": 70,
+    "fx_rv_diff": 65,
+    "fx_rv_damp": 55,
     "fx_rv_kick": "OFF",
-    "fx_rv_mix": 0
+    "fx_rv_mix": 20
    }
   },
   {
    "name": "Harp String",
    "category": "Pluck",
+   "type": "Pluck",
+   "styles": [
+    "Classic",
+    "Cinematic"
+   ],
+   "character": [
+    "Soft"
+   ],
+   "uses": [
+    "Plaits",
+    "Reverb"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Physical string, rings by itself",
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -9038,15 +9570,32 @@
     "fx_dl_mix": 0,
     "fx_rv_type": "NORMAL",
     "fx_rv_decay": 50,
-    "fx_rv_diff": 60,
-    "fx_rv_damp": 40,
+    "fx_rv_diff": 65,
+    "fx_rv_damp": 35,
     "fx_rv_kick": "OFF",
-    "fx_rv_mix": 0
+    "fx_rv_mix": 15
    }
   },
   {
    "name": "Modal Bell",
    "category": "Pluck",
+   "type": "Pluck",
+   "styles": [
+    "Ambient",
+    "Cinematic"
+   ],
+   "character": [
+    "Bright",
+    "Metallic"
+   ],
+   "uses": [
+    "Plaits",
+    "Delay",
+    "Reverb"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Struck metal",
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -9105,7 +9654,7 @@
     "decay": 50,
     "sustain": 100,
     "vca_mode": "ON",
-    "volume": 78.8,
+    "volume": 78.9,
     "vel_amp": 60,
     "vel_filt": 15,
     "lfo_shape": "TRI",
@@ -9290,29 +9839,43 @@
     "fx_dl_sync": "SYNC",
     "fx_dl_time": 375,
     "fx_dl_div": "1/8 D",
-    "fx_dl_fb": 45,
+    "fx_dl_fb": 35,
     "fx_dl_in": "OPEN",
     "fx_dl_throw": "OFF",
     "fx_dl_heads": "1",
     "fx_dl_pp": "OFF",
     "fx_dl_width": 100,
-    "fx_dl_low": 25,
-    "fx_dl_high": 70,
+    "fx_dl_low": 30,
+    "fx_dl_high": 65,
     "fx_dl_drive": 25,
-    "fx_dl_wow": 20,
+    "fx_dl_wow": 15,
     "fx_dl_duck": 0,
-    "fx_dl_mix": 0,
+    "fx_dl_mix": 15,
     "fx_rv_type": "NORMAL",
     "fx_rv_decay": 50,
-    "fx_rv_diff": 60,
-    "fx_rv_damp": 40,
+    "fx_rv_diff": 65,
+    "fx_rv_damp": 35,
     "fx_rv_kick": "OFF",
-    "fx_rv_mix": 0
+    "fx_rv_mix": 20
    }
   },
   {
    "name": "Nylon",
    "category": "Pluck",
+   "type": "Pluck",
+   "styles": [
+    "Classic"
+   ],
+   "character": [
+    "Warm",
+    "Soft"
+   ],
+   "uses": [
+    "Plaits"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Soft, darker string",
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -9579,6 +10142,21 @@
   {
    "name": "Synth Pluck",
    "category": "Pluck",
+   "type": "Pluck",
+   "styles": [
+    "House",
+    "Techno"
+   ],
+   "character": [
+    "Bright"
+   ],
+   "uses": [
+    "Plaits",
+    "Delay"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "The classic, envelope snapping the filter shut",
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -9826,14 +10404,14 @@
     "fx_dl_in": "OPEN",
     "fx_dl_throw": "OFF",
     "fx_dl_heads": "1",
-    "fx_dl_pp": "OFF",
-    "fx_dl_width": 100,
-    "fx_dl_low": 25,
-    "fx_dl_high": 70,
+    "fx_dl_pp": "ON",
+    "fx_dl_width": 70,
+    "fx_dl_low": 30,
+    "fx_dl_high": 65,
     "fx_dl_drive": 25,
-    "fx_dl_wow": 20,
+    "fx_dl_wow": 15,
     "fx_dl_duck": 0,
-    "fx_dl_mix": 0,
+    "fx_dl_mix": 20,
     "fx_rv_type": "NORMAL",
     "fx_rv_decay": 50,
     "fx_rv_diff": 60,
@@ -9845,6 +10423,22 @@
   {
    "name": "FM Pluck",
    "category": "Pluck",
+   "type": "Pluck",
+   "styles": [
+    "Classic",
+    "House"
+   ],
+   "character": [
+    "Bright",
+    "Metallic"
+   ],
+   "uses": [
+    "Plaits",
+    "Delay"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Bright metallic transient",
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -10087,19 +10681,19 @@
     "fx_ch_mix": 100,
     "fx_dl_sync": "SYNC",
     "fx_dl_time": 375,
-    "fx_dl_div": "1/8 D",
-    "fx_dl_fb": 45,
+    "fx_dl_div": "1/8",
+    "fx_dl_fb": 35,
     "fx_dl_in": "OPEN",
     "fx_dl_throw": "OFF",
     "fx_dl_heads": "1",
     "fx_dl_pp": "OFF",
     "fx_dl_width": 100,
-    "fx_dl_low": 25,
-    "fx_dl_high": 70,
+    "fx_dl_low": 30,
+    "fx_dl_high": 65,
     "fx_dl_drive": 25,
-    "fx_dl_wow": 20,
+    "fx_dl_wow": 15,
     "fx_dl_duck": 0,
-    "fx_dl_mix": 0,
+    "fx_dl_mix": 15,
     "fx_rv_type": "NORMAL",
     "fx_rv_decay": 50,
     "fx_rv_diff": 60,
@@ -10111,6 +10705,22 @@
   {
    "name": "Kalimba",
    "category": "Pluck",
+   "type": "Pluck",
+   "styles": [
+    "Ambient",
+    "Dub"
+   ],
+   "character": [
+    "Warm",
+    "Soft"
+   ],
+   "uses": [
+    "Plaits",
+    "Delay"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Small tuned tines",
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -10354,18 +10964,18 @@
     "fx_dl_sync": "SYNC",
     "fx_dl_time": 375,
     "fx_dl_div": "1/8 D",
-    "fx_dl_fb": 45,
+    "fx_dl_fb": 40,
     "fx_dl_in": "OPEN",
     "fx_dl_throw": "OFF",
     "fx_dl_heads": "1",
     "fx_dl_pp": "OFF",
     "fx_dl_width": 100,
-    "fx_dl_low": 25,
-    "fx_dl_high": 70,
+    "fx_dl_low": 35,
+    "fx_dl_high": 65,
     "fx_dl_drive": 25,
-    "fx_dl_wow": 20,
+    "fx_dl_wow": 15,
     "fx_dl_duck": 0,
-    "fx_dl_mix": 0,
+    "fx_dl_mix": 15,
     "fx_rv_type": "NORMAL",
     "fx_rv_decay": 50,
     "fx_rv_diff": 60,
@@ -10377,6 +10987,23 @@
   {
    "name": "LPG Marimba",
    "category": "Pluck",
+   "type": "Pluck",
+   "styles": [
+    "Classic",
+    "Ambient"
+   ],
+   "character": [
+    "Warm",
+    "Soft"
+   ],
+   "uses": [
+    "Plaits",
+    "LPG",
+    "Reverb"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Woody, through the low-pass gate",
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -10435,7 +11062,7 @@
     "decay": 50,
     "sustain": 100,
     "vca_mode": "LPG",
-    "volume": 93.5,
+    "volume": 93.7,
     "vel_amp": 40,
     "vel_filt": 15,
     "lfo_shape": "TRI",
@@ -10634,15 +11261,32 @@
     "fx_dl_mix": 0,
     "fx_rv_type": "NORMAL",
     "fx_rv_decay": 50,
-    "fx_rv_diff": 60,
-    "fx_rv_damp": 40,
+    "fx_rv_diff": 65,
+    "fx_rv_damp": 35,
     "fx_rv_kick": "OFF",
-    "fx_rv_mix": 0
+    "fx_rv_mix": 12
    }
   },
   {
    "name": "LPG Pluck",
    "category": "Pluck",
+   "type": "Pluck",
+   "styles": [
+    "Dub",
+    "Experimental"
+   ],
+   "character": [
+    "Warm"
+   ],
+   "uses": [
+    "Plaits",
+    "LPG",
+    "Delay",
+    "Reverb"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Gate-struck FM with a soft edge",
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -10701,7 +11345,7 @@
     "decay": 50,
     "sustain": 100,
     "vca_mode": "LPG",
-    "volume": 79.7,
+    "volume": 79.4,
     "vel_amp": 40,
     "vel_filt": 15,
     "lfo_shape": "TRI",
@@ -10886,29 +11530,43 @@
     "fx_dl_sync": "SYNC",
     "fx_dl_time": 375,
     "fx_dl_div": "1/8 D",
-    "fx_dl_fb": 45,
+    "fx_dl_fb": 50,
     "fx_dl_in": "OPEN",
     "fx_dl_throw": "OFF",
     "fx_dl_heads": "1",
     "fx_dl_pp": "OFF",
     "fx_dl_width": 100,
-    "fx_dl_low": 25,
-    "fx_dl_high": 70,
+    "fx_dl_low": 35,
+    "fx_dl_high": 60,
     "fx_dl_drive": 25,
     "fx_dl_wow": 20,
     "fx_dl_duck": 0,
-    "fx_dl_mix": 0,
-    "fx_rv_type": "NORMAL",
+    "fx_dl_mix": 22,
+    "fx_rv_type": "SPRING",
     "fx_rv_decay": 50,
-    "fx_rv_diff": 60,
-    "fx_rv_damp": 40,
+    "fx_rv_diff": 70,
+    "fx_rv_damp": 30,
     "fx_rv_kick": "OFF",
-    "fx_rv_mix": 0
+    "fx_rv_mix": 12
    }
   },
   {
    "name": "Kick 808",
-   "category": "Percussion",
+   "category": "Perc",
+   "type": "Perc",
+   "styles": [
+    "Classic",
+    "House"
+   ],
+   "character": [
+    "Warm"
+   ],
+   "uses": [
+    "Plaits"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Long and low. Try around C1-C2",
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -11174,7 +11832,21 @@
   },
   {
    "name": "Kick Punch",
-   "category": "Percussion",
+   "category": "Perc",
+   "type": "Perc",
+   "styles": [
+    "Techno",
+    "House"
+   ],
+   "character": [
+    "Aggressive"
+   ],
+   "uses": [
+    "Plaits"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Short and tight",
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -11440,7 +12112,20 @@
   },
   {
    "name": "Snare Analog",
-   "category": "Percussion",
+   "category": "Perc",
+   "type": "Perc",
+   "styles": [
+    "Classic"
+   ],
+   "character": [
+    "Warm"
+   ],
+   "uses": [
+    "Plaits"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Body and noise balance",
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -11706,7 +12391,23 @@
   },
   {
    "name": "Snare Crack",
-   "category": "Percussion",
+   "category": "Perc",
+   "type": "Perc",
+   "styles": [
+    "Dub",
+    "Techno"
+   ],
+   "character": [
+    "Bright",
+    "Aggressive"
+   ],
+   "uses": [
+    "Plaits",
+    "Reverb"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Thin and snappy",
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -11765,7 +12466,7 @@
     "decay": 50,
     "sustain": 100,
     "vca_mode": "ON",
-    "volume": 83.4,
+    "volume": 85.9,
     "vel_amp": 70,
     "vel_filt": 0,
     "lfo_shape": "TRI",
@@ -11962,17 +12663,32 @@
     "fx_dl_wow": 20,
     "fx_dl_duck": 0,
     "fx_dl_mix": 0,
-    "fx_rv_type": "NORMAL",
-    "fx_rv_decay": 50,
-    "fx_rv_diff": 60,
-    "fx_rv_damp": 40,
+    "fx_rv_type": "SPRING",
+    "fx_rv_decay": 40,
+    "fx_rv_diff": 70,
+    "fx_rv_damp": 30,
     "fx_rv_kick": "OFF",
-    "fx_rv_mix": 0
+    "fx_rv_mix": 18
    }
   },
   {
    "name": "Closed Hat",
-   "category": "Percussion",
+   "category": "Perc",
+   "type": "Perc",
+   "styles": [
+    "Classic",
+    "House"
+   ],
+   "character": [
+    "Bright",
+    "Metallic"
+   ],
+   "uses": [
+    "Plaits"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Short and metallic",
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -12238,7 +12954,22 @@
   },
   {
    "name": "Open Hat",
-   "category": "Percussion",
+   "category": "Perc",
+   "type": "Perc",
+   "styles": [
+    "Classic",
+    "House"
+   ],
+   "character": [
+    "Bright",
+    "Metallic"
+   ],
+   "uses": [
+    "Plaits"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Longer ring",
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -12504,7 +13235,21 @@
   },
   {
    "name": "FM Tom",
-   "category": "Percussion",
+   "category": "Perc",
+   "type": "Perc",
+   "styles": [
+    "Classic",
+    "Dub"
+   ],
+   "character": [
+    "Warm"
+   ],
+   "uses": [
+    "Plaits"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Pitch drops with the envelope",
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -12770,7 +13515,22 @@
   },
   {
    "name": "Metal Perc",
-   "category": "Percussion",
+   "category": "Perc",
+   "type": "Perc",
+   "styles": [
+    "Techno",
+    "Experimental"
+   ],
+   "character": [
+    "Metallic"
+   ],
+   "uses": [
+    "Plaits",
+    "Delay"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Clangy struck object",
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -13013,19 +13773,19 @@
     "fx_ch_mix": 100,
     "fx_dl_sync": "SYNC",
     "fx_dl_time": 375,
-    "fx_dl_div": "1/8 D",
-    "fx_dl_fb": 45,
+    "fx_dl_div": "1/16 D",
+    "fx_dl_fb": 35,
     "fx_dl_in": "OPEN",
     "fx_dl_throw": "OFF",
     "fx_dl_heads": "1",
-    "fx_dl_pp": "OFF",
+    "fx_dl_pp": "ON",
     "fx_dl_width": 100,
-    "fx_dl_low": 25,
-    "fx_dl_high": 70,
+    "fx_dl_low": 30,
+    "fx_dl_high": 65,
     "fx_dl_drive": 25,
-    "fx_dl_wow": 20,
+    "fx_dl_wow": 15,
     "fx_dl_duck": 0,
-    "fx_dl_mix": 0,
+    "fx_dl_mix": 15,
     "fx_rv_type": "NORMAL",
     "fx_rv_decay": 50,
     "fx_rv_diff": 60,
@@ -13037,6 +13797,22 @@
   {
    "name": "Granular Air",
    "category": "Texture",
+   "type": "Texture",
+   "styles": [
+    "Ambient",
+    "Experimental"
+   ],
+   "character": [
+    "Soft",
+    "Evolving"
+   ],
+   "uses": [
+    "Plaits",
+    "Reverb"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Sparse grains, hold it",
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -13095,7 +13871,7 @@
     "decay": 50,
     "sustain": 100,
     "vca_mode": "ENV",
-    "volume": 70.1,
+    "volume": 72.8,
     "vel_amp": 0,
     "vel_filt": 0,
     "lfo_shape": "TRI",
@@ -13293,16 +14069,32 @@
     "fx_dl_duck": 0,
     "fx_dl_mix": 0,
     "fx_rv_type": "NORMAL",
-    "fx_rv_decay": 50,
-    "fx_rv_diff": 60,
-    "fx_rv_damp": 40,
+    "fx_rv_decay": 65,
+    "fx_rv_diff": 65,
+    "fx_rv_damp": 35,
     "fx_rv_kick": "OFF",
-    "fx_rv_mix": 0
+    "fx_rv_mix": 25
    }
   },
   {
    "name": "Noise Wash",
    "category": "Texture",
+   "type": "Texture",
+   "styles": [
+    "Ambient",
+    "Dub"
+   ],
+   "character": [
+    "Soft",
+    "Evolving"
+   ],
+   "uses": [
+    "Plaits",
+    "Reverb"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Filter sweeping filtered noise, like surf",
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -13361,7 +14153,7 @@
     "decay": 50,
     "sustain": 100,
     "vca_mode": "ENV",
-    "volume": 58.8,
+    "volume": 55.1,
     "vel_amp": 0,
     "vel_filt": 0,
     "lfo_shape": "TRI",
@@ -13560,15 +14352,28 @@
     "fx_dl_mix": 0,
     "fx_rv_type": "NORMAL",
     "fx_rv_decay": 50,
-    "fx_rv_diff": 60,
-    "fx_rv_damp": 40,
+    "fx_rv_diff": 65,
+    "fx_rv_damp": 35,
     "fx_rv_kick": "OFF",
-    "fx_rv_mix": 0
+    "fx_rv_mix": 20
    }
   },
   {
    "name": "Talking Box",
    "category": "Texture",
+   "type": "Texture",
+   "styles": [
+    "Experimental"
+   ],
+   "character": [
+    "Evolving"
+   ],
+   "uses": [
+    "Plaits"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Speech model mumbling on the LFO",
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -13835,6 +14640,21 @@
   {
    "name": "Swarm Motion",
    "category": "Texture",
+   "type": "Texture",
+   "styles": [
+    "Experimental",
+    "Techno"
+   ],
+   "character": [
+    "Evolving"
+   ],
+   "uses": [
+    "Plaits",
+    "Colour FX"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Random steps through a swarm",
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -13893,7 +14713,7 @@
     "decay": 50,
     "sustain": 100,
     "vca_mode": "ENV",
-    "volume": 68.5,
+    "volume": 75.3,
     "vel_amp": 40,
     "vel_filt": 15,
     "lfo_shape": "S/H",
@@ -14069,10 +14889,10 @@
     "o1_amp": "AUTO",
     "o2_amp": "AUTO",
     "o3_amp": "AUTO",
-    "fx_ph_rate": 30,
+    "fx_ph_rate": 25,
     "fx_ph_depth": 70,
     "fx_ph_fb": 30,
-    "fx_ph_mix": 0,
+    "fx_ph_mix": 30,
     "fx_ch_mode": "OFF",
     "fx_ch_mix": 100,
     "fx_dl_sync": "SYNC",
@@ -14101,6 +14921,19 @@
   {
    "name": "Terrain Walk",
    "category": "Texture",
+   "type": "Texture",
+   "styles": [
+    "Experimental"
+   ],
+   "character": [
+    "Evolving"
+   ],
+   "uses": [
+    "Plaits"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Stepping waveform shapes",
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -14367,6 +15200,20 @@
   {
    "name": "Breath Tone",
    "category": "Texture",
+   "type": "Texture",
+   "styles": [
+    "Ambient",
+    "Cinematic"
+   ],
+   "character": [
+    "Soft"
+   ],
+   "uses": [
+    "Plaits"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Airy tone with noise on top",
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -14633,6 +15480,22 @@
   {
    "name": "Hollow Sweep",
    "category": "Texture",
+   "type": "Texture",
+   "styles": [
+    "Ambient",
+    "Dub"
+   ],
+   "character": [
+    "Dark",
+    "Evolving"
+   ],
+   "uses": [
+    "Plaits",
+    "Colour FX"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Resonance tracing a slow LFO",
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -14691,7 +15554,7 @@
     "decay": 50,
     "sustain": 100,
     "vca_mode": "ENV",
-    "volume": 67.7,
+    "volume": 65.7,
     "vel_amp": 0,
     "vel_filt": 15,
     "lfo_shape": "TRI",
@@ -14867,10 +15730,10 @@
     "o1_amp": "AUTO",
     "o2_amp": "AUTO",
     "o3_amp": "AUTO",
-    "fx_ph_rate": 30,
-    "fx_ph_depth": 70,
+    "fx_ph_rate": 20,
+    "fx_ph_depth": 80,
     "fx_ph_fb": 30,
-    "fx_ph_mix": 0,
+    "fx_ph_mix": 40,
     "fx_ch_mode": "OFF",
     "fx_ch_mix": 100,
     "fx_dl_sync": "SYNC",
@@ -14899,6 +15762,22 @@
   {
    "name": "Tempo Motion",
    "category": "Texture",
+   "type": "Texture",
+   "styles": [
+    "Techno",
+    "House"
+   ],
+   "character": [
+    "Evolving"
+   ],
+   "uses": [
+    "Plaits"
+   ],
+   "plays": [
+    "Song tempo"
+   ],
+   "pack": "Factory 1",
+   "note": "Half-note filter locked to the song",
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -15164,7 +16043,25 @@
   },
   {
    "name": "Riser",
-   "category": "FX",
+   "category": "Riser/FX",
+   "type": "Riser/FX",
+   "styles": [
+    "Rave",
+    "Techno",
+    "Cinematic"
+   ],
+   "character": [
+    "Bright",
+    "Evolving"
+   ],
+   "uses": [
+    "Plaits",
+    "Delay",
+    "Reverb"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Hold it: rises over a few seconds",
    "values": {
     "voices": 2,
     "voice_mode": "POLY",
@@ -15223,7 +16120,7 @@
     "decay": 50,
     "sustain": 100,
     "vca_mode": "ENV",
-    "volume": 82.8,
+    "volume": 70.9,
     "vel_amp": 0,
     "vel_filt": 0,
     "lfo_shape": "TRI",
@@ -15408,29 +16305,44 @@
     "fx_dl_sync": "SYNC",
     "fx_dl_time": 375,
     "fx_dl_div": "1/8 D",
-    "fx_dl_fb": 45,
+    "fx_dl_fb": 40,
     "fx_dl_in": "OPEN",
     "fx_dl_throw": "OFF",
     "fx_dl_heads": "1",
     "fx_dl_pp": "OFF",
     "fx_dl_width": 100,
-    "fx_dl_low": 25,
-    "fx_dl_high": 70,
+    "fx_dl_low": 30,
+    "fx_dl_high": 65,
     "fx_dl_drive": 25,
-    "fx_dl_wow": 20,
+    "fx_dl_wow": 15,
     "fx_dl_duck": 0,
-    "fx_dl_mix": 0,
+    "fx_dl_mix": 15,
     "fx_rv_type": "NORMAL",
-    "fx_rv_decay": 50,
-    "fx_rv_diff": 60,
-    "fx_rv_damp": 40,
+    "fx_rv_decay": 65,
+    "fx_rv_diff": 65,
+    "fx_rv_damp": 35,
     "fx_rv_kick": "OFF",
-    "fx_rv_mix": 0
+    "fx_rv_mix": 25
    }
   },
   {
    "name": "Downer",
-   "category": "FX",
+   "category": "Riser/FX",
+   "type": "Riser/FX",
+   "styles": [
+    "Rave",
+    "Dub"
+   ],
+   "character": [
+    "Dark"
+   ],
+   "uses": [
+    "Plaits",
+    "Delay"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Pitch falls away from the attack",
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -15674,18 +16586,18 @@
     "fx_dl_sync": "SYNC",
     "fx_dl_time": 375,
     "fx_dl_div": "1/8 D",
-    "fx_dl_fb": 45,
+    "fx_dl_fb": 50,
     "fx_dl_in": "OPEN",
     "fx_dl_throw": "OFF",
     "fx_dl_heads": "1",
     "fx_dl_pp": "OFF",
     "fx_dl_width": 100,
-    "fx_dl_low": 25,
-    "fx_dl_high": 70,
+    "fx_dl_low": 35,
+    "fx_dl_high": 55,
     "fx_dl_drive": 25,
-    "fx_dl_wow": 20,
+    "fx_dl_wow": 15,
     "fx_dl_duck": 0,
-    "fx_dl_mix": 0,
+    "fx_dl_mix": 20,
     "fx_rv_type": "NORMAL",
     "fx_rv_decay": 50,
     "fx_rv_diff": 60,
@@ -15696,7 +16608,24 @@
   },
   {
    "name": "Laser",
-   "category": "FX",
+   "category": "Riser/FX",
+   "type": "Riser/FX",
+   "styles": [
+    "Dub",
+    "Rave"
+   ],
+   "character": [
+    "Bright",
+    "Aggressive"
+   ],
+   "uses": [
+    "Plaits",
+    "Delay",
+    "Reverb"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Fast pitch zap",
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -15940,29 +16869,46 @@
     "fx_dl_sync": "SYNC",
     "fx_dl_time": 375,
     "fx_dl_div": "1/8 D",
-    "fx_dl_fb": 45,
+    "fx_dl_fb": 70,
     "fx_dl_in": "OPEN",
     "fx_dl_throw": "OFF",
     "fx_dl_heads": "1",
     "fx_dl_pp": "OFF",
     "fx_dl_width": 100,
-    "fx_dl_low": 25,
-    "fx_dl_high": 70,
-    "fx_dl_drive": 25,
-    "fx_dl_wow": 20,
+    "fx_dl_low": 35,
+    "fx_dl_high": 60,
+    "fx_dl_drive": 35,
+    "fx_dl_wow": 25,
     "fx_dl_duck": 0,
-    "fx_dl_mix": 0,
-    "fx_rv_type": "NORMAL",
+    "fx_dl_mix": 30,
+    "fx_rv_type": "SPRING",
     "fx_rv_decay": 50,
-    "fx_rv_diff": 60,
-    "fx_rv_damp": 40,
+    "fx_rv_diff": 70,
+    "fx_rv_damp": 30,
     "fx_rv_kick": "OFF",
-    "fx_rv_mix": 0
+    "fx_rv_mix": 15
    }
   },
   {
    "name": "Random Bleeps",
-   "category": "FX",
+   "category": "Sequence",
+   "type": "Sequence",
+   "styles": [
+    "Techno",
+    "Experimental"
+   ],
+   "character": [
+    "Bright"
+   ],
+   "uses": [
+    "Plaits",
+    "Delay"
+   ],
+   "plays": [
+    "Song tempo"
+   ],
+   "pack": "Factory 1",
+   "note": "Stepped pitches locked to the song",
    "values": {
     "voices": 2,
     "voice_mode": "POLY",
@@ -16021,7 +16967,7 @@
     "decay": 50,
     "sustain": 100,
     "vca_mode": "ENV",
-    "volume": 86.6,
+    "volume": 75.7,
     "vel_amp": 40,
     "vel_filt": 15,
     "lfo_shape": "S/H",
@@ -16205,19 +17151,19 @@
     "fx_ch_mix": 100,
     "fx_dl_sync": "SYNC",
     "fx_dl_time": 375,
-    "fx_dl_div": "1/8 D",
-    "fx_dl_fb": 45,
+    "fx_dl_div": "1/16 D",
+    "fx_dl_fb": 35,
     "fx_dl_in": "OPEN",
     "fx_dl_throw": "OFF",
     "fx_dl_heads": "1",
-    "fx_dl_pp": "OFF",
+    "fx_dl_pp": "ON",
     "fx_dl_width": 100,
-    "fx_dl_low": 25,
-    "fx_dl_high": 70,
+    "fx_dl_low": 30,
+    "fx_dl_high": 65,
     "fx_dl_drive": 25,
-    "fx_dl_wow": 20,
+    "fx_dl_wow": 15,
     "fx_dl_duck": 0,
-    "fx_dl_mix": 0,
+    "fx_dl_mix": 18,
     "fx_rv_type": "NORMAL",
     "fx_rv_decay": 50,
     "fx_rv_diff": 60,
@@ -16228,7 +17174,21 @@
   },
   {
    "name": "Whistle",
-   "category": "FX",
+   "category": "Riser/FX",
+   "type": "Riser/FX",
+   "styles": [
+    "Dub",
+    "Experimental"
+   ],
+   "character": [
+    "Bright"
+   ],
+   "uses": [
+    "Delay"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Self-oscillating filter, playable and tuned",
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -16287,7 +17247,7 @@
     "decay": 50,
     "sustain": 100,
     "vca_mode": "ENV",
-    "volume": 98.9,
+    "volume": 75.8,
     "vel_amp": 0,
     "vel_filt": 0,
     "lfo_shape": "TRI",
@@ -16471,19 +17431,19 @@
     "fx_ch_mix": 100,
     "fx_dl_sync": "SYNC",
     "fx_dl_time": 375,
-    "fx_dl_div": "1/8 D",
-    "fx_dl_fb": 45,
+    "fx_dl_div": "1/4 T",
+    "fx_dl_fb": 55,
     "fx_dl_in": "OPEN",
     "fx_dl_throw": "OFF",
     "fx_dl_heads": "1",
     "fx_dl_pp": "OFF",
     "fx_dl_width": 100,
-    "fx_dl_low": 25,
-    "fx_dl_high": 70,
+    "fx_dl_low": 35,
+    "fx_dl_high": 58,
     "fx_dl_drive": 25,
-    "fx_dl_wow": 20,
+    "fx_dl_wow": 25,
     "fx_dl_duck": 0,
-    "fx_dl_mix": 0,
+    "fx_dl_mix": 25,
     "fx_rv_type": "NORMAL",
     "fx_rv_decay": 50,
     "fx_rv_diff": 60,
@@ -16494,7 +17454,23 @@
   },
   {
    "name": "Alarm",
-   "category": "FX",
+   "category": "Riser/FX",
+   "type": "Riser/FX",
+   "styles": [
+    "Dub",
+    "Rave"
+   ],
+   "character": [
+    "Aggressive",
+    "Bright"
+   ],
+   "uses": [
+    "Plaits",
+    "Reverb"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Two-tone siren",
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -16553,7 +17529,7 @@
     "decay": 50,
     "sustain": 100,
     "vca_mode": "ENV",
-    "volume": 92.2,
+    "volume": 86.3,
     "vel_amp": 40,
     "vel_filt": 15,
     "lfo_shape": "SQR",
@@ -16750,17 +17726,33 @@
     "fx_dl_wow": 20,
     "fx_dl_duck": 0,
     "fx_dl_mix": 0,
-    "fx_rv_type": "NORMAL",
+    "fx_rv_type": "SPRING",
     "fx_rv_decay": 50,
-    "fx_rv_diff": 60,
-    "fx_rv_damp": 40,
+    "fx_rv_diff": 70,
+    "fx_rv_damp": 30,
     "fx_rv_kick": "OFF",
-    "fx_rv_mix": 0
+    "fx_rv_mix": 15
    }
   },
   {
    "name": "Sonar Ping",
-   "category": "FX",
+   "category": "Riser/FX",
+   "type": "Riser/FX",
+   "styles": [
+    "Dub",
+    "Cinematic"
+   ],
+   "character": [
+    "Metallic"
+   ],
+   "uses": [
+    "Plaits",
+    "Delay",
+    "Reverb"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Resonant ping with a long tail",
    "values": {
     "voices": 4,
     "voice_mode": "POLY",
@@ -16819,7 +17811,7 @@
     "decay": 50,
     "sustain": 100,
     "vca_mode": "ON",
-    "volume": 79.6,
+    "volume": 79.9,
     "vel_amp": 40,
     "vel_filt": 15,
     "lfo_shape": "TRI",
@@ -17003,30 +17995,44 @@
     "fx_ch_mix": 100,
     "fx_dl_sync": "SYNC",
     "fx_dl_time": 375,
-    "fx_dl_div": "1/8 D",
-    "fx_dl_fb": 45,
+    "fx_dl_div": "1/4 D",
+    "fx_dl_fb": 60,
     "fx_dl_in": "OPEN",
     "fx_dl_throw": "OFF",
     "fx_dl_heads": "1",
-    "fx_dl_pp": "OFF",
+    "fx_dl_pp": "ON",
     "fx_dl_width": 100,
-    "fx_dl_low": 25,
-    "fx_dl_high": 70,
+    "fx_dl_low": 30,
+    "fx_dl_high": 65,
     "fx_dl_drive": 25,
-    "fx_dl_wow": 20,
+    "fx_dl_wow": 15,
     "fx_dl_duck": 0,
-    "fx_dl_mix": 0,
+    "fx_dl_mix": 28,
     "fx_rv_type": "NORMAL",
-    "fx_rv_decay": 50,
-    "fx_rv_diff": 60,
-    "fx_rv_damp": 40,
+    "fx_rv_decay": 65,
+    "fx_rv_diff": 65,
+    "fx_rv_damp": 35,
     "fx_rv_kick": "OFF",
-    "fx_rv_mix": 0
+    "fx_rv_mix": 25
    }
   },
   {
    "name": "Vinyl Dust",
-   "category": "FX",
+   "category": "Texture",
+   "type": "Texture",
+   "styles": [
+    "Dub",
+    "Ambient"
+   ],
+   "character": [
+    "Soft"
+   ],
+   "uses": [
+    "Plaits"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Crackle over a thin noise bed",
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -17292,7 +18298,22 @@
   },
   {
    "name": "Glass Marimba",
-   "category": "Elements",
+   "category": "Pluck",
+   "type": "Pluck",
+   "styles": [
+    "Ambient",
+    "Classic"
+   ],
+   "character": [
+    "Bright"
+   ],
+   "uses": [
+    "Elements",
+    "Reverb"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Bright struck bars, short and woody",
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -17351,7 +18372,7 @@
     "decay": 50,
     "sustain": 100,
     "vca_mode": "ON",
-    "volume": 85.3,
+    "volume": 85.4,
     "vel_amp": 60,
     "vel_filt": 0,
     "lfo_shape": "TRI",
@@ -17550,15 +18571,31 @@
     "fx_dl_mix": 0,
     "fx_rv_type": "NORMAL",
     "fx_rv_decay": 50,
-    "fx_rv_diff": 60,
-    "fx_rv_damp": 40,
+    "fx_rv_diff": 65,
+    "fx_rv_damp": 35,
     "fx_rv_kick": "OFF",
-    "fx_rv_mix": 0
+    "fx_rv_mix": 12
    }
   },
   {
    "name": "Felt Piano",
-   "category": "Elements",
+   "category": "Keys",
+   "type": "Keys",
+   "styles": [
+    "Cinematic",
+    "Ambient"
+   ],
+   "character": [
+    "Warm",
+    "Soft"
+   ],
+   "uses": [
+    "Elements",
+    "Reverb"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "A soft-hammered string in a warm room",
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -17617,7 +18654,7 @@
     "decay": 50,
     "sustain": 100,
     "vca_mode": "ON",
-    "volume": 65.4,
+    "volume": 65.9,
     "vel_amp": 70,
     "vel_filt": 0,
     "lfo_shape": "TRI",
@@ -17815,16 +18852,31 @@
     "fx_dl_duck": 0,
     "fx_dl_mix": 0,
     "fx_rv_type": "NORMAL",
-    "fx_rv_decay": 50,
-    "fx_rv_diff": 60,
-    "fx_rv_damp": 40,
+    "fx_rv_decay": 40,
+    "fx_rv_diff": 65,
+    "fx_rv_damp": 55,
     "fx_rv_kick": "OFF",
-    "fx_rv_mix": 0
+    "fx_rv_mix": 14
    }
   },
   {
    "name": "Low Cello",
-   "category": "Elements",
+   "category": "Pad",
+   "type": "Pad",
+   "styles": [
+    "Cinematic"
+   ],
+   "character": [
+    "Dark",
+    "Warm"
+   ],
+   "uses": [
+    "Elements",
+    "Reverb"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Bowed low string. Play it slowly",
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -17883,7 +18935,7 @@
     "decay": 50,
     "sustain": 100,
     "vca_mode": "ON",
-    "volume": 77.7,
+    "volume": 76.1,
     "vel_amp": 40,
     "vel_filt": 0,
     "lfo_shape": "TRI",
@@ -18081,16 +19133,31 @@
     "fx_dl_duck": 0,
     "fx_dl_mix": 0,
     "fx_rv_type": "NORMAL",
-    "fx_rv_decay": 50,
-    "fx_rv_diff": 60,
-    "fx_rv_damp": 40,
+    "fx_rv_decay": 55,
+    "fx_rv_diff": 65,
+    "fx_rv_damp": 50,
     "fx_rv_kick": "OFF",
-    "fx_rv_mix": 0
+    "fx_rv_mix": 16
    }
   },
   {
    "name": "Temple Bowl",
-   "category": "Elements",
+   "category": "Drone",
+   "type": "Drone",
+   "styles": [
+    "Ambient",
+    "Cinematic"
+   ],
+   "character": [
+    "Metallic"
+   ],
+   "uses": [
+    "Elements",
+    "Reverb"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "A huge struck bowl, long ring",
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -18149,7 +19216,7 @@
     "decay": 50,
     "sustain": 100,
     "vca_mode": "ON",
-    "volume": 92.9,
+    "volume": 92.6,
     "vel_amp": 40,
     "vel_filt": 0,
     "lfo_shape": "TRI",
@@ -18347,16 +19414,32 @@
     "fx_dl_duck": 0,
     "fx_dl_mix": 0,
     "fx_rv_type": "NORMAL",
-    "fx_rv_decay": 50,
-    "fx_rv_diff": 60,
-    "fx_rv_damp": 40,
+    "fx_rv_decay": 65,
+    "fx_rv_diff": 65,
+    "fx_rv_damp": 35,
     "fx_rv_kick": "OFF",
-    "fx_rv_mix": 0
+    "fx_rv_mix": 18
    }
   },
   {
    "name": "Night Flute",
-   "category": "Elements",
+   "category": "Lead",
+   "type": "Lead",
+   "styles": [
+    "Cinematic",
+    "Ambient"
+   ],
+   "character": [
+    "Soft"
+   ],
+   "uses": [
+    "Elements",
+    "Delay",
+    "Reverb"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Airy blown tube",
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -18415,7 +19498,7 @@
     "decay": 50,
     "sustain": 100,
     "vca_mode": "ON",
-    "volume": 51.4,
+    "volume": 45.0,
     "vel_amp": 40,
     "vel_filt": 0,
     "lfo_shape": "TRI",
@@ -18599,30 +19682,45 @@
     "fx_ch_mix": 100,
     "fx_dl_sync": "SYNC",
     "fx_dl_time": 375,
-    "fx_dl_div": "1/8 D",
-    "fx_dl_fb": 45,
+    "fx_dl_div": "1/4 D",
+    "fx_dl_fb": 35,
     "fx_dl_in": "OPEN",
     "fx_dl_throw": "OFF",
     "fx_dl_heads": "1",
     "fx_dl_pp": "OFF",
     "fx_dl_width": 100,
-    "fx_dl_low": 25,
-    "fx_dl_high": 70,
+    "fx_dl_low": 30,
+    "fx_dl_high": 65,
     "fx_dl_drive": 25,
-    "fx_dl_wow": 20,
+    "fx_dl_wow": 15,
     "fx_dl_duck": 0,
-    "fx_dl_mix": 0,
+    "fx_dl_mix": 14,
     "fx_rv_type": "NORMAL",
-    "fx_rv_decay": 50,
-    "fx_rv_diff": 60,
-    "fx_rv_damp": 40,
+    "fx_rv_decay": 60,
+    "fx_rv_diff": 65,
+    "fx_rv_damp": 35,
     "fx_rv_kick": "OFF",
-    "fx_rv_mix": 0
+    "fx_rv_mix": 24
    }
   },
   {
    "name": "Harp Cloud",
-   "category": "Elements",
+   "category": "Pluck",
+   "type": "Pluck",
+   "styles": [
+    "Ambient",
+    "Cinematic"
+   ],
+   "character": [
+    "Soft"
+   ],
+   "uses": [
+    "Elements",
+    "Reverb"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Each key rings a chord of strings",
    "values": {
     "voices": 4,
     "voice_mode": "POLY",
@@ -18879,16 +19977,31 @@
     "fx_dl_duck": 0,
     "fx_dl_mix": 0,
     "fx_rv_type": "NORMAL",
-    "fx_rv_decay": 50,
-    "fx_rv_diff": 60,
-    "fx_rv_damp": 40,
+    "fx_rv_decay": 65,
+    "fx_rv_diff": 65,
+    "fx_rv_damp": 35,
     "fx_rv_kick": "OFF",
-    "fx_rv_mix": 0
+    "fx_rv_mix": 25
    }
   },
   {
    "name": "Rubber Drum",
-   "category": "Elements",
+   "category": "Perc",
+   "type": "Perc",
+   "styles": [
+    "Dub",
+    "Experimental"
+   ],
+   "character": [
+    "Warm"
+   ],
+   "uses": [
+    "Elements",
+    "Delay"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Tuned, dead and bouncy",
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -19132,18 +20245,18 @@
     "fx_dl_sync": "SYNC",
     "fx_dl_time": 375,
     "fx_dl_div": "1/8 D",
-    "fx_dl_fb": 45,
+    "fx_dl_fb": 40,
     "fx_dl_in": "OPEN",
     "fx_dl_throw": "OFF",
     "fx_dl_heads": "1",
     "fx_dl_pp": "OFF",
     "fx_dl_width": 100,
-    "fx_dl_low": 25,
-    "fx_dl_high": 70,
+    "fx_dl_low": 40,
+    "fx_dl_high": 60,
     "fx_dl_drive": 25,
     "fx_dl_wow": 20,
     "fx_dl_duck": 0,
-    "fx_dl_mix": 0,
+    "fx_dl_mix": 18,
     "fx_rv_type": "NORMAL",
     "fx_rv_decay": 50,
     "fx_rv_diff": 60,
@@ -19154,7 +20267,26 @@
   },
   {
    "name": "Glass Harmonica",
-   "category": "Elements",
+   "category": "Pad",
+   "type": "Pad",
+   "styles": [
+    "Cinematic",
+    "Ambient"
+   ],
+   "character": [
+    "Bright",
+    "Soft"
+   ],
+   "uses": [
+    "Elements",
+    "Patch Bay",
+    "Reverb"
+   ],
+   "plays": [
+    "Pressure"
+   ],
+   "pack": "Factory 1",
+   "note": "Bowed glass. Pressure brings it forward",
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -19213,7 +20345,7 @@
     "decay": 50,
     "sustain": 100,
     "vca_mode": "ON",
-    "volume": 74.8,
+    "volume": 78.1,
     "vel_amp": 40,
     "vel_filt": 0,
     "lfo_shape": "TRI",
@@ -19411,16 +20543,35 @@
     "fx_dl_duck": 0,
     "fx_dl_mix": 0,
     "fx_rv_type": "NORMAL",
-    "fx_rv_decay": 50,
-    "fx_rv_diff": 60,
-    "fx_rv_damp": 40,
+    "fx_rv_decay": 65,
+    "fx_rv_diff": 65,
+    "fx_rv_damp": 35,
     "fx_rv_kick": "OFF",
-    "fx_rv_mix": 0
+    "fx_rv_mix": 22
    }
   },
   {
    "name": "Slow Tide Pad",
-   "category": "Tides",
+   "category": "Pad",
+   "type": "Pad",
+   "styles": [
+    "Ambient",
+    "Classic"
+   ],
+   "character": [
+    "Warm",
+    "Evolving"
+   ],
+   "uses": [
+    "Plaits",
+    "Tides",
+    "Patch Bay",
+    "Reverb",
+    "Colour FX"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Saws washing in and out, each voice on its own",
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -19479,7 +20630,7 @@
     "decay": 50,
     "sustain": 100,
     "vca_mode": "ENV",
-    "volume": 62.8,
+    "volume": 72.7,
     "vel_amp": 15,
     "vel_filt": 15,
     "lfo_shape": "TRI",
@@ -19659,8 +20810,8 @@
     "fx_ph_depth": 70,
     "fx_ph_fb": 30,
     "fx_ph_mix": 0,
-    "fx_ch_mode": "OFF",
-    "fx_ch_mix": 100,
+    "fx_ch_mode": "I",
+    "fx_ch_mix": 60,
     "fx_dl_sync": "SYNC",
     "fx_dl_time": 375,
     "fx_dl_div": "1/8 D",
@@ -19678,15 +20829,31 @@
     "fx_dl_mix": 0,
     "fx_rv_type": "NORMAL",
     "fx_rv_decay": 50,
-    "fx_rv_diff": 60,
-    "fx_rv_damp": 40,
+    "fx_rv_diff": 65,
+    "fx_rv_damp": 35,
     "fx_rv_kick": "OFF",
-    "fx_rv_mix": 0
+    "fx_rv_mix": 18
    }
   },
   {
    "name": "Four Winds",
-   "category": "Tides",
+   "category": "Texture",
+   "type": "Texture",
+   "styles": [
+    "Experimental",
+    "Ambient"
+   ],
+   "character": [
+    "Evolving"
+   ],
+   "uses": [
+    "Plaits",
+    "Tides",
+    "Patch Bay"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Four related outputs moving four things",
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -19952,7 +21119,23 @@
   },
   {
    "name": "Tide Bass",
-   "category": "Tides",
+   "category": "Bass",
+   "type": "Bass",
+   "styles": [
+    "Techno",
+    "Dub"
+   ],
+   "character": [
+    "Warm"
+   ],
+   "uses": [
+    "Plaits",
+    "Tides",
+    "Patch Bay"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Each note fires a curved filter sweep",
    "values": {
     "voices": 1,
     "voice_mode": "LEGATO",
@@ -20218,7 +21401,23 @@
   },
   {
    "name": "Breathing Swarm",
-   "category": "Tides",
+   "category": "Pad",
+   "type": "Pad",
+   "styles": [
+    "Ambient",
+    "Experimental"
+   ],
+   "character": [
+    "Evolving"
+   ],
+   "uses": [
+    "Plaits",
+    "Tides",
+    "Patch Bay"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "A swarm that swells on the tide",
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -20484,7 +21683,23 @@
   },
   {
    "name": "Folded Lead",
-   "category": "Tides",
+   "category": "Lead",
+   "type": "Lead",
+   "styles": [
+    "Experimental"
+   ],
+   "character": [
+    "Aggressive",
+    "Evolving"
+   ],
+   "uses": [
+    "Plaits",
+    "Tides",
+    "Patch Bay"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Tides pushing the waveshaper",
    "values": {
     "voices": 1,
     "voice_mode": "LEGATO",
@@ -20750,7 +21965,25 @@
   },
   {
    "name": "Drift Organ",
-   "category": "Tides",
+   "category": "Keys",
+   "type": "Keys",
+   "styles": [
+    "Dub",
+    "Experimental"
+   ],
+   "character": [
+    "Warm",
+    "Evolving"
+   ],
+   "uses": [
+    "Plaits",
+    "Tides",
+    "Patch Bay",
+    "Reverb"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "An organ whose drawbars never quite settle",
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -20809,7 +22042,7 @@
     "decay": 50,
     "sustain": 100,
     "vca_mode": "ENV",
-    "volume": 56.7,
+    "volume": 54.6,
     "vel_amp": 0,
     "vel_filt": 0,
     "lfo_shape": "TRI",
@@ -21006,17 +22239,32 @@
     "fx_dl_wow": 20,
     "fx_dl_duck": 0,
     "fx_dl_mix": 0,
-    "fx_rv_type": "NORMAL",
+    "fx_rv_type": "SPRING",
     "fx_rv_decay": 50,
-    "fx_rv_diff": 60,
-    "fx_rv_damp": 40,
+    "fx_rv_diff": 70,
+    "fx_rv_damp": 30,
     "fx_rv_kick": "OFF",
-    "fx_rv_mix": 0
+    "fx_rv_mix": 12
    }
   },
   {
    "name": "Tidal Pluck",
-   "category": "Tides",
+   "category": "Pluck",
+   "type": "Pluck",
+   "styles": [
+    "Experimental"
+   ],
+   "character": [
+    "Evolving"
+   ],
+   "uses": [
+    "Plaits",
+    "Tides",
+    "Patch Bay"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Tides shaping the strike of each note",
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -21282,7 +22530,25 @@
   },
   {
    "name": "Eighths Motion",
-   "category": "Tides",
+   "category": "Sequence",
+   "type": "Sequence",
+   "styles": [
+    "Techno",
+    "House"
+   ],
+   "character": [
+    "Evolving"
+   ],
+   "uses": [
+    "Plaits",
+    "Tides",
+    "Patch Bay"
+   ],
+   "plays": [
+    "Song tempo"
+   ],
+   "pack": "Factory 1",
+   "note": "Filter and wave moving in time with the song",
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -21548,7 +22814,26 @@
   },
   {
    "name": "Four On The Floor",
-   "category": "Clocked",
+   "category": "Sequence",
+   "type": "Sequence",
+   "styles": [
+    "House",
+    "Techno"
+   ],
+   "character": [
+    "Warm"
+   ],
+   "uses": [
+    "Plaits",
+    "Clock",
+    "Patch Bay"
+   ],
+   "plays": [
+    "Hold key",
+    "Song tempo"
+   ],
+   "pack": "Factory 1",
+   "note": "Hold a key: kick and offbeat hats",
    "values": {
     "voices": 2,
     "voice_mode": "POLY",
@@ -21814,7 +23099,27 @@
   },
   {
    "name": "Euclid Trio",
-   "category": "Clocked",
+   "category": "Sequence",
+   "type": "Sequence",
+   "styles": [
+    "Techno",
+    "Experimental"
+   ],
+   "character": [
+    "Evolving"
+   ],
+   "uses": [
+    "Plaits",
+    "Clock",
+    "Patch Bay",
+    "Delay"
+   ],
+   "plays": [
+    "Hold key",
+    "Song tempo"
+   ],
+   "pack": "Factory 1",
+   "note": "Hold a key: three interlocking patterns",
    "values": {
     "voices": 2,
     "voice_mode": "POLY",
@@ -22058,18 +23363,18 @@
     "fx_dl_sync": "SYNC",
     "fx_dl_time": 375,
     "fx_dl_div": "1/8 D",
-    "fx_dl_fb": 45,
+    "fx_dl_fb": 30,
     "fx_dl_in": "OPEN",
     "fx_dl_throw": "OFF",
     "fx_dl_heads": "1",
     "fx_dl_pp": "OFF",
     "fx_dl_width": 100,
-    "fx_dl_low": 25,
-    "fx_dl_high": 70,
+    "fx_dl_low": 30,
+    "fx_dl_high": 65,
     "fx_dl_drive": 25,
-    "fx_dl_wow": 20,
+    "fx_dl_wow": 15,
     "fx_dl_duck": 0,
-    "fx_dl_mix": 0,
+    "fx_dl_mix": 12,
     "fx_rv_type": "NORMAL",
     "fx_rv_decay": 50,
     "fx_rv_diff": 60,
@@ -22080,7 +23385,27 @@
   },
   {
    "name": "Broken Beat",
-   "category": "Clocked",
+   "category": "Sequence",
+   "type": "Sequence",
+   "styles": [
+    "Dub",
+    "Experimental"
+   ],
+   "character": [
+    "Warm"
+   ],
+   "uses": [
+    "Plaits",
+    "Clock",
+    "Patch Bay",
+    "Reverb"
+   ],
+   "plays": [
+    "Hold key",
+    "Song tempo"
+   ],
+   "pack": "Factory 1",
+   "note": "Hold a key: swung, with hits that come and go",
    "values": {
     "voices": 2,
     "voice_mode": "POLY",
@@ -22139,7 +23464,7 @@
     "decay": 50,
     "sustain": 100,
     "vca_mode": "ON",
-    "volume": 81.9,
+    "volume": 82.0,
     "vel_amp": 40,
     "vel_filt": 0,
     "lfo_shape": "TRI",
@@ -22336,17 +23661,38 @@
     "fx_dl_wow": 20,
     "fx_dl_duck": 0,
     "fx_dl_mix": 0,
-    "fx_rv_type": "NORMAL",
-    "fx_rv_decay": 50,
-    "fx_rv_diff": 60,
-    "fx_rv_damp": 40,
+    "fx_rv_type": "SPRING",
+    "fx_rv_decay": 40,
+    "fx_rv_diff": 70,
+    "fx_rv_damp": 30,
     "fx_rv_kick": "OFF",
-    "fx_rv_mix": 0
+    "fx_rv_mix": 12
    }
   },
   {
    "name": "Dub Stabs",
-   "category": "Clocked",
+   "category": "Sequence",
+   "type": "Sequence",
+   "styles": [
+    "Dub",
+    "Techno"
+   ],
+   "character": [
+    "Dark"
+   ],
+   "uses": [
+    "Plaits",
+    "Clock",
+    "Patch Bay",
+    "Delay",
+    "Reverb"
+   ],
+   "plays": [
+    "Hold key",
+    "Song tempo"
+   ],
+   "pack": "Factory 1",
+   "note": "Off-kilter chords re-struck by the clock",
    "values": {
     "voices": 4,
     "voice_mode": "POLY",
@@ -22590,29 +23936,50 @@
     "fx_dl_sync": "SYNC",
     "fx_dl_time": 375,
     "fx_dl_div": "1/8 D",
-    "fx_dl_fb": 45,
+    "fx_dl_fb": 55,
     "fx_dl_in": "OPEN",
     "fx_dl_throw": "OFF",
     "fx_dl_heads": "1",
     "fx_dl_pp": "OFF",
     "fx_dl_width": 100,
-    "fx_dl_low": 25,
-    "fx_dl_high": 70,
-    "fx_dl_drive": 25,
+    "fx_dl_low": 35,
+    "fx_dl_high": 60,
+    "fx_dl_drive": 30,
     "fx_dl_wow": 20,
     "fx_dl_duck": 0,
-    "fx_dl_mix": 0,
-    "fx_rv_type": "NORMAL",
+    "fx_dl_mix": 28,
+    "fx_rv_type": "SPRING",
     "fx_rv_decay": 50,
-    "fx_rv_diff": 60,
-    "fx_rv_damp": 40,
+    "fx_rv_diff": 70,
+    "fx_rv_damp": 30,
     "fx_rv_kick": "OFF",
-    "fx_rv_mix": 0
+    "fx_rv_mix": 18
    }
   },
   {
    "name": "Random Melody",
-   "category": "Clocked",
+   "category": "Sequence",
+   "type": "Sequence",
+   "styles": [
+    "Experimental",
+    "Ambient"
+   ],
+   "character": [
+    "Soft"
+   ],
+   "uses": [
+    "Plaits",
+    "Clock",
+    "Patch Bay",
+    "Delay",
+    "Reverb"
+   ],
+   "plays": [
+    "Hold key",
+    "Song tempo"
+   ],
+   "pack": "Factory 1",
+   "note": "Sample and hold wanders over a plucked tone",
    "values": {
     "voices": 1,
     "voice_mode": "POLY",
@@ -22671,7 +24038,7 @@
     "decay": 48,
     "sustain": 10,
     "vca_mode": "ENV",
-    "volume": 96.3,
+    "volume": 90.0,
     "vel_amp": 40,
     "vel_filt": 15,
     "lfo_shape": "TRI",
@@ -22862,23 +24229,43 @@
     "fx_dl_heads": "1",
     "fx_dl_pp": "OFF",
     "fx_dl_width": 100,
-    "fx_dl_low": 25,
-    "fx_dl_high": 70,
+    "fx_dl_low": 30,
+    "fx_dl_high": 65,
     "fx_dl_drive": 25,
-    "fx_dl_wow": 20,
+    "fx_dl_wow": 15,
     "fx_dl_duck": 0,
-    "fx_dl_mix": 0,
+    "fx_dl_mix": 22,
     "fx_rv_type": "NORMAL",
     "fx_rv_decay": 50,
-    "fx_rv_diff": 60,
-    "fx_rv_damp": 40,
+    "fx_rv_diff": 65,
+    "fx_rv_damp": 35,
     "fx_rv_kick": "OFF",
-    "fx_rv_mix": 0
+    "fx_rv_mix": 15
    }
   },
   {
    "name": "Gated Strings",
-   "category": "Clocked",
+   "category": "Sequence",
+   "type": "Sequence",
+   "styles": [
+    "Classic",
+    "House"
+   ],
+   "character": [
+    "Warm"
+   ],
+   "uses": [
+    "Plaits",
+    "Clock",
+    "Patch Bay",
+    "Colour FX"
+   ],
+   "plays": [
+    "Hold key",
+    "Song tempo"
+   ],
+   "pack": "Factory 1",
+   "note": "A soft 16th chop over strings",
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -23117,8 +24504,8 @@
     "fx_ph_depth": 70,
     "fx_ph_fb": 30,
     "fx_ph_mix": 0,
-    "fx_ch_mode": "OFF",
-    "fx_ch_mix": 100,
+    "fx_ch_mode": "II",
+    "fx_ch_mix": 70,
     "fx_dl_sync": "SYNC",
     "fx_dl_time": 375,
     "fx_dl_div": "1/8 D",
@@ -23144,7 +24531,26 @@
   },
   {
    "name": "Sidechain Pump",
-   "category": "Clocked",
+   "category": "Sequence",
+   "type": "Sequence",
+   "styles": [
+    "House",
+    "Techno"
+   ],
+   "character": [
+    "Warm"
+   ],
+   "uses": [
+    "Plaits",
+    "Clock",
+    "Patch Bay"
+   ],
+   "plays": [
+    "Hold key",
+    "Song tempo"
+   ],
+   "pack": "Factory 1",
+   "note": "Every beat ducks a pad, like a compressor",
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -23410,7 +24816,27 @@
   },
   {
    "name": "Polymeter Pad",
-   "category": "Clocked",
+   "category": "Pad",
+   "type": "Pad",
+   "styles": [
+    "Ambient",
+    "Experimental"
+   ],
+   "character": [
+    "Evolving"
+   ],
+   "uses": [
+    "Plaits",
+    "Clock",
+    "Patch Bay",
+    "Reverb"
+   ],
+   "plays": [
+    "Hold key",
+    "Song tempo"
+   ],
+   "pack": "Factory 1",
+   "note": "Thirds, fourths and fifths drifting against each other",
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -23469,7 +24895,7 @@
     "decay": 50,
     "sustain": 100,
     "vca_mode": "ENV",
-    "volume": 60.7,
+    "volume": 60.9,
     "vel_amp": 15,
     "vel_filt": 15,
     "lfo_shape": "TRI",
@@ -23668,15 +25094,31 @@
     "fx_dl_mix": 0,
     "fx_rv_type": "NORMAL",
     "fx_rv_decay": 50,
-    "fx_rv_diff": 60,
-    "fx_rv_damp": 40,
+    "fx_rv_diff": 65,
+    "fx_rv_damp": 35,
     "fx_rv_kick": "OFF",
-    "fx_rv_mix": 0
+    "fx_rv_mix": 20
    }
   },
   {
    "name": "Bell Ring",
-   "category": "Patched",
+   "category": "Keys",
+   "type": "Keys",
+   "styles": [
+    "Experimental",
+    "Cinematic"
+   ],
+   "character": [
+    "Bright",
+    "Metallic"
+   ],
+   "uses": [
+    "Plaits",
+    "Patch Bay"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Two sines ring modulated: bright metal",
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -23942,7 +25384,23 @@
   },
   {
    "name": "Metal FM",
-   "category": "Patched",
+   "category": "Texture",
+   "type": "Texture",
+   "styles": [
+    "Experimental",
+    "Techno"
+   ],
+   "character": [
+    "Metallic",
+    "Aggressive"
+   ],
+   "uses": [
+    "Plaits",
+    "Patch Bay"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Stepped FM between oscillators, with an envelope on it",
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -24208,7 +25666,23 @@
   },
   {
    "name": "Growl Bass",
-   "category": "Patched",
+   "category": "Bass",
+   "type": "Bass",
+   "styles": [
+    "Techno",
+    "Rave"
+   ],
+   "character": [
+    "Aggressive",
+    "Dark"
+   ],
+   "uses": [
+    "Plaits",
+    "Patch Bay"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "An oscillator gnawing at the filter",
    "values": {
     "voices": 1,
     "voice_mode": "LEGATO",
@@ -24474,7 +25948,22 @@
   },
   {
    "name": "Noise Snarl",
-   "category": "Patched",
+   "category": "Texture",
+   "type": "Texture",
+   "styles": [
+    "Experimental",
+    "Rave"
+   ],
+   "character": [
+    "Aggressive"
+   ],
+   "uses": [
+    "Plaits",
+    "Patch Bay"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Noise tearing at the level and the filter",
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -24740,7 +26229,23 @@
   },
   {
    "name": "Feedback Drone",
-   "category": "Patched",
+   "category": "Drone",
+   "type": "Drone",
+   "styles": [
+    "Experimental",
+    "Ambient"
+   ],
+   "character": [
+    "Dark",
+    "Evolving"
+   ],
+   "uses": [
+    "Plaits",
+    "Patch Bay"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "An oscillator into its own pitch. Move the knobs",
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -25006,7 +26511,24 @@
   },
   {
    "name": "Touch Morph",
-   "category": "Patched",
+   "category": "Lead",
+   "type": "Lead",
+   "styles": [
+    "Experimental"
+   ],
+   "character": [
+    "Evolving"
+   ],
+   "uses": [
+    "Plaits",
+    "Patch Bay"
+   ],
+   "plays": [
+    "Wheel",
+    "Pressure"
+   ],
+   "pack": "Factory 1",
+   "note": "Velocity picks the tone, pressure and the wheel move it",
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -25272,7 +26794,23 @@
   },
   {
    "name": "Pluck Over Pad",
-   "category": "Patched",
+   "category": "Pad",
+   "type": "Pad",
+   "styles": [
+    "Ambient",
+    "Dub"
+   ],
+   "character": [
+    "Warm"
+   ],
+   "uses": [
+    "Plaits",
+    "LPG",
+    "Reverb"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "OSC 1 struck through its LPG, OSC 2 a soft pad",
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -25331,7 +26869,7 @@
     "decay": 50,
     "sustain": 100,
     "vca_mode": "ENV",
-    "volume": 74.4,
+    "volume": 74.2,
     "vel_amp": 30,
     "vel_filt": 15,
     "lfo_shape": "TRI",
@@ -25530,15 +27068,30 @@
     "fx_dl_mix": 0,
     "fx_rv_type": "NORMAL",
     "fx_rv_decay": 50,
-    "fx_rv_diff": 60,
-    "fx_rv_damp": 40,
+    "fx_rv_diff": 65,
+    "fx_rv_damp": 35,
     "fx_rv_kick": "OFF",
-    "fx_rv_mix": 0
+    "fx_rv_mix": 18
    }
   },
   {
    "name": "Struck By Osc",
-   "category": "Patched",
+   "category": "Pluck",
+   "type": "Pluck",
+   "styles": [
+    "Experimental"
+   ],
+   "character": [
+    "Metallic"
+   ],
+   "uses": [
+    "Plaits",
+    "Elements",
+    "Patch Bay"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Elements excited by a wavetable, ringing with the note",
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -25803,8 +27356,25 @@
    }
   },
   {
-   "name": "E Struck Bell",
-   "category": "Testing",
+   "name": "Struck Bell",
+   "category": "Pluck",
+   "type": "Pluck",
+   "styles": [
+    "Ambient",
+    "Cinematic"
+   ],
+   "character": [
+    "Bright",
+    "Metallic"
+   ],
+   "uses": [
+    "Elements",
+    "Reverb"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Modal, struck: rings and fades. Elements' reverb on",
+   "unmatched": true,
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -26062,15 +27632,29 @@
     "fx_dl_mix": 0,
     "fx_rv_type": "NORMAL",
     "fx_rv_decay": 50,
-    "fx_rv_diff": 60,
-    "fx_rv_damp": 40,
+    "fx_rv_diff": 65,
+    "fx_rv_damp": 35,
     "fx_rv_kick": "OFF",
-    "fx_rv_mix": 0
+    "fx_rv_mix": 18
    }
   },
   {
-   "name": "E Bowed String",
-   "category": "Testing",
+   "name": "Bowed String",
+   "category": "Pad",
+   "type": "Pad",
+   "styles": [
+    "Cinematic"
+   ],
+   "character": [
+    "Warm"
+   ],
+   "uses": [
+    "Elements"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Bow only: sustains while held",
+   "unmatched": true,
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -26335,8 +27919,23 @@
    }
   },
   {
-   "name": "E Blown Pipe",
-   "category": "Testing",
+   "name": "Blown Pipe",
+   "category": "Lead",
+   "type": "Lead",
+   "styles": [
+    "Cinematic",
+    "Ambient"
+   ],
+   "character": [
+    "Soft"
+   ],
+   "uses": [
+    "Elements"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Blow only: breathy and sustained",
+   "unmatched": true,
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -26601,8 +28200,22 @@
    }
   },
   {
-   "name": "E String Pluck",
-   "category": "Testing",
+   "name": "String Pluck",
+   "category": "Pluck",
+   "type": "Pluck",
+   "styles": [
+    "Classic"
+   ],
+   "character": [
+    "Warm"
+   ],
+   "uses": [
+    "Elements"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "A single struck string",
+   "unmatched": true,
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -26867,8 +28480,23 @@
    }
   },
   {
-   "name": "E Chord Strings",
-   "category": "Testing",
+   "name": "Chord Strings",
+   "category": "Pad",
+   "type": "Pad",
+   "styles": [
+    "Cinematic",
+    "Ambient"
+   ],
+   "character": [
+    "Warm"
+   ],
+   "uses": [
+    "Elements"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "STRINGS: each key plays a resonant chord",
+   "unmatched": true,
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -27133,8 +28761,28 @@
    }
   },
   {
-   "name": "E Clock Strikes",
-   "category": "Testing",
+   "name": "Clock Strikes",
+   "category": "Sequence",
+   "type": "Sequence",
+   "styles": [
+    "Experimental",
+    "Ambient"
+   ],
+   "character": [
+    "Metallic"
+   ],
+   "uses": [
+    "Elements",
+    "Clock",
+    "Patch Bay"
+   ],
+   "plays": [
+    "Hold key",
+    "Song tempo"
+   ],
+   "pack": "Factory 1",
+   "note": "Hold a key: the clock strikes the resonator in a Euclidean pattern",
+   "unmatched": true,
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -27399,8 +29047,25 @@
    }
   },
   {
-   "name": "E OSC Resonator",
-   "category": "Testing",
+   "name": "OSC Resonator",
+   "category": "Texture",
+   "type": "Texture",
+   "styles": [
+    "Experimental"
+   ],
+   "character": [
+    "Metallic",
+    "Evolving"
+   ],
+   "uses": [
+    "Plaits",
+    "Elements",
+    "Patch Bay"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "OSC 2 is heard only through the resonator",
+   "unmatched": true,
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -27665,8 +29330,24 @@
    }
   },
   {
-   "name": "E Noise Breath",
-   "category": "Testing",
+   "name": "Noise Breath",
+   "category": "Texture",
+   "type": "Texture",
+   "styles": [
+    "Ambient",
+    "Cinematic"
+   ],
+   "character": [
+    "Soft"
+   ],
+   "uses": [
+    "Elements",
+    "Patch Bay"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Noise through the exciter: wind in a resonator",
+   "unmatched": true,
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -27931,8 +29612,24 @@
    }
   },
   {
-   "name": "E LFO Geometry",
-   "category": "Testing",
+   "name": "LFO Geometry",
+   "category": "Texture",
+   "type": "Texture",
+   "styles": [
+    "Experimental"
+   ],
+   "character": [
+    "Metallic",
+    "Evolving"
+   ],
+   "uses": [
+    "Elements",
+    "Patch Bay"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Bowed, with the LFO moving the resonator's shape",
+   "unmatched": true,
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -28197,8 +29894,26 @@
    }
   },
   {
-   "name": "E Tides Swell",
-   "category": "Testing",
+   "name": "Tides Swell",
+   "category": "Pad",
+   "type": "Pad",
+   "styles": [
+    "Ambient",
+    "Cinematic"
+   ],
+   "character": [
+    "Soft",
+    "Evolving"
+   ],
+   "uses": [
+    "Elements",
+    "Tides",
+    "Patch Bay"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Tides breathing the bow in and out",
+   "unmatched": true,
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -28463,8 +30178,25 @@
    }
   },
   {
-   "name": "T Note Envelope",
-   "category": "Testing",
+   "name": "Note Envelope",
+   "category": "Pluck",
+   "type": "Pluck",
+   "styles": [
+    "Classic",
+    "Techno"
+   ],
+   "character": [
+    "Bright"
+   ],
+   "uses": [
+    "Plaits",
+    "Tides",
+    "Patch Bay"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Tides as a one-shot on each note, opening the filter",
+   "unmatched": true,
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -28729,8 +30461,24 @@
    }
   },
   {
-   "name": "T Free Drift",
-   "category": "Testing",
+   "name": "Free Drift",
+   "category": "Pad",
+   "type": "Pad",
+   "styles": [
+    "Ambient"
+   ],
+   "character": [
+    "Evolving"
+   ],
+   "uses": [
+    "Plaits",
+    "Tides",
+    "Patch Bay"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Four outputs moving a held chord, each voice drifting apart",
+   "unmatched": true,
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -28995,8 +30743,27 @@
    }
   },
   {
-   "name": "T Clock Filter",
-   "category": "Testing",
+   "name": "Clock Filter",
+   "category": "Sequence",
+   "type": "Sequence",
+   "styles": [
+    "Techno",
+    "House"
+   ],
+   "character": [
+    "Evolving"
+   ],
+   "uses": [
+    "Plaits",
+    "Tides",
+    "Patch Bay"
+   ],
+   "plays": [
+    "Song tempo"
+   ],
+   "pack": "Factory 1",
+   "note": "Tides locked to the song's tempo in eighths",
+   "unmatched": true,
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -29261,8 +31028,29 @@
    }
   },
   {
-   "name": "T Fired By Clock",
-   "category": "Testing",
+   "name": "Fired By Clock",
+   "category": "Sequence",
+   "type": "Sequence",
+   "styles": [
+    "Techno",
+    "Experimental"
+   ],
+   "character": [
+    "Evolving"
+   ],
+   "uses": [
+    "Plaits",
+    "Tides",
+    "Clock",
+    "Patch Bay"
+   ],
+   "plays": [
+    "Hold key",
+    "Song tempo"
+   ],
+   "pack": "Factory 1",
+   "note": "PATCH: only our clock fires Tides, a note does not",
+   "unmatched": true,
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -29527,8 +31315,24 @@
    }
   },
   {
-   "name": "T Gate Chop",
-   "category": "Testing",
+   "name": "Gate Chop",
+   "category": "Sequence",
+   "type": "Sequence",
+   "styles": [
+    "Techno"
+   ],
+   "character": [
+    "Aggressive"
+   ],
+   "uses": [
+    "Plaits",
+    "Tides",
+    "Patch Bay"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "GATES output chopping the note",
+   "unmatched": true,
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -29793,8 +31597,24 @@
    }
   },
   {
-   "name": "T Shape Sweep",
-   "category": "Testing",
+   "name": "Shape Sweep",
+   "category": "Texture",
+   "type": "Texture",
+   "styles": [
+    "Experimental"
+   ],
+   "character": [
+    "Evolving"
+   ],
+   "uses": [
+    "Plaits",
+    "Tides",
+    "Patch Bay"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "A second Tides output reshaping the first",
+   "unmatched": true,
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -30059,8 +31879,27 @@
    }
   },
   {
-   "name": "C Euclid Kick",
-   "category": "Testing",
+   "name": "Euclid Kick",
+   "category": "Sequence",
+   "type": "Sequence",
+   "styles": [
+    "Techno"
+   ],
+   "character": [
+    "Warm"
+   ],
+   "uses": [
+    "Plaits",
+    "Clock",
+    "Patch Bay"
+   ],
+   "plays": [
+    "Hold key",
+    "Song tempo"
+   ],
+   "pack": "Factory 1",
+   "note": "Hold a key: a Euclidean kick, 5 hits in 16",
+   "unmatched": true,
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -30325,8 +32164,29 @@
    }
   },
   {
-   "name": "C Drum Machine",
-   "category": "Testing",
+   "name": "Drum Machine",
+   "category": "Sequence",
+   "type": "Sequence",
+   "styles": [
+    "Classic",
+    "Techno",
+    "House"
+   ],
+   "character": [
+    "Bright"
+   ],
+   "uses": [
+    "Plaits",
+    "Clock",
+    "Patch Bay"
+   ],
+   "plays": [
+    "Hold key",
+    "Song tempo"
+   ],
+   "pack": "Factory 1",
+   "note": "Hold a key: kick, snare and hats on three clock outputs",
+   "unmatched": true,
    "values": {
     "voices": 2,
     "voice_mode": "POLY",
@@ -30591,8 +32451,30 @@
    }
   },
   {
-   "name": "C Trance Gate",
-   "category": "Testing",
+   "name": "Trance Gate",
+   "category": "Sequence",
+   "type": "Sequence",
+   "styles": [
+    "Rave",
+    "Techno"
+   ],
+   "character": [
+    "Bright"
+   ],
+   "uses": [
+    "Plaits",
+    "Clock",
+    "Patch Bay",
+    "Delay",
+    "Reverb"
+   ],
+   "plays": [
+    "Hold key",
+    "Song tempo"
+   ],
+   "pack": "Factory 1",
+   "note": "16th-note gate over saws",
+   "unmatched": true,
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -30836,29 +32718,49 @@
     "fx_dl_sync": "SYNC",
     "fx_dl_time": 375,
     "fx_dl_div": "1/8 D",
-    "fx_dl_fb": 45,
+    "fx_dl_fb": 35,
     "fx_dl_in": "OPEN",
     "fx_dl_throw": "OFF",
     "fx_dl_heads": "1",
-    "fx_dl_pp": "OFF",
-    "fx_dl_width": 100,
-    "fx_dl_low": 25,
-    "fx_dl_high": 70,
+    "fx_dl_pp": "ON",
+    "fx_dl_width": 80,
+    "fx_dl_low": 30,
+    "fx_dl_high": 65,
     "fx_dl_drive": 25,
-    "fx_dl_wow": 20,
+    "fx_dl_wow": 15,
     "fx_dl_duck": 0,
-    "fx_dl_mix": 0,
+    "fx_dl_mix": 15,
     "fx_rv_type": "NORMAL",
     "fx_rv_decay": 50,
-    "fx_rv_diff": 60,
-    "fx_rv_damp": 40,
+    "fx_rv_diff": 65,
+    "fx_rv_damp": 35,
     "fx_rv_kick": "OFF",
-    "fx_rv_mix": 0
+    "fx_rv_mix": 12
    }
   },
   {
-   "name": "C Random Pitch",
-   "category": "Testing",
+   "name": "Random Pitch",
+   "category": "Sequence",
+   "type": "Sequence",
+   "styles": [
+    "Experimental",
+    "Techno"
+   ],
+   "character": [
+    "Bright"
+   ],
+   "uses": [
+    "Plaits",
+    "Clock",
+    "Patch Bay"
+   ],
+   "plays": [
+    "Hold key",
+    "Song tempo"
+   ],
+   "pack": "Factory 1",
+   "note": "Sample and hold on pitch, a new note each step",
+   "unmatched": true,
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -31123,8 +33025,28 @@
    }
   },
   {
-   "name": "C Random Filter",
-   "category": "Testing",
+   "name": "Random Filter",
+   "category": "Sequence",
+   "type": "Sequence",
+   "styles": [
+    "Techno",
+    "Experimental"
+   ],
+   "character": [
+    "Evolving"
+   ],
+   "uses": [
+    "Plaits",
+    "Clock",
+    "Patch Bay"
+   ],
+   "plays": [
+    "Hold key",
+    "Song tempo"
+   ],
+   "pack": "Factory 1",
+   "note": "Sample and hold on the filter",
+   "unmatched": true,
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -31389,8 +33311,28 @@
    }
   },
   {
-   "name": "C Swing Stabs",
-   "category": "Testing",
+   "name": "Swing Stabs",
+   "category": "Sequence",
+   "type": "Sequence",
+   "styles": [
+    "House",
+    "Dub"
+   ],
+   "character": [
+    "Warm"
+   ],
+   "uses": [
+    "Plaits",
+    "Clock",
+    "Patch Bay"
+   ],
+   "plays": [
+    "Hold key",
+    "Song tempo"
+   ],
+   "pack": "Factory 1",
+   "note": "The clock restarts the envelope, with swing",
+   "unmatched": true,
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -31655,8 +33597,28 @@
    }
   },
   {
-   "name": "C Maybe Hats",
-   "category": "Testing",
+   "name": "Maybe Hats",
+   "category": "Sequence",
+   "type": "Sequence",
+   "styles": [
+    "Techno",
+    "House"
+   ],
+   "character": [
+    "Metallic"
+   ],
+   "uses": [
+    "Plaits",
+    "Clock",
+    "Patch Bay"
+   ],
+   "plays": [
+    "Hold key",
+    "Song tempo"
+   ],
+   "pack": "Factory 1",
+   "note": "Hats at 60% probability",
+   "unmatched": true,
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -31921,8 +33883,28 @@
    }
   },
   {
-   "name": "C Slow Sweeps",
-   "category": "Testing",
+   "name": "Slow Sweeps",
+   "category": "Texture",
+   "type": "Texture",
+   "styles": [
+    "Ambient",
+    "Techno"
+   ],
+   "character": [
+    "Evolving"
+   ],
+   "uses": [
+    "Plaits",
+    "Clock",
+    "Patch Bay"
+   ],
+   "plays": [
+    "Hold key",
+    "Song tempo"
+   ],
+   "pack": "Factory 1",
+   "note": "Two slow clock shapes on the filter and the wave",
+   "unmatched": true,
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -32187,8 +34169,25 @@
    }
   },
   {
-   "name": "P Ring Mod",
-   "category": "Testing",
+   "name": "Ring Mod",
+   "category": "Keys",
+   "type": "Keys",
+   "styles": [
+    "Experimental",
+    "Dub"
+   ],
+   "character": [
+    "Metallic"
+   ],
+   "uses": [
+    "Plaits",
+    "Patch Bay",
+    "Reverb"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "OSC 2 ring modulating OSC 1, bell-like. Try OSC 2's SEMI",
+   "unmatched": true,
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -32444,17 +34443,33 @@
     "fx_dl_wow": 20,
     "fx_dl_duck": 0,
     "fx_dl_mix": 0,
-    "fx_rv_type": "NORMAL",
+    "fx_rv_type": "SPRING",
     "fx_rv_decay": 50,
-    "fx_rv_diff": 60,
-    "fx_rv_damp": 40,
+    "fx_rv_diff": 70,
+    "fx_rv_damp": 30,
     "fx_rv_kick": "OFF",
-    "fx_rv_mix": 0
+    "fx_rv_mix": 10
    }
   },
   {
-   "name": "P Osc FM",
-   "category": "Testing",
+   "name": "Osc FM",
+   "category": "Lead",
+   "type": "Lead",
+   "styles": [
+    "Experimental"
+   ],
+   "character": [
+    "Metallic",
+    "Aggressive"
+   ],
+   "uses": [
+    "Plaits",
+    "Patch Bay"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "OSC 3 modulating OSC 1's pitch: gritty, stepped FM",
+   "unmatched": true,
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -32719,8 +34734,24 @@
    }
   },
   {
-   "name": "P Filter Growl",
-   "category": "Testing",
+   "name": "Filter Growl",
+   "category": "Bass",
+   "type": "Bass",
+   "styles": [
+    "Techno",
+    "Experimental"
+   ],
+   "character": [
+    "Aggressive"
+   ],
+   "uses": [
+    "Plaits",
+    "Patch Bay"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "OSC 2 at audio rate on the cutoff",
+   "unmatched": true,
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -32985,8 +35016,23 @@
    }
   },
   {
-   "name": "P Noise Grit",
-   "category": "Testing",
+   "name": "Noise Grit",
+   "category": "Texture",
+   "type": "Texture",
+   "styles": [
+    "Experimental"
+   ],
+   "character": [
+    "Aggressive"
+   ],
+   "uses": [
+    "Plaits",
+    "Patch Bay"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "Noise roughing up the level and the wave",
+   "unmatched": true,
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -33251,8 +35297,24 @@
    }
   },
   {
-   "name": "P Self Feedback",
-   "category": "Testing",
+   "name": "Self Feedback",
+   "category": "Drone",
+   "type": "Drone",
+   "styles": [
+    "Experimental"
+   ],
+   "character": [
+    "Aggressive",
+    "Dark"
+   ],
+   "uses": [
+    "Plaits",
+    "Patch Bay"
+   ],
+   "plays": [],
+   "pack": "Factory 1",
+   "note": "OSC 1 into its own pitch and the filter",
+   "unmatched": true,
    "values": {
     "voices": 8,
     "voice_mode": "POLY",
@@ -33517,8 +35579,27 @@
    }
   },
   {
-   "name": "P Pressure Play",
-   "category": "Testing",
+   "name": "Pressure Play",
+   "category": "Lead",
+   "type": "Lead",
+   "styles": [
+    "Experimental",
+    "Classic"
+   ],
+   "character": [
+    "Evolving"
+   ],
+   "uses": [
+    "Plaits",
+    "Patch Bay"
+   ],
+   "plays": [
+    "Wheel",
+    "Pressure"
+   ],
+   "pack": "Factory 1",
+   "note": "Velocity, wheel and pressure patched to the filter and wave",
+   "unmatched": true,
    "values": {
     "voices": 8,
     "voice_mode": "POLY",

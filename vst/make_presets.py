@@ -28,6 +28,12 @@ for n in (1, 2, 3):
 for n in range(1, 13):   # the patch bay: nothing plugged in unless a preset says so
     BASE.update({"c%d_src" % n: "OFF", "c%d_dst" % n: "OFF", "c%d_amt" % n: 50})
 
+BASE.update(t_mode="LOOP", t_out="PHASE", t_trig="NOTE", t_div="1/4", t_rate=45, t_shape=50, t_slope=50, t_smooth=50, t_shift=50)
+
+BASE.update(ck_src="SONG", ck_bpm=120)
+for n in range(1, 9):
+    BASE.update({"k%d_%s" % (n, k): v for k, v in dict(div="x1", shape="GATE", width=50, swing=0, prob=100, phase=0, level=100, offset=0, steps=0, fill=4, rot=0).items()})
+
 def o(n, model=None, **kw):
     out = {"o%d_on" % n: "ON"}
     if model: out["o%d_engine" % n] = model

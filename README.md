@@ -1,7 +1,8 @@
 # Millstone
 
-An 8-voice hybrid synth for Akai MPC OS standalone devices (MPC Live III, One G2, Key 37/61 G2, XL; Gen1
-units with the armv7 build), built on the [Open MPC port kit](https://github.com/open-mpc/mpc-vst-plugins).
+An 8-voice hybrid desktop synth (VST3, AU and standalone on macOS). See `desktop/README.md` to build and install it.
+The engine was first written for Akai MPC OS devices on the [Open MPC port kit](https://github.com/open-mpc/mpc-vst-plugins);
+that build (`vst/`) is on hold and untested until a working loader exists, and modules added since are desktop-only.
 Each voice has **three Mutable Instruments Plaits macro-oscillators** (all 24 models), a **24 dB ladder filter**
 (low-pass or high-pass), **VCA and modulation ADSR envelopes** and a **VCA** with ENV / LPG / ON modes; one global LFO. The
 panel follows a semi-modular hybrid desktop synth: VC MIX, OSC MOD (vibrato), glide, noise, a VCF mod depth

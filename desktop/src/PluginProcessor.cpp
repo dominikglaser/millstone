@@ -1,6 +1,7 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 #include "BinaryData.h"
+#include <limits>
 
 namespace {
 // Build a stable JUCE parameter id from an engine key (keys are already id-safe: letters, digits, _).
@@ -45,6 +46,8 @@ juce::AudioProcessorEditor* MillstoneProcessor::createEditor() { return new Mill
 
 void MillstoneProcessor::prepareToPlay(double sampleRate, int) {
     engine.prepare(sampleRate);
+    pushedValues.assign(NPARAMS, std::numeric_limits<float>::quiet_NaN());   // a new engine knows nothing yet
+    pushedBpm = -1.0;
     pushParamsToEngine();
 }
 
@@ -57,6 +60,8 @@ void MillstoneProcessor::pushParamsToEngine() {
     for (int i = 0; i < NPARAMS; ++i) {
         if (!rawValues[i]) continue;
         const float v = rawValues[i]->load();
+        if (v == pushedValues[(size_t)i]) continue;
+        pushedValues[(size_t)i] = v;
         if (PARAMS[i].nopts > 0 || PARAMS[i].int_display)
             std::snprintf(buf, sizeof buf, "%d", (int)std::lround(v));
         else
@@ -73,7 +78,8 @@ void MillstoneProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mi
     if (auto* ph = getPlayHead()) {
         if (auto pos = ph->getPosition()) {
             const auto bpm = pos->getBpm();
-            if (bpm) {
+            if (bpm && *bpm != pushedBpm) {
+                pushedBpm = *bpm;
                 char t[32];
                 std::snprintf(t, sizeof t, "%g", *bpm);
                 engine.setParam("lfo_bpm", t);

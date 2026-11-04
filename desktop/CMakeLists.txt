@@ -55,10 +55,14 @@ endforeach()
 
 # Build the shared engine as its own static library so JUCE's flags (C++17, strict) don't reach it: the
 # Plaits sources need GNU C++14 (zero-size arrays), -DTEST (portable math, not ARM asm) and -include cstdio.
+# Modules that are desktop-only until the MPC build can be tested again.
+list(APPEND ENGINE_SOURCES
+    ${REPO}/src/third_party/eurorack/tides2/poly_slope_generator.cc
+    ${REPO}/src/third_party/eurorack/tides2/resources.cc)
 add_library(millstone_engine STATIC ${ENGINE_SOURCES})
 set_target_properties(millstone_engine PROPERTIES
     CXX_STANDARD 14 CXX_EXTENSIONS ON POSITION_INDEPENDENT_CODE ON)
-target_compile_definitions(millstone_engine PRIVATE TEST)
+target_compile_definitions(millstone_engine PRIVATE TEST MILLSTONE_DESKTOP)
 target_compile_options(millstone_engine PRIVATE -include cstdio -w)
 target_include_directories(millstone_engine PRIVATE
     ${REPO}/src ${REPO}/src/third_party/eurorack ${REPO}/vst/build ${mpcvst_SOURCE_DIR}/wrapper)

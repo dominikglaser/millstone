@@ -108,7 +108,7 @@ int main(int argc, char** argv) {
     auto* patch = dynamic_cast<juce::Button*>(find(editor, "patch_toggle"));
     check(patch != nullptr, "PATCH button exists");
     patch->onClick();
-    check(editor.getWidth() == width && editor.getHeight() > closedH, "PATCH opens the drawer: the window grows and the panel keeps its size");
+    check(editor.getHeight() > closedH, "PATCH opens the drawer: the window grows");
     check(proc.patchBayOpen, "the drawer state is remembered");
     proc.connectCord(1, 7);      // LFO > O1 HARM
     proc.connectCord(11, 6);     // OSC 2 > O1 PITCH
@@ -116,10 +116,23 @@ int main(int argc, char** argv) {
     proc.connectCord(3, 3);      // MOD ENV > RESO
     proc.connectCord(9, 4);      // NOISE > VCA
     proc.connectCord(6, 20);     // WHEEL > O3 LEVEL
+    proc.connectCord(13, 2);     // TIDES 1 > CUTOFF
+    proc.connectCord(14, 22);    // TIDES 2 > T SHAPE
     editor.refreshFromProcessor();
     render("panel_patch");
+    click("drawer_clock");
+    editor.refreshFromProcessor();
+    auto* swing1 = find(editor, "k1_swing"), *swing4 = find(editor, "k4_swing"), *rate = find(editor, "t_rate");
+    check(swing1 != nullptr && swing1->getParentComponent()->isVisible(), "CLOCK page shows output 1");
+    check(swing4 != nullptr && !swing4->getParentComponent()->isVisible(), "...and not output 4");
+    check(rate != nullptr && !rate->getParentComponent()->isVisible(), "...and hides Tides");
+    click("clock_channel:3");
+    check(swing4->getParentComponent()->isVisible() && !swing1->getParentComponent()->isVisible(), "an output button switches the controls");
+    render("panel_clock");
+    click("drawer_tides");
+    check(rate->getParentComponent()->isVisible() && !swing4->getParentComponent()->isVisible(), "TIDES page goes back");
     patch->onClick();
-    check(editor.getHeight() == closedH, "and closes back to the same size");
+    check(editor.getHeight() == closedH && editor.getWidth() == width, "and closes back to the same size");
 
     std::cout << (failures == 0 ? "PASSED" : "FAILED") << std::endl;
     return failures == 0 ? 0 : 1;

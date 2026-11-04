@@ -63,6 +63,15 @@ full three-oscillator sound.
   patch, pull a plug out of an input to move or remove it, double-click an input to clear it. Oscillators and noise reach the
   filter and VCA every sample; into an oscillator they step every 12 samples, like CV into the real module. Set an
   oscillator's LEVEL to 0 to use it only as a modulator. Cords are ordinary parameters (`cN_src`, `cN_dst`, `cN_amt`).
+- Tides 2 (desktop only) runs per voice, patched through the drawer as TIDES 1 to 4. TRIGGER picks NOTE (restarts on each
+  note), FREE (keeps running) or CLOCK (locked to the song, with DIV for bars, notes and triplets), or PATCH (fired only by what is patched into T TRIG, such
+  as one of the clock outputs). OUTPUT follows the module:
+  in GATES mode TIDES 3 and 4 carry the gates and TIDES 1 is silent with SHIFT centred; in AMP mode SHIFT pans the wave across
+  the four jacks, and all are silent with it centred. PHASE, the default, is live on all four.
+- The clock (desktop only, `../src/workout_clock.h`) is one shared 8-output clock, an original design in the spirit of
+  Pamela's Workout. Each output has a rate, shape, width, swing, probability, phase, level, offset and a Euclidean pattern, and
+  patches through the drawer as CLOCK 1 to 8. Trigger inputs fire as a cord rises past a quarter: T TRIG, LFO RST, ENV TRIG,
+  MOD TRIG, and O1 to O3 TRIG, which strike percussive models while a note is held. With SOURCE on SONG it follows Live.
 - `tools/` — optional checks, built with `-DMILLSTONE_UI_SNAPSHOT=ON`. `ui_snapshot` renders each page to a PNG and
   tests the controls. `behaviour_test` drives the whole plugin and measures pitch, filter, envelope, VCA, LFO, glide,
   voice handling, MIDI and state against what each section should do.

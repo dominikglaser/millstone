@@ -24,14 +24,17 @@ private:
     struct LookAndFeel;
     struct PresetBar;
     struct PatchBay;
+    struct DrawerTabs;
 
     MillstoneProcessor& processor;
     std::unique_ptr<LookAndFeel> lnf;
     std::function<void(juce::Slider*, juce::RangedAudioParameter*)> readoutTarget;
+    int widthBeforeDrawer = 0;
     juce::Image art;           // the static panel: metal, wood, printing, wear
     juce::Component content;   // laid out at the design size, scaled to the window
     std::vector<std::unique_ptr<juce::Component>> controls;
     std::unique_ptr<PresetBar> presetBar;
+    std::unique_ptr<DrawerTabs> drawerTabs;
     std::unique_ptr<PatchBay> patchBay;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MillstoneEditor)

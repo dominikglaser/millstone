@@ -47,6 +47,7 @@ public:
     int connectCord(int source, int dest, float amount = 50.0f);   // the cord used, the existing one if already patched, or -1 if all are in use
     void disconnectCord(int cord);
     bool patchBayOpen = false;                                     // the drawer, while the window is closed and reopened
+    int drawerPage = 0, clockChannel = 0;                          // which module and clock output it is showing
 
     struct Preset {
         juce::String name, category;
@@ -78,6 +79,8 @@ private:
     juce::File userDirectoryOverride;
     // One cached raw-value pointer per engine parameter we expose (nullptr for momentary ones we skip).
     std::vector<std::atomic<float>*> rawValues;
+    std::vector<float> pushedValues;   // what the engine last got: only changes are sent, as a lookup is by name
+    double pushedBpm = -1.0;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MillstoneProcessor)
 };

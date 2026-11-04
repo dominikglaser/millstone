@@ -19,6 +19,11 @@ extern "C" {
 #include "dsp_bits.h"
 #include "stmlib/utils/buffer_allocator.h"
 #include "plaits/dsp/voice.h"
+#ifdef MILLSTONE_DESKTOP   // the desktop plugin only, until the MPC build can be tested
+#include "stmlib/utils/gate_flags.h"
+#include "tides2/poly_slope_generator.h"
+#include "workout_clock.h"
+#endif
 
 namespace {
 
@@ -56,11 +61,13 @@ enum Global {
     G_CUTOFF, G_RESO, G_FMODE, G_FMOD, G_FSRC, G_KEYTRACK, G_DRIVE,
     G_ATTACK, G_DECAY, G_SUSTAIN, G_RELEASE, G_M_ATTACK, G_M_DECAY, G_M_SUSTAIN, G_M_RELEASE, G_VCA_MODE, G_VOLUME, G_VEL_AMP, G_VEL_FILT,
     G_LFO_SHAPE, G_LFO_RATE, G_LFO_RETRIG, G_LFO_SYNC, G_LFO_DIV, G_LFO_LOCK,
-    G_WHEEL_LFO, G_AT_CUTOFF, G_AT_MORPH, G_AT_LFO, G_BEND_RANGE, G_COUNT
+    G_WHEEL_LFO, G_AT_CUTOFF, G_AT_MORPH, G_AT_LFO, G_BEND_RANGE,
+    G_T_MODE, G_T_OUT, G_T_TRIG, G_T_DIV, G_T_RATE, G_T_SHAPE, G_T_SLOPE, G_T_SMOOTH, G_T_SHIFT, G_CK_SRC, G_CK_BPM, G_COUNT
 };
 // Patch bay. These match the option order of cN_src and cN_dst in params.json.
-enum CordSource { S_OFF, S_LFO, S_VCA_ENV, S_MOD_ENV, S_VELOCITY, S_AFTERTOUCH, S_WHEEL, S_KEY, S_GATE, S_NOISE, S_OSC1, S_OSC2, S_OSC3 };
-enum CordDest { D_OFF, D_PITCH, D_CUTOFF, D_RESO, D_VCA, D_NOISE, D_OSC1, D_OSC_COUNT = 5, D_COUNT = D_OSC1 + 3 * D_OSC_COUNT };
+enum CordSource { S_OFF, S_LFO, S_VCA_ENV, S_MOD_ENV, S_VELOCITY, S_AFTERTOUCH, S_WHEEL, S_KEY, S_GATE, S_NOISE, S_OSC1, S_OSC2, S_OSC3, S_TIDES1, S_TIDES2, S_TIDES3, S_TIDES4, S_CLOCK1, S_CLOCK8 = S_CLOCK1 + 7 };
+enum CordDest { D_OFF, D_PITCH, D_CUTOFF, D_RESO, D_VCA, D_NOISE, D_OSC1, D_OSC_COUNT = 5, D_T_RATE = D_OSC1 + 3 * D_OSC_COUNT, D_T_SHAPE, D_T_SLOPE, D_T_SMOOTH, D_T_SHIFT, D_T_TRIG, D_LFO_RESET, D_ENV_TRIG, D_MOD_TRIG, D_O1_TRIG, D_O2_TRIG, D_O3_TRIG, D_COUNT };
+const float kTriggerThreshold = 0.25f;   // a trigger input fires as its cords rise past this
 enum OscDest { OD_PITCH, OD_HARM, OD_TIMBRE, OD_MORPH, OD_LEVEL };
 const float kCordPitch = 24.0f;    // semitones at full amount and full signal
 const float kCordCutoff = 6.0f;    // octaves, the same reach as MOD DEPTH
@@ -70,12 +77,18 @@ const char *const kGlobalKey[G_COUNT] = {
     "cutoff", "reso", "f_mode", "f_mod", "f_src", "keytrack", "drive",
     "attack", "decay", "sustain", "release", "m_attack", "m_decay", "m_sustain", "m_release", "vca_mode", "volume", "vel_amp", "vel_filt",
     "lfo_shape", "lfo_rate", "lfo_retrig", "lfo_sync", "lfo_div", "lfo_lock",
-    "wheel_lfo", "at_cutoff", "at_morph", "at_lfo", "bend_range"};
+    "wheel_lfo", "at_cutoff", "at_morph", "at_lfo", "bend_range",
+    "t_mode", "t_out", "t_trig", "t_div", "t_rate", "t_shape", "t_slope", "t_smooth", "t_shift", "ck_src", "ck_bpm"};
+
+const char *const kClockSuffix[11] = {"div", "shape", "width", "swing", "prob", "phase", "level", "offset", "steps", "fill", "rot"};
+enum ClockField { CK_DIV, CK_SHAPE, CK_WIDTH, CK_SWING, CK_PROB, CK_PHASE, CK_LEVEL, CK_OFFSET, CK_STEPS, CK_FILL, CK_ROT };
+const float kClockRates[19] = {1.0f / 32, 1.0f / 16, 1.0f / 8, 1.0f / 7, 1.0f / 6, 1.0f / 5, 1.0f / 4, 1.0f / 3, 1.0f / 2, 1, 2, 3, 4, 5, 6, 7, 8, 12, 16};
 
 struct Index {
     int g[G_COUNT];
     int o[kOscs][O_COUNT];
     int cord[kCords][3];   // source, destination, amount
+    int clock[8][11];      // per channel, in the order of kClockSuffix
     bool ok;
     Index() : ok(true) {
         for (int i = 0; i < G_COUNT; i++) { g[i] = key_index(kGlobalKey[i]); if (g[i] < 0) ok = false; }
@@ -92,6 +105,13 @@ struct Index {
                 snprintf(k, sizeof k, "c%d_%s", c + 1, i == 0 ? "src" : i == 1 ? "dst" : "amt");
                 cord[c][i] = key_index(k);
                 if (cord[c][i] < 0) ok = false;
+            }
+        for (int c = 0; c < 8; c++)
+            for (int i = 0; i < 11; i++) {
+                char k[32];
+                snprintf(k, sizeof k, "k%d_%s", c + 1, kClockSuffix[i]);
+                clock[c][i] = key_index(k);
+                if (clock[c][i] < 0) ok = false;
             }
     }
 };
@@ -136,6 +156,14 @@ struct Voice {
     float noise_audio[kChunk];
     float osc_last[kOscs];            // its last sample, for destinations that only change once per chunk
     float noise_last;
+    float tides_out[4];               // Tides' four outputs, normalised: 0..1 or -1..1
+    float tides_free_phase;           // FREE: what fires the one-shot modes
+    bool trigger_high[7];             // trigger inputs, for spotting a rising edge
+    int osc_trigger_low[kOscs];       // force an oscillator's TRIG low for a render or two, so a cord can strike it
+#ifdef MILLSTONE_DESKTOP
+    tides::PolySlopeGenerator tides;
+    stmlib::GateFlags tides_gate;
+#endif
 };
 
 struct Instance {
@@ -144,7 +172,16 @@ struct Instance {
     Lfo lfo;
     float lfo_value = 0.0f;
     float lfo_raw = 0.0f;      // before the wheel and pressure scale it: the patch bay's LFO jack
+    bool tides_on = false;     // something is patched from Tides, so it needs running
     float bpm = 120.0f;
+    float clock_out[8] = {};       // the shared clock's outputs
+    double clock_position = 0.0;   // in beats
+    bool clock_on = false;
+#ifdef MILLSTONE_DESKTOP
+    WorkoutClock clock;
+#endif
+    float tides_clock = 0.0f;      // CLOCK: phase of the divided clock, 0..1
+    float tides_clock_hz = 2.0f;
     double song_ppq = 0.0;     // host song position in beats, at the latest block start
     bool song_fresh = false;   // ...and the LFO has not lined up with it yet
     float modwheel = 0.0f, chan_at = 0.0f, bend = 0.0f;
@@ -359,7 +396,7 @@ struct CordState {
     float osc_dest(int osc, int what) const { return amount[D_OSC1 + osc * D_OSC_COUNT + what]; }
 };
 
-inline bool audio_source(int s) { return s >= S_NOISE; }
+inline bool audio_source(int s) { return s >= S_NOISE && s <= S_OSC3; }
 
 CordState read_cords(const Instance *in, const Voice *v, bool gated, float at) {
     CordState st;
@@ -369,7 +406,7 @@ CordState read_cords(const Instance *in, const Voice *v, bool gated, float at) {
         const float amount = in->val[ix.cord[c][2]] * 0.01f;
         if (source == S_OFF || dest == D_OFF || amount == 0.0f) continue;
         if (source == S_NOISE) st.noise_used = true;
-        if (source >= S_OSC1) st.osc_used[source - S_OSC1] = true;
+        if (source >= S_OSC1 && source <= S_OSC3) st.osc_used[source - S_OSC1] = true;
         if (audio_source(source) && (dest == D_CUTOFF || dest == D_RESO || dest == D_VCA)) {
             st.fast[st.fast_count].source = source;
             st.fast[st.fast_count].dest = dest;
@@ -389,6 +426,8 @@ CordState read_cords(const Instance *in, const Voice *v, bool gated, float at) {
             case S_KEY: value = (v->pitch_cur - 60.0f) / 60.0f; break;
             case S_GATE: value = gated ? 1.0f : 0.0f; break;
             case S_NOISE: value = v->noise_last; break;
+            case S_TIDES1: case S_TIDES2: case S_TIDES3: case S_TIDES4: value = v->tides_out[source - S_TIDES1]; break;
+            case S_CLOCK1: case S_CLOCK1 + 1: case S_CLOCK1 + 2: case S_CLOCK1 + 3: case S_CLOCK1 + 4: case S_CLOCK1 + 5: case S_CLOCK1 + 6: case S_CLOCK8: value = in->clock_out[source - S_CLOCK1]; break;
             default: value = v->osc_last[source - S_OSC1]; break;   // stepped like a CV input on the real module
         }
         st.amount[dest] += value * amount;
@@ -396,7 +435,85 @@ CordState read_cords(const Instance *in, const Voice *v, bool gated, float at) {
     return st;
 }
 
-void render_voice(Instance *in, Voice *v, int frames, float lfo) {
+#ifdef MILLSTONE_DESKTOP
+enum { TT_NOTE, TT_FREE, TT_CLOCK, TT_PATCH };   // PATCH: only T TRIG fires it
+
+// One Tides per voice, run once per chunk: it has no idea of a sample rate, only a phase increment per call, and this
+// costs about what reading an LFO does. Its outputs are eurorack volts, so they are scaled down to the patch bay's range.
+void tides_step(Instance *in, Voice *v, int index, const CordState *cords, bool gated, bool triggered, bool held, int frames) {
+    const int trigger = (int)in->P(G_T_TRIG), mode = (int)in->P(G_T_MODE);
+    const auto cord = [&](int dest) { return cords ? cords->amount[dest] : 0.0f; };
+    float hz = Lfo::rate_hz(in->P(G_T_RATE) * 0.01f) * powf(2.0f, cord(D_T_RATE) * kCordCutoff);
+    bool gate = false;
+    float ramp = 0.0f;
+    const float *ramp_in = 0;
+    if (trigger == TT_NOTE) {
+        gate = gated;
+    } else if (trigger == TT_FREE) {
+        // A hair apart per voice, so a held chord drifts rather than moving as one.
+        hz *= 1.0f + 0.0023f * (float)index;
+        v->tides_free_phase += hz * frames / kRate;
+        v->tides_free_phase -= floorf(v->tides_free_phase);
+        gate = mode != tides::RAMP_MODE_LOOPING && v->tides_free_phase < 0.5f;
+    } else if (trigger == TT_CLOCK) {
+        hz = in->tides_clock_hz;
+        if (mode == tides::RAMP_MODE_LOOPING) { ramp = in->tides_clock; ramp_in = &ramp; }
+        else gate = in->tides_clock < 0.5f;
+    }
+    // A trigger always fires, even with the gate already held open by a note, which has no rising edge of its own.
+    v->tides_gate = triggered ? (stmlib::GateFlags)(stmlib::GATE_FLAG_HIGH | stmlib::GATE_FLAG_RISING)
+                              : stmlib::ExtractGateFlags(v->tides_gate, gate || held);   // held: AR stays open as long as the cord is high
+    tides::PolySlopeGenerator::OutputSample out;
+    v->tides.Render((tides::RampMode)mode, (tides::OutputMode)(int)in->P(G_T_OUT), tides::RANGE_CONTROL, hz * frames / kRate,
+                    clampf(in->P(G_T_SLOPE) * 0.01f + cord(D_T_SLOPE), 0.0f, 1.0f),
+                    clampf(in->P(G_T_SHAPE) * 0.01f + cord(D_T_SHAPE), 0.0f, 1.0f),
+                    clampf(in->P(G_T_SMOOTH) * 0.01f + cord(D_T_SMOOTH), 0.0f, 1.0f),
+                    clampf(in->P(G_T_SHIFT) * 0.01f + cord(D_T_SHIFT), 0.0f, 1.0f),
+                    &v->tides_gate, ramp_in, &out, 1);
+    const float scale = mode == tides::RAMP_MODE_LOOPING ? 1.0f / 5.0f : 1.0f / 8.0f;
+    for (int i = 0; i < 4; i++) v->tides_out[i] = clampf(out.channel[i] * scale, -1.0f, 1.0f);
+}
+
+bool source_patched(const Instance *in, int first, int last) {
+    const Index &ix = IDX();
+    for (int c = 0; c < kCords; c++) {
+        const int source = (int)in->val[ix.cord[c][0]];
+        if (source >= first && source <= last && (int)in->val[ix.cord[c][1]] != D_OFF) return true;
+    }
+    return false;
+}
+
+// The shared clock. While the song plays it follows the song position; otherwise it runs at the tempo.
+void clock_step(Instance *in, int frames) {
+    const bool free_running = (int)in->P(G_CK_SRC) == 1;
+    const float bpm = free_running ? in->P(G_CK_BPM) : clampf(in->bpm, 20.0f, 300.0f);
+    if (!free_running && in->song_fresh) in->clock_position = in->song_ppq;
+    else in->clock_position += (double)(bpm / 60.0f * (float)frames / kRate);
+    in->clock_on = source_patched(in, S_CLOCK1, S_CLOCK8);
+    if (!in->clock_on) return;
+    const Index &ix = IDX();
+    ClockChannelSettings settings[WorkoutClock::kChannels];
+    for (int c = 0; c < WorkoutClock::kChannels; c++) {
+        ClockChannelSettings &s = settings[c];
+        const int *k = ix.clock[c];
+        s.rate = kClockRates[clampi((int)in->val[k[CK_DIV]], 0, 18)];
+        s.shape = (int)in->val[k[CK_SHAPE]];
+        s.width = in->val[k[CK_WIDTH]] * 0.01f;
+        s.swing = in->val[k[CK_SWING]] * 0.01f;
+        s.probability = in->val[k[CK_PROB]] * 0.01f;
+        s.phase = in->val[k[CK_PHASE]] * 0.01f;
+        s.level = in->val[k[CK_LEVEL]] * 0.01f;
+        s.offset = in->val[k[CK_OFFSET]] * 0.01f;
+        s.steps = (int)in->val[k[CK_STEPS]];
+        s.fill = (int)in->val[k[CK_FILL]];
+        s.rotate = (int)in->val[k[CK_ROT]];
+    }
+    in->clock.process(settings, in->clock_position, 60.0f / bpm);
+    for (int c = 0; c < WorkoutClock::kChannels; c++) in->clock_out[c] = in->clock.out[c];
+}
+#endif
+
+void render_voice(Instance *in, Voice *v, int index, int frames, float lfo) {
     const int vca_mode = (int)in->P(G_VCA_MODE);
     const float at = fmaxf(in->chan_at, v->aftertouch);
     const float bend = in->bend * in->P(G_BEND_RANGE);
@@ -421,6 +538,22 @@ void render_voice(Instance *in, Voice *v, int frames, float lfo) {
     const bool gated = v->gate || v->sustained;
     const float trig = (gated && v->trig_low_chunks == 0) ? 1.0f : 0.0f;   // TRIG follows the gate (6-op FM needs it held)
     const CordState cords = read_cords(in, v, gated, at);
+    // Trigger inputs fire once as their cords rise.
+    bool fired[7];
+    for (int t = 0; t < 7; t++) {
+        const bool high = cords.amount[D_T_TRIG + t] > kTriggerThreshold;
+        fired[t] = high && !v->trigger_high[t];
+        v->trigger_high[t] = high;
+    }
+    if (fired[D_LFO_RESET - D_T_TRIG]) in->lfo.retrigger();
+    if (gated && fired[D_ENV_TRIG - D_T_TRIG]) v->env.gate_on();
+    if (gated && fired[D_MOD_TRIG - D_T_TRIG]) v->menv.gate_on();
+    for (int n = 0; n < kOscs; n++) if (fired[D_O1_TRIG - D_T_TRIG + n]) v->osc_trigger_low[n] = 2;
+#ifdef MILLSTONE_DESKTOP
+    if (in->tides_on) tides_step(in, v, index, &cords, gated, fired[0], v->trigger_high[0], frames);
+#else
+    (void)index;
+#endif
     const float noise_level = clampf(in->P(G_NOISE) * 0.01f + cords.amount[D_NOISE], 0.0f, 1.0f);
     bool any_self_env = false;
     bool any_free_running = noise_level > 0.0f;   // noise, or an oscillator that would sound forever without a gate
@@ -460,7 +593,7 @@ void render_voice(Instance *in, Voice *v, int frames, float lfo) {
         const float cv = (int)in->O(n, O_CV_SRC) == 1 ? env_now : lfo;   // TIMBRE CV / MORPH CV attenuators take this
         m.timbre = cv;
         m.morph = cv;
-        m.trigger = trig;
+        m.trigger = v->osc_trigger_low[n] > 0 ? 0.0f : trig;
         m.level = v->velocity;
         m.frequency_patched = !trig_mode;              // in TRIG mode Plaits' own decay envelope sweeps the pitch
         m.timbre_patched = p.timbre_modulation_amount != 0.0f;
@@ -480,6 +613,7 @@ void render_voice(Instance *in, Voice *v, int frames, float lfo) {
             mix[i] += g * (dry * v->frames[i].out + wet * v->frames[i].aux);
     }
     if (v->trig_low_chunks > 0) v->trig_low_chunks--;
+    for (int n = 0; n < kOscs; n++) if (v->osc_trigger_low[n] > 0) v->osc_trigger_low[n]--;
 
     // noise before the filter
     if (cords.noise_used) {
@@ -549,6 +683,22 @@ void render_voice(Instance *in, Voice *v, int frames, float lfo) {
 }
 
 void render_chunk(Instance *in, int16_t *out_lr, int frames) {
+#ifdef MILLSTONE_DESKTOP
+    in->tides_on = source_patched(in, S_TIDES1, S_TIDES4);
+    clock_step(in, frames);
+    if (in->tides_on && (int)in->P(G_T_TRIG) == TT_CLOCK) {
+        static const float beats[12] = {32, 16, 8, 4, 2, 1, 0.5f, 0.25f, 0.125f, 2.0f / 3.0f, 1.0f / 3.0f, 1.0f / 6.0f};
+        const float length = beats[clampi((int)in->P(G_T_DIV), 0, 11)];
+        in->tides_clock_hz = clampf(in->bpm, 20.0f, 300.0f) / (60.0f * length);
+        if (in->song_fresh) {   // lined up with the song while it plays; at the tempo while it is stopped
+            const double cycles = in->song_ppq / length;
+            in->tides_clock = (float)(cycles - floor(cycles));
+        } else {
+            in->tides_clock += in->tides_clock_hz * frames / kRate;
+            in->tides_clock -= floorf(in->tides_clock);
+        }
+    }
+#endif
     // LFO
     float hz;
     if (in->P(G_LFO_SYNC) > 0.5f) {
@@ -577,9 +727,15 @@ void render_chunk(Instance *in, int16_t *out_lr, int frames) {
     int n = num_voices(in);
     for (int i = 0; i < kVoices; i++) {
         Voice *v = in->voices[i];
-        if (!v->active) continue;
+        if (!v->active) {
+#ifdef MILLSTONE_DESKTOP
+            // FREE and CLOCK keep time between notes, so a new note lands wherever the cycle has got to.
+            if (in->tides_on && ((int)in->P(G_T_TRIG) == TT_FREE || (int)in->P(G_T_TRIG) == TT_CLOCK)) tides_step(in, v, i, 0, false, false, false, frames);
+#endif
+            continue;
+        }
         if (i >= n && !v->gate) { v->active = false; v->env.reset(); v->menv.reset(); continue; }   // voice count lowered
-        render_voice(in, v, frames, in->lfo_value);
+        render_voice(in, v, i, frames, in->lfo_value);
     }
 
     float vol = in->P(G_VOLUME) * 0.01f;
@@ -608,6 +764,10 @@ void *ms_create(const char *) {
             return 0;
         }
         for (int n = 0; n < kOscs; n++) in->voices[i]->osc[n].init();
+#ifdef MILLSTONE_DESKTOP
+        in->voices[i]->tides.Init();
+        in->voices[i]->tides_gate = stmlib::GATE_FLAG_LOW;
+#endif
     }
     in->lfo.retrigger();
     return in;

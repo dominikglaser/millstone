@@ -6,7 +6,7 @@
 namespace {
 
 constexpr int designW = 1480, designH = 864;      // the window scales from this
-constexpr int drawerH = 200, totalH = designH + drawerH;   // the patch bay drawer hangs below the panel
+constexpr int drawerH = 345, totalH = designH + drawerH;   // the patch bay drawer hangs below the panel
 constexpr int woodW = 36;
 constexpr int artScale = 2;                       // the static art is rendered at twice the design size, for Retina
 constexpr int knobPad = 8;                        // room around a knob for its shadow, or the control's edge cuts it off
@@ -65,6 +65,9 @@ const param_t* findEngineParam(const juce::String& key) {
         if (key == PARAMS[i].key) return &PARAMS[i];
     return nullptr;
 }
+
+// A control that comes and goes draws its own printing; the rest is part of the static art.
+bool changesWithPage(const Item& item) { return item.str("when").isNotEmpty() || item.str("page").isNotEmpty(); }
 
 juce::Font printFont(float size, bool bold = true, float tracking = 0.06f) {
     return juce::Font(juce::FontOptions(size, bold ? juce::Font::bold : juce::Font::plain)).withExtraKerningFactor(tracking);
@@ -275,6 +278,8 @@ HeightMap buildHeightMap(float pad) {
             map.circle(cx, cy, 12.5f + pad, raised);
         }
     }
+    map.rect(58 - pad, 914 - pad, 74 + 2 * pad, 55 + 2 * pad, raised);        // drawer page buttons
+    map.rect(150 - pad, 930 - pad, 246 + 2 * pad, 26 + 2 * pad, raised);      // clock output buttons
     map.rect(438 - pad, 11 - pad, 614 + 2 * pad, 66 + 2 * pad, raised);       // display
     map.rect(1066 - pad, 17 - pad, 152 + 2 * pad, 58 + 2 * pad, raised);      // preset buttons
     map.rect(1262 - pad, 22 - pad, 160 + 2 * pad, 46 + 2 * pad, raised);      // model plate
@@ -480,7 +485,7 @@ juce::Image makePanelArt(bool wear = true, WearCounts* counts = nullptr) {
             g.setFont(font);
             g.drawText(title, strip, juce::Justification::centred);
         } else if (item.kind == "knob") {
-            if (item.str("when").isEmpty()) paintKnobPrinting(g, item);
+            if (!changesWithPage(item)) paintKnobPrinting(g, item);
             if (item.str("cord").isNotEmpty()) {   // a colour dot, matching that cord's cable
                 g.setColour(cordColours[item.num("cord") % 12]);
                 g.fillEllipse((float)item.num("cx") - 3.5f + 15.0f, (float)item.num("cy") + (float)item.num("r") + 12.5f, 7.0f, 7.0f);
@@ -500,17 +505,17 @@ juce::Image makePanelArt(bool wear = true, WearCounts* counts = nullptr) {
             g.drawEllipse(round(6.6f), 0.6f);
             g.setColour(cream);
             g.setFont(printFont(9.5f, true, 0.04f));
-            g.drawFittedText(item.str("label"), juce::Rectangle<float>(c.x - 29, c.y + 15, 58, 13).toNearestInt(), juce::Justification::centred, 1, 0.8f);
+            g.drawFittedText(item.str("label"), juce::Rectangle<float>(c.x - 23, c.y + 15, 46, 13).toNearestInt(), juce::Justification::centred, 1, 0.7f);
         } else if (item.kind == "fader") {
             paintFaderPrinting(g, item);
         } else if (item.kind == "enum_v" || item.kind == "enum_h") {
-            if (item.str("when").isNotEmpty()) continue;
+            if (changesWithPage(item)) continue;
             const bool vertical = item.kind == "enum_v";
             const auto* def = findEngineParam(item.str("key"));
             const int n = def != nullptr ? def->nopts : 1;
             const int sh = item.num("sh", 26);
             const int groupH = vertical ? n * sh + (n - 1) * 3 : sh;
-            g.setColour(ink);
+            g.setColour(item.num("cy") >= designH ? cream : ink);
             g.setFont(printFont(10.5f));
             g.drawText(item.str("label"), juce::Rectangle<float>((float)item.num("cx") - 60, (float)item.num("cy") - (float)groupH * 0.5f - 15, 120, 13), juce::Justification::centred);
         } else if (item.kind == "toggle") {
@@ -613,6 +618,8 @@ public:
 class Control : public juce::Component {
 public:
     juce::String whenKey, whenValue;   // panel.conf's `when=key:VALUE`
+    juce::String page;                 // which drawer page it is on, if any
+    int channel = -1;                  // which clock output, if any
 };
 
 class SliderControl : public Control {
@@ -630,12 +637,12 @@ public:
             slider.setBounds(getLocalBounds());
         } else {
             const int r = item.num("r", 20);
-            const int margin = item.str("when").isNotEmpty() ? 62 : knobPad;   // a conditional knob brings its own printing
+            const int margin = changesWithPage(item) ? 62 : knobPad;   // a conditional knob brings its own printing
             setBounds(item.num("cx") - r - margin, item.num("cy") - r - margin, 2 * (r + margin), 2 * (r + margin));
             slider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
             slider.setMouseDragSensitivity(220);
             slider.setBounds(margin - knobPad, margin - knobPad, 2 * (r + knobPad), 2 * (r + knobPad));
-            if (item.str("when").isNotEmpty()) printing = std::make_unique<Item>(item);
+            if (changesWithPage(item)) printing = std::make_unique<Item>(item);
         }
         addAndMakeVisible(slider);
         attachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(apvts, key, slider);
@@ -693,8 +700,9 @@ public:
         const int segW = item.num("sw", 60), segH = item.num("sh", 26);
         const int groupW = vertical ? segW : n * segW + (n - 1) * gap;
         const int groupH = vertical ? n * segH + (n - 1) * gap : segH;
-        ownLabel = item.str("when").isNotEmpty();
+        ownLabel = changesWithPage(item);
         title = item.str("label");
+        titleInk = item.num("cy") >= designH ? cream : ink;
         const int labelH = ownLabel ? 17 : 0;
         setBounds(item.num("cx") - groupW / 2 - (ownLabel ? 30 : 0), item.num("cy") - groupH / 2 - labelH, groupW + (ownLabel ? 60 : 0), groupH + labelH);
         setInterceptsMouseClicks(false, true);
@@ -712,12 +720,13 @@ public:
     }
     void paint(juce::Graphics& g) override {
         if (!ownLabel) return;
-        g.setColour(ink);
+        g.setColour(titleInk);
         g.setFont(printFont(10.5f));
         g.drawText(title, 0, 0, getWidth(), 13, juce::Justification::centred);
     }
 private:
     juce::String title;
+    juce::Colour titleInk;
     bool ownLabel = false;
     juce::OwnedArray<Segment> segments;
     std::unique_ptr<juce::ParameterAttachment> attachment;
@@ -790,13 +799,14 @@ public:
         cols = juce::jmax(1, item.num("cols", 1));
         title = item.str("label");
         titleH = title.isNotEmpty() ? 15 : 0;
+        titleInk = item.num("cy") >= designH ? cream : ink;
         const int w = item.num("w", 200), h = item.num("h", 38);
         setBounds(item.num("cx") - w / 2, item.num("cy") - h / 2 - titleH, w, h + titleH);
         attachment = std::make_unique<juce::ParameterAttachment>(*param, [this](float v) { current = juce::roundToInt(v); repaint(); });
         attachment->sendInitialUpdate();
     }
     void paint(juce::Graphics& g) override {
-        if (titleH > 0) { g.setColour(ink); g.setFont(printFont(10.5f)); g.drawText(title, 0, 0, getWidth(), 13, juce::Justification::centred); }
+        if (titleH > 0) { g.setColour(titleInk); g.setFont(printFont(10.5f)); g.drawText(title, 0, 0, getWidth(), 13, juce::Justification::centred); }
         auto box = getLocalBounds().withTrimmedTop(titleH).toFloat().reduced(1.5f);
         g.setColour(juce::Colours::white.withAlpha(0.35f));
         g.fillRoundedRectangle(box.expanded(1.5f).translated(0.3f, 0.8f), 3.5f);
@@ -829,6 +839,7 @@ private:
     juce::RangedAudioParameter* param = nullptr;
     juce::String title;
     int cols = 1, current = 0, titleH = 0;
+    juce::Colour titleInk;
     std::unique_ptr<juce::ParameterAttachment> attachment;
 };
 
@@ -1347,6 +1358,44 @@ private:
     int dragColour = -1;
 };
 
+// The drawer's page buttons, and the clock's output buttons.
+struct MillstoneEditor::DrawerTabs : juce::Component {
+    DrawerTabs(MillstoneProcessor& p, std::function<void()> changed) : processor(p), onChanged(std::move(changed)) {
+        setInterceptsMouseClicks(false, true);
+        const auto add = [this](const juce::String& text, const juce::String& id, juce::Rectangle<int> bounds, std::function<void()> click) {
+            auto* b = buttons.add(new Segment(text));
+            b->setComponentID(id);
+            b->setBounds(bounds);
+            b->onClick = [this, click] { click(); refresh(); onChanged(); };
+            addAndMakeVisible(b);
+            return b;
+        };
+        add("TIDES", "drawer_tides", { 0, 24, 74, 26 }, [this] { processor.drawerPage = 0; });
+        add("CLOCK", "drawer_clock", { 0, 53, 74, 26 }, [this] { processor.drawerPage = 1; });
+        for (int c = 0; c < 8; ++c)
+            add(juce::String(c + 1), "clock_channel:" + juce::String(c), { 92 + c * 31, 40, 29, 26 }, [this, c] { processor.clockChannel = c; });
+        refresh();
+    }
+    void paint(juce::Graphics& g) override {
+        if (processor.drawerPage != 1) return;
+        g.setColour(cream);
+        g.setFont(printFont(10.5f));
+        g.drawText("OUTPUT", 92, 23, 246, 14, juce::Justification::centred);
+    }
+    void refresh() {
+        buttons[0]->setToggleState(processor.drawerPage == 0, juce::dontSendNotification);
+        buttons[1]->setToggleState(processor.drawerPage == 1, juce::dontSendNotification);
+        for (int c = 0; c < 8; ++c) {
+            buttons[c + 2]->setVisible(processor.drawerPage == 1);
+            buttons[c + 2]->setToggleState(processor.clockChannel == c, juce::dontSendNotification);
+        }
+        repaint();
+    }
+    MillstoneProcessor& processor;
+    std::function<void()> onChanged;
+    juce::OwnedArray<Segment> buttons;
+};
+
 MillstoneEditor::MillstoneEditor(MillstoneProcessor& p)
     : juce::AudioProcessorEditor(p), processor(p), lnf(std::make_unique<LookAndFeel>()), art(sharedPanelArt()) {
     setLookAndFeel(lnf.get());
@@ -1370,6 +1419,8 @@ MillstoneEditor::MillstoneEditor(MillstoneProcessor& p)
         const auto when = item.str("when");
         c->whenKey = when.upToFirstOccurrenceOf(":", false, false);
         c->whenValue = when.fromFirstOccurrenceOf(":", false, false);
+        c->page = item.str("page");
+        c->channel = item.num("channel", -1);
         content.addAndMakeVisible(*c);
         controls.push_back(std::move(c));
     }
@@ -1378,6 +1429,10 @@ MillstoneEditor::MillstoneEditor(MillstoneProcessor& p)
     presetBar->setInterceptsMouseClicks(false, true);
     presetBar->onPatch = [this] { setPatchBayOpen(!processor.patchBayOpen); };
     content.addAndMakeVisible(*presetBar);
+
+    drawerTabs = std::make_unique<DrawerTabs>(processor, [this] { timerCallback(); });
+    drawerTabs->setBounds(58, 890, 350, 84);
+    content.addAndMakeVisible(*drawerTabs);
 
     patchBay = std::make_unique<PatchBay>(processor);
     patchBay->setBounds(0, designH, designW, drawerH);
@@ -1398,7 +1453,18 @@ void MillstoneEditor::setPatchBayOpen(bool open) {
     setResizeLimits(designW / 2, height / 2, designW * 3 / 2, height * 3 / 2);
     if (auto* constrainer = getConstrainer())
         constrainer->setFixedAspectRatio((double)designW / height);
-    setSize(getWidth(), juce::roundToInt((double)getWidth() * height / designW));   // keeps the panel's size; the window grows
+    // The panel keeps its size and the window grows, unless that would run off the screen: then it scales to fit,
+    // and closing the drawer goes back to the size it had.
+    int width = getWidth();
+    if (open) {
+        widthBeforeDrawer = width;
+        if (const auto* display = juce::Desktop::getInstance().getDisplays().getDisplayForRect(getScreenBounds()))
+            width = juce::jmin(width, (display->userArea.getHeight() - 40) * designW / height);
+        width = juce::jmax(width, designW / 2);
+    } else if (widthBeforeDrawer > 0) {
+        width = widthBeforeDrawer;
+    }
+    setSize(width, juce::roundToInt((double)width * height / designW));
 }
 
 MillstoneEditor::~MillstoneEditor() {
@@ -1409,9 +1475,16 @@ MillstoneEditor::~MillstoneEditor() {
 void MillstoneEditor::timerCallback() {
     for (auto& base : controls) {   // RATE swaps with DIVISION, and PHASE appears, when SYNC is on
         auto* c = static_cast<Control*>(base.get());
-        if (c->whenKey.isEmpty()) continue;
-        auto* p = processor.apvts.getParameter(c->whenKey);
-        c->setVisible(p != nullptr && p->getCurrentValueAsText() == c->whenValue);
+        if (c->whenKey.isEmpty() && c->page.isEmpty()) continue;
+        bool show = c->page.isEmpty() || c->page == (processor.drawerPage == 0 ? "tides" : "clock");
+        if (c->channel >= 0 && c->channel != processor.clockChannel) show = false;
+        if (show && c->whenKey.isNotEmpty()) {
+            auto* p = processor.apvts.getParameter(c->whenKey);
+            const bool negate = c->whenValue.startsWithChar('!');   // when=key:!VALUE shows it for anything else
+            const bool same = p != nullptr && p->getCurrentValueAsText() == (negate ? c->whenValue.substring(1) : c->whenValue);
+            show = p != nullptr && same != negate;
+        }
+        c->setVisible(show);
     }
     presetBar->sync();
     patchBay->sync();

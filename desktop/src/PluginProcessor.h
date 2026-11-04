@@ -38,8 +38,6 @@ public:
     void setStateInformation(const void*, int sizeInBytes) override;
 
     juce::AudioProcessorValueTreeState apvts;
-    int uiTab = 0;   // the page showing, so it survives closing and reopening the window
-
     struct Preset {
         juce::String name, category;
         std::vector<std::pair<juce::String, float>> values;   // parameter id, value in its own units or option index

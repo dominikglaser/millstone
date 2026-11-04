@@ -56,8 +56,9 @@ full three-oscillator sound.
   rate (Catmull-Rom). Validated at 44.1 / 48 / 96 kHz. Shared by the plugin and the test.
 - `src/PluginProcessor.{h,cpp}` — the JUCE shell: parameters (one per engine parameter, from the generated
   `params.h`), MIDI, tempo for the synced LFO, state save/load.
-- `src/PluginEditor.{h,cpp}` — the panel. Draws the MPC skin's pages from `../vst/layout.conf` (embedded at build
-  time), so both UIs share one layout and theme. Double-click a knob to reset it, double-click a value box to type.
+- `src/PluginEditor.{h,cpp}` and `panel.conf` — the one-screen panel: worn metal and wood, all drawn in code, placed by
+  `panel.conf`. The MPC skin stays in `../vst/layout.conf`. Point at or move a control to see it on the display; double-click
+  a control to reset it, or the value on the display to type one.
 - `tools/` — optional checks, built with `-DMILLSTONE_UI_SNAPSHOT=ON`. `ui_snapshot` renders each page to a PNG and
   tests the controls. `behaviour_test` drives the whole plugin and measures pitch, filter, envelope, VCA, LFO, glide,
   voice handling, MIDI and state against what each section should do.

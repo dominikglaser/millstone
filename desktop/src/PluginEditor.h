@@ -1,5 +1,5 @@
-// Millstone's panel. It draws the same pages as the MPC skin by reading vst/layout.conf (embedded at build
-// time), so the two UIs share one layout. Edit the layout file, not coordinates in the code.
+// Millstone's panel: one screen, an old instrument with wood cheeks and a worn brushed-metal face. Controls are placed by
+// desktop/panel.conf (embedded at build time). All the artwork is drawn in code, so it stays sharp at any window size.
 #pragma once
 #include <juce_audio_utils/juce_audio_utils.h>
 #include "PluginProcessor.h"
@@ -11,24 +11,20 @@ public:
 
     void paint(juce::Graphics&) override;
     void resized() override;
-
-    // Which page is showing; also used by the UI snapshot test.
-    void showTab(int index);
-    int getNumTabs() const { return (int)pages.size(); }
     void refreshFromProcessor() { timerCallback(); }   // what the UI timer does; tests call it directly
 
 private:
     void timerCallback() override;
 
     struct LookAndFeel;
-    struct Page;
     struct PresetBar;
 
     MillstoneProcessor& processor;
     std::unique_ptr<LookAndFeel> lnf;
+    std::function<void(juce::Slider*, juce::RangedAudioParameter*)> readoutTarget;
+    juce::Image art;           // the static panel: metal, wood, printing, wear
     juce::Component content;   // laid out at the design size, scaled to the window
-    juce::OwnedArray<juce::TextButton> tabButtons;
-    std::vector<std::unique_ptr<Page>> pages;
+    std::vector<std::unique_ptr<juce::Component>> controls;
     std::unique_ptr<PresetBar> presetBar;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MillstoneEditor)

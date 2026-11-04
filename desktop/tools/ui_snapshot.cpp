@@ -66,21 +66,17 @@ int main(int argc, char** argv) {
 
     // Conditional controls: RATE (sync off) vs DIVISION (sync on).
     auto render = [&](const juce::String& name) {
-        auto img = editor.createComponentSnapshot(editor.getLocalBounds(), true, 1.0f);
+        auto img = editor.createComponentSnapshot(editor.getLocalBounds(), true, 2.0f);
         juce::PNGImageFormat png;
         auto f = dir.getChildFile(name + ".png");
         f.deleteFile();
         juce::FileOutputStream out(f);
         png.writeImageToStream(img, out);
     };
-    for (int t = 0; t < editor.getNumTabs(); ++t) {
-        editor.showTab(t);
-        render("page" + juce::String(t + 1));
-    }
-    editor.showTab(5);
+    render("panel");
     click("lfo_sync");
     editor.refreshFromProcessor();
-    render("page6_sync");
+    render("panel_sync");
     auto* division = find(editor, "lfo_div");
     check(division != nullptr && division->isVisible(), "DIVISION shows when SYNC is on");
     auto* phase = find(editor, "lfo_lock:1");

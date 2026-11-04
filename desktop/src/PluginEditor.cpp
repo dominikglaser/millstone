@@ -1,13 +1,16 @@
 #include "PluginEditor.h"
 #include "BinaryData.h"
 #include "workout_clock.h"
+#include "fx/Reverb.h"
+#include "fx/SpringReverb.h"
 #include <array>
 #include <map>
 
 namespace {
 
 constexpr int designW = 1480, designH = 864;      // the window scales from this
-constexpr int drawerH = 345, totalH = designH + drawerH;   // the patch bay drawer hangs below the panel
+constexpr int drawerH = 239, totalH = designH + drawerH;   // the patch bay drawer hangs below the panel
+constexpr int rackH = 1209;                       // the rack is taller again, and has its window to itself
 constexpr int woodW = 36;
 constexpr int artScale = 2;                       // the static art is rendered at twice the design size, for Retina
 constexpr int knobPad = 8;                        // room around a knob for its shadow, or the control's edge cuts it off
@@ -187,9 +190,26 @@ void paintScratches(juce::Graphics& g, juce::Random& rng, int count, juce::Recta
 
 // Printed scale, label and everything else that belongs to a control but never moves.
 void paintKnobPrinting(juce::Graphics& g, const Item& item, float offsetX = 0, float offsetY = 0) {
-    const juce::Colour ink = item.num("cy") >= designH ? cream : ::ink;   // the drawer is dark, so its printing is light
+    const bool dark = item.num("cy") >= designH || item.str("page") == "rack";   // the drawer and the rack are dark, so their printing is light
+    const juce::Colour ink = dark ? cream : ::ink;
     const float cx = (float)item.num("cx") + offsetX, cy = (float)item.num("cy") + offsetY, r = (float)item.num("r", 20);
     g.setColour(ink.withAlpha(0.82f));
+    if (item.num("marks") != 0) {   // a stepped switch names its positions
+        const auto* def = findEngineParam(item.str("key"));
+        const int steps = def != nullptr ? def->nopts : 0;
+        const juce::Point<float> c(cx, cy);
+        g.setFont(printFont(9.5f, true, 0.02f));
+        for (int i = 0; i < steps; ++i) {
+            const float angle = juce::degreesToRadians(-135.0f + 270.0f * (float)i / (float)(steps - 1));
+            g.drawLine({ c.getPointOnCircumference(r + 3.5f, angle), c.getPointOnCircumference(r + 8.5f, angle) }, 1.1f);
+            const auto at = c.getPointOnCircumference(r + 22.0f, angle);
+            g.drawText(def->opts[i], juce::Rectangle<float>(44, 12).withCentre(at), juce::Justification::centred);
+        }
+        g.setColour(ink);
+        g.setFont(printFont(11.0f));
+        g.drawText(item.str("label"), juce::Rectangle<float>(cx - 62, cy + r + 9, 124, 15), juce::Justification::centred);
+        return;
+    }
     const int ticks = r > 30 ? 21 : 11;
     for (int i = 0; i < ticks; ++i) {
         const float angle = juce::degreesToRadians(-135.0f + 270.0f * (float)i / (float)(ticks - 1));
@@ -257,6 +277,7 @@ std::vector<juce::Point<float>> screwPositions() {
 HeightMap buildHeightMap(float pad) {
     HeightMap map;
     for (const auto& item : panelItems()) {
+        if (item.str("page") == "rack") continue;
         const float cx = (float)item.num("cx"), cy = (float)item.num("cy");
         if (item.kind == "knob") {
             map.circle(cx, cy, (float)item.num("r", 20) + pad, raised);
@@ -282,14 +303,9 @@ HeightMap buildHeightMap(float pad) {
             map.circle(cx, cy, 12.5f + pad, raised);
         }
     }
-    map.rect(54 - pad, 878 - pad, 273 + 2 * pad, 18 + 2 * pad, raised);       // drawer page buttons
-    map.rect(150 - pad, 930 - pad, 246 + 2 * pad, 26 + 2 * pad, raised);      // clock output buttons
-    map.rect(412 - pad, 884 - pad, 590 + 2 * pad, 86 + 2 * pad, raised);      // clock LCD
-    map.circle(58 + 354 + 590 + 58, 884 + 30, 22 + pad, raised);              // clock pots
-    map.circle(58 + 354 + 590 + 154, 884 + 30, 22 + pad, raised);
     map.rect(438 - pad, 11 - pad, 614 + 2 * pad, 66 + 2 * pad, raised);       // display
-    map.rect(1066 - pad, 17 - pad, 152 + 2 * pad, 58 + 2 * pad, raised);      // preset buttons
-    map.rect(1262 - pad, 22 - pad, 160 + 2 * pad, 46 + 2 * pad, raised);      // model plate
+    map.rect(1066 - pad, 17 - pad, 192 + 2 * pad, 58 + 2 * pad, raised);      // preset buttons
+    map.rect(1276 - pad, 22 - pad, 146 + 2 * pad, 46 + 2 * pad, raised);      // model plate
     for (const auto& p : screwPositions()) map.circle(p.x, p.y, 6.0f + pad, raised);
     map.rect(0, 0, (float)woodW + pad, (float)totalH, raised);                // wood stands proud of the face
     map.rect((float)(designW - woodW) - pad, 0, (float)woodW + pad, (float)totalH, raised);
@@ -474,6 +490,7 @@ juce::Image makePanelArt(bool wear = true, WearCounts* counts = nullptr) {
     g.fillRect(left, (float)designH, right - left, (float)drawerH);
 
     for (const auto& item : panelItems()) {
+        if (item.str("page") == "rack") continue;
         if (item.kind == "frame") {
             const auto r = juce::Rectangle<float>((float)item.num("x"), (float)item.num("y"), (float)item.num("w"), (float)item.num("h"));
             const bool tray = item.num("y") >= designH;
@@ -555,7 +572,7 @@ juce::Image makePanelArt(bool wear = true, WearCounts* counts = nullptr) {
     g.fillRoundedRectangle(bezel, 3.0f);
 
     // The model plate: a small riveted badge, itself a bit knocked about.
-    const juce::Rectangle<float> plate(1262, 22, 160, 44);
+    const juce::Rectangle<float> plate(1276, 22, 146, 44);
     g.setColour(juce::Colours::black.withAlpha(0.45f));
     g.fillRoundedRectangle(plate.translated(0.8f, 1.6f), 2.0f);
     g.setGradientFill(juce::ColourGradient(juce::Colour(0xff2b2925), 0, plate.getY(), juce::Colour(0xff14130f), 0, plate.getBottom(), false));
@@ -601,6 +618,10 @@ juce::Image makePanelArt(bool wear = true, WearCounts* counts = nullptr) {
     for (const auto& p : std::vector<juce::Point<float>>{ {left + 12, totalH - 10.0f}, {right - 12, totalH - 10.0f}, {left + 12, designH + 11.0f}, {right - 12, designH + 11.0f} })
         paintScrew(g, p.x, p.y, 4.6f, turns.nextFloat() * 3.14f);
     return img;
+}
+
+juce::Colour itemAccentOf(const Item& item) {
+    return juce::Colour((juce::uint32)(item.str("accent", "e9e4d4").getHexValue32()) | 0xff000000u);
 }
 
 // ---- controls -------------------------------------------------------------------------------------------------------
@@ -651,6 +672,7 @@ public:
             slider.setMouseDragSensitivity(220);
             slider.setBounds(margin - knobPad, margin - knobPad, 2 * (r + knobPad), 2 * (r + knobPad));
             if (changesWithPage(item)) printing = std::make_unique<Item>(item);
+            if (item.str("page") == "rack") slider.getProperties().set("rackAccent", item.str("accent", "e9e4d4"));
         }
         addAndMakeVisible(slider);
         attachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(apvts, key, slider);
@@ -673,8 +695,11 @@ private:
 class Segment : public juce::Button {
 public:
     explicit Segment(const juce::String& text) : juce::Button(text) {}
+    bool dark = false, lamp = true;          // the rack's keys are black, and lit in their unit's colour
+    juce::Colour lampOn = ledOn;
     void paintButton(juce::Graphics& g, bool over, bool down) override {
         const bool on = getToggleState();
+        if (dark) { paintDark(g, on, over, down); return; }
         auto r = getLocalBounds().toFloat().reduced(0.5f);
         g.setColour(juce::Colours::black.withAlpha(0.55f));
         g.fillRoundedRectangle(r.translated(0, 1.2f), 2.5f);
@@ -695,6 +720,8 @@ public:
         g.setFont(printFont(10.5f, true, 0.04f));
         g.drawFittedText(getButtonText(), cap.withTrimmedLeft(13).toNearestInt(), juce::Justification::centred, 1, 0.7f);
     }
+private:
+    void paintDark(juce::Graphics&, bool on, bool over, bool down);
 };
 
 class EnumControl : public Control {
@@ -710,7 +737,7 @@ public:
         const int groupH = vertical ? n * segH + (n - 1) * gap : segH;
         ownLabel = changesWithPage(item);
         title = item.str("label");
-        titleInk = item.num("cy") >= designH ? cream : ink;
+        titleInk = item.num("cy") >= designH || item.str("page") == "rack" ? cream : ink;
         const int labelH = ownLabel ? 17 : 0;
         setBounds(item.num("cx") - groupW / 2 - (ownLabel ? 30 : 0), item.num("cy") - groupH / 2 - labelH, groupW + (ownLabel ? 60 : 0), groupH + labelH);
         setInterceptsMouseClicks(false, true);
@@ -719,6 +746,7 @@ public:
         });
         for (int i = 0; i < n; ++i) {
             auto* b = segments.add(new Segment(choices[i]));
+            if (item.str("page") == "rack") { b->dark = true; b->lampOn = itemAccentOf(item); }
             b->setComponentID(key + ":" + juce::String(i));
             b->setBounds((ownLabel ? 30 : 0) + (vertical ? 0 : i * (segW + gap)), labelH + (vertical ? i * (segH + gap) : 0), segW, segH);
             b->onClick = [this, i] { attachment->setValueAsCompleteGesture((float)i); };
@@ -807,7 +835,7 @@ public:
         cols = juce::jmax(1, item.num("cols", 1));
         title = item.str("label");
         titleH = title.isNotEmpty() ? 15 : 0;
-        titleInk = item.num("cy") >= designH ? cream : ink;
+        titleInk = item.num("cy") >= designH || item.str("page") == "rack" ? cream : ink;
         const int w = item.num("w", 200), h = item.num("h", 38);
         setBounds(item.num("cx") - w / 2, item.num("cy") - h / 2 - titleH, w, h + titleH);
         attachment = std::make_unique<juce::ParameterAttachment>(*param, [this](float v) { current = juce::roundToInt(v); repaint(); });
@@ -852,6 +880,29 @@ private:
 };
 
 // The - / + model buttons, small rubber caps. Same behaviour as the MPC build: wraps around the list.
+void Segment::paintDark(juce::Graphics& g, bool on, bool over, bool down) {
+    auto r = getLocalBounds().toFloat().reduced(0.5f);
+    g.setColour(juce::Colours::black.withAlpha(0.8f));
+    g.fillRoundedRectangle(r.translated(0, 1.5f), 2.5f);
+    const float press = (on || down) ? 1.0f : 0.0f;
+    const auto cap = r.withTrimmedBottom(1.5f - press * 0.7f).translated(0, press * 0.7f);
+    auto top = juce::Colour(over ? 0xff3a3a3d : 0xff303033), bottom = juce::Colour(0xff121214);
+    if (on || down) { top = top.darker(0.25f); bottom = bottom.darker(0.2f); }
+    g.setGradientFill(juce::ColourGradient(top, 0, cap.getY(), bottom, 0, cap.getBottom(), false));
+    g.fillRoundedRectangle(cap, 2.5f);
+    g.setColour(juce::Colours::white.withAlpha(0.20f));
+    g.drawLine(cap.getX() + 2, cap.getY() + 0.6f, cap.getRight() - 2, cap.getY() + 0.6f, 0.8f);
+    if (lamp) {
+        const auto led = juce::Rectangle<float>(5.0f, 5.0f).withCentre({ cap.getX() + 8.5f, cap.getCentreY() });
+        if (on) { g.setColour(lampOn.withAlpha(0.32f)); g.fillEllipse(led.expanded(3.0f)); }
+        g.setColour(on ? lampOn : lampOn.withMultipliedBrightness(0.22f));
+        g.fillEllipse(led);
+    }
+    g.setColour(cream);
+    g.setFont(printFont(juce::jlimit(10.5f, 15.0f, (float)getHeight() * 0.40f), true, 0.05f));
+    g.drawFittedText(getButtonText(), cap.withTrimmedLeft(lamp ? 13.0f : 0.0f).toNearestInt(), juce::Justification::centred, 1, 0.7f);
+}
+
 // Sounds only while it is held down, like the send on a dub desk. It is an ordinary parameter, so a host can map it to a pad.
 class HoldControl : public Control {
 public:
@@ -863,6 +914,7 @@ public:
         setInterceptsMouseClicks(false, true);
         button.setComponentID(item.str("key"));
         button.setBounds(getLocalBounds());
+        if (item.str("page") == "rack") { button.dark = true; button.lampOn = itemAccentOf(item); }
         attachment = std::make_unique<juce::ParameterAttachment>(*param, [this](float v) { button.setToggleState(v > 0.5f, juce::dontSendNotification); });
         button.onStateChange = [this] { hold(button.isDown()); };
         addAndMakeVisible(button);
@@ -878,28 +930,6 @@ private:
     Segment button;
     bool held = false;
     std::unique_ptr<juce::ParameterAttachment> attachment;
-};
-
-// A printed group name with a rule either side, for a page that holds several effects.
-class HeadingControl : public Control {
-public:
-    explicit HeadingControl(const Item& item) : title(item.str("label")) {
-        const int w = item.num("w", 100);
-        setBounds(item.num("cx") - w / 2, item.num("cy") - 7, w, 14);
-        setInterceptsMouseClicks(false, false);
-    }
-    void paint(juce::Graphics& g) override {
-        const auto font = printFont(10.5f, true, 0.2f);
-        const float textW = juce::GlyphArrangement::getStringWidth(font, title) + 14.0f, y = (float)getHeight() * 0.5f, w = (float)getWidth();
-        g.setColour(cream.withAlpha(0.45f));
-        g.drawLine(0.0f, y, (w - textW) * 0.5f, y, 1.0f);
-        g.drawLine((w + textW) * 0.5f, y, w, y, 1.0f);
-        g.setColour(cream);
-        g.setFont(font);
-        g.drawText(title, getLocalBounds(), juce::Justification::centred);
-    }
-private:
-    juce::String title;
 };
 
 class StepControl : public Control {
@@ -943,6 +973,8 @@ private:
     juce::RangedAudioParameter* target = nullptr;
     int delta = 0;
 };
+
+#include "RackPage.inc"
 
 } // namespace
 
@@ -1016,9 +1048,38 @@ struct MillstoneEditor::LookAndFeel : juce::LookAndFeel_V4 {
         return image;
     }
 
-    void drawRotarySlider(juce::Graphics& g, int x, int y, int w, int h, float pos, float, float, juce::Slider&) override {
+    // The rack's knobs: black, fluted, with the pointer in the unit's colour.
+    void drawBlackKnob(juce::Graphics& g, juce::Point<float> c, float R, float pos, juce::Colour accent) {
+        g.setColour(juce::Colours::black.withAlpha(0.6f));
+        g.fillEllipse(juce::Rectangle<float>(2 * R + 3.0f, 2 * R + 3.0f).withCentre(c.translated(1.5f, 3.0f)));
+        g.setGradientFill(juce::ColourGradient(juce::Colour(0xff36363a), c.x - R * 0.5f, c.y - R, juce::Colour(0xff070708), c.x + R * 0.5f, c.y + R, false));
+        g.fillEllipse(juce::Rectangle<float>(2 * R, 2 * R).withCentre(c));
+        g.setColour(juce::Colours::black.withAlpha(0.65f));
+        const int flutes = juce::jmax(18, (int)(R * 1.6f));
+        for (int i = 0; i < flutes; ++i) {
+            const float a = juce::MathConstants<float>::twoPi * (float)i / (float)flutes;
+            g.drawLine({ c.getPointOnCircumference(R * 0.80f, a), c.getPointOnCircumference(R * 0.99f, a) }, 1.0f);
+        }
+        const float T = R * 0.76f;
+        g.setGradientFill(juce::ColourGradient(juce::Colour(0xff414145), c.x - T * 0.6f, c.y - T, juce::Colour(0xff0f0f11), c.x + T * 0.5f, c.y + T, false));
+        g.fillEllipse(juce::Rectangle<float>(2 * T, 2 * T).withCentre(c));
+        g.setColour(juce::Colours::white.withAlpha(0.13f));
+        g.drawEllipse(juce::Rectangle<float>(2 * T, 2 * T).withCentre(c), 0.8f);
+        const float angle = juce::degreesToRadians(-135.0f + pos * 270.0f), thick = juce::jmax(1.7f, R * 0.09f);
+        g.setColour(accent.withAlpha(0.28f));
+        g.drawLine({ c.getPointOnCircumference(R * 0.34f, angle), c.getPointOnCircumference(R * 0.98f, angle) }, thick + 2.0f);
+        g.setColour(accent);
+        g.drawLine({ c.getPointOnCircumference(R * 0.34f, angle), c.getPointOnCircumference(R * 0.98f, angle) }, thick);
+    }
+
+    void drawRotarySlider(juce::Graphics& g, int x, int y, int w, int h, float pos, float, float, juce::Slider& slider) override {
         const int pad = knobPad, r = juce::jmin(w, h) / 2 - pad;
         const juce::Point<float> c((float)x + (float)w * 0.5f, (float)y + (float)h * 0.5f);
+        if (slider.getProperties().contains("rackAccent")) {
+            const juce::Colour accent((juce::uint32)slider.getProperties()["rackAccent"].toString().getHexValue32() | 0xff000000u);
+            drawBlackKnob(g, c, (float)r, pos, accent);
+            return;
+        }
         g.drawImage(knobBody(r), juce::Rectangle<float>((float)(2 * (r + pad)), (float)(2 * (r + pad))).withCentre(c));
         const float angle = juce::degreesToRadians(-135.0f + pos * 270.0f), R = (float)r;
         const float thick = juce::jmax(1.6f, R * 0.085f);
@@ -1082,9 +1143,11 @@ private:
 // The display: category and preset selectors, and a readout of the control last touched. Double-click the value to type one.
 struct MillstoneEditor::PresetBar : juce::Component {
     explicit PresetBar(MillstoneProcessor& p) : processor(p) {
-        for (auto* b : {&previous, &next, &patch, &save, &remove}) addAndMakeVisible(*b);
+        for (auto* b : {&previous, &next, &patch, &rack, &save, &remove}) addAndMakeVisible(*b);
         patch.setComponentID("patch_toggle");
         patch.onClick = [this] { if (onPatch) onPatch(); };
+        rack.setComponentID("rack_toggle");
+        rack.onClick = [this] { if (onRack) onRack(); };
         category.setComponentID("preset_category");
         presetList.setComponentID("preset_list");
         previous.setComponentID("preset_prev");
@@ -1126,11 +1189,12 @@ struct MillstoneEditor::PresetBar : juce::Component {
         presetList.setBounds(166, 2, 300, 28);
         readoutName.setBounds(8, 32, 330, 24);
         readoutValue.setBounds(336, 32, 266, 24);
-        previous.setBounds(626, 4, 34, 26);
-        next.setBounds(664, 4, 34, 26);
-        patch.setBounds(706, 4, 72, 26);
-        save.setBounds(626, 36, 72, 26);
-        remove.setBounds(706, 36, 72, 26);
+        previous.setBounds(626, 4, 28, 26);
+        next.setBounds(658, 4, 28, 26);
+        patch.setBounds(692, 4, 64, 26);
+        rack.setBounds(762, 4, 56, 58);
+        save.setBounds(626, 36, 60, 26);
+        remove.setBounds(692, 36, 64, 26);
     }
 
     void paint(juce::Graphics& g) override {   // the divider in the display
@@ -1144,8 +1208,9 @@ struct MillstoneEditor::PresetBar : juce::Component {
         g.fillRoundedRectangle(glass.withHeight(26), 3.0f);
     }
 
-    std::function<void()> onPatch;
+    std::function<void()> onPatch, onRack;
     void setPatchLit(bool lit) { patch.setColour(juce::TextButton::textColourOffId, lit ? amber : cream); patch.repaint(); }
+    void stepPreset(int delta) { step(delta); }
 
     void show(juce::Slider* slider, juce::RangedAudioParameter* param) {
         shown = slider;
@@ -1284,7 +1349,7 @@ private:
 
     MillstoneProcessor& processor;
     juce::ComboBox category, presetList;
-    juce::TextButton previous { "<" }, next { ">" }, patch { "PATCH" }, save { "SAVE" }, remove { "DELETE" };
+    juce::TextButton previous { "<" }, next { ">" }, patch { "PATCH" }, rack { "RACK" }, save { "SAVE" }, remove { "DELETE" };
     juce::Label readoutName, readoutValue;
     juce::Slider* shown = nullptr;
     bool shownInt = false;
@@ -1418,41 +1483,28 @@ private:
     int dragColour = -1;
 };
 
-// The drawer's page buttons, and the clock's output buttons.
-struct MillstoneEditor::DrawerTabs : juce::Component {
-    static constexpr int numPages = 4;
-    DrawerTabs(MillstoneProcessor& p, std::function<void()> changed) : processor(p), onChanged(std::move(changed)) {
+// Which clock output the screen beside them is editing.
+struct MillstoneEditor::ClockOutputs : juce::Component {
+    ClockOutputs(MillstoneProcessor& p, std::function<void()> changed) : processor(p), onChanged(std::move(changed)) {
         setInterceptsMouseClicks(false, true);
-        const auto add = [this](const juce::String& text, const juce::String& id, juce::Rectangle<int> bounds, std::function<void()> click) {
-            auto* b = buttons.add(new Segment(text));
-            b->setComponentID(id);
-            b->setBounds(bounds);
-            b->onClick = [this, click] { click(); refresh(); onChanged(); };
+        for (int c = 0; c < 8; ++c) {
+            auto* b = buttons.add(new Segment(juce::String(c + 1)));
+            b->dark = true;
+            b->lampOn = amber;
+            b->setComponentID("clock_channel:" + juce::String(c));
+            b->setBounds(c * 31, 20, 29, 26);
+            b->onClick = [this, c] { processor.clockChannel = c; refresh(); onChanged(); };
             addAndMakeVisible(b);
-            return b;
-        };
-        const char* names[numPages] = { "TIDES", "CLOCK", "DELAY", "FX" };
-        const char* ids[numPages] = { "drawer_tides", "drawer_clock", "drawer_delay", "drawer_fx" };
-        for (int page = 0; page < numPages; ++page)
-            add(names[page], ids[page], { page * 69, 0, 66, 18 }, [this, page] { processor.drawerPage = page; });
-        for (int c = 0; c < 8; ++c)
-            add(juce::String(c + 1), "clock_channel:" + juce::String(c), { 96 + c * 31, 52, 29, 26 }, [this, c] { processor.clockChannel = c; });
+        }
         refresh();
     }
     void paint(juce::Graphics& g) override {
-        if (processor.drawerPage != 1) return;
         g.setColour(cream);
         g.setFont(printFont(10.5f));
-        g.drawText("OUTPUT", 96, 35, 246, 14, juce::Justification::centred);
+        g.drawText("OUTPUT", 0, 2, 246, 14, juce::Justification::centred);
     }
     void refresh() {
-        for (int page = 0; page < numPages; ++page)
-            buttons[page]->setToggleState(processor.drawerPage == page, juce::dontSendNotification);
-        for (int c = 0; c < 8; ++c) {
-            buttons[c + numPages]->setVisible(processor.drawerPage == 1);
-            buttons[c + numPages]->setToggleState(processor.clockChannel == c, juce::dontSendNotification);
-        }
-        repaint();
+        for (int c = 0; c < 8; ++c) buttons[c]->setToggleState(processor.clockChannel == c, juce::dontSendNotification);
     }
     MillstoneProcessor& processor;
     std::function<void()> onChanged;
@@ -1476,6 +1528,7 @@ struct MillstoneEditor::ClockLcd : juce::Component {
             pot->setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
             addAndMakeVisible(*pot);
         }
+        for (auto* pot : { &select, &value }) pot->getProperties().set("rackAccent", "f5a623");
         select.setComponentID("clock_select");
         value.setComponentID("clock_value");
         select.setRange(0, numSettings - 1, 1);
@@ -1655,15 +1708,90 @@ private:
     juce::String lastStamp;
 };
 
+// The top unit: what the main display does, for this page, and the way back.
+struct MillstoneEditor::RackMaster : juce::Component {
+    explicit RackMaster(MillstoneProcessor& p) : processor(p) {
+        setBounds(0, 0, designW, 104);
+        for (auto* key : { &previous, &next, &panel }) { key->dark = true; key->lamp = false; addAndMakeVisible(*key); }
+        previous.setBounds((int)screen.getRight() + 16, 49, 40, 32);
+        next.setBounds((int)screen.getRight() + 60, 49, 40, 32);
+        panel.setBounds(1270, 49, 90, 32);
+        previous.setComponentID("rack_preset_prev");
+        next.setComponentID("rack_preset_next");
+        panel.setComponentID("rack_back");
+        setInterceptsMouseClicks(false, true);
+    }
+    void paint(juce::Graphics& g) override {
+        paintRackScreen(g, screen);
+        const juce::Colour blue(0xff58a8ff), dim = blue.withMultipliedBrightness(0.7f);
+        g.setFont(displayFont(16.0f));
+        drawGlowIn(g, blue, processor.getCurrentPresetName().isEmpty() ? juce::String("Custom") : processor.getCurrentPresetName(), screen.withWidth(280).reduced(10.0f, 2.0f).toNearestInt(), juce::Justification::centredLeft);
+        g.setColour(dim);
+        g.setFont(displayFont(12.0f));
+        g.drawText(name, screen.withTrimmedLeft(280).withWidth(220).reduced(4.0f, 2.0f), juce::Justification::centredLeft);
+        g.setFont(displayFont(16.0f));
+        drawGlowIn(g, blue, valueText, screen.withTrimmedLeft(500).reduced(10.0f, 2.0f).toNearestInt(), juce::Justification::centredRight);
+        paintRackGlass(g, screen);
+    }
+    void show(juce::Slider* s, juce::RangedAudioParameter* q) {
+        shown = s; param = q;
+        name = q != nullptr ? q->getName(32) : juce::String();
+        refresh();
+    }
+    void refresh() {
+        juce::String text;
+        if (param != nullptr) text = dynamic_cast<juce::AudioParameterChoice*>(param) != nullptr ? param->getCurrentValueAsText() : juce::String(param->convertFrom0to1(param->getValue()), 1);
+        const auto stamp = text + name + processor.getCurrentPresetName();
+        valueText = text;
+        if (stamp != lastStamp) { lastStamp = stamp; repaint(screen.toNearestInt()); }
+    }
+    const juce::Rectangle<float> screen { 420, 44, 640, 42 };
+    MillstoneProcessor& processor;
+    Segment previous { "<" }, next { ">" }, panel { "PANEL" };
+    juce::Slider* shown = nullptr;
+    juce::RangedAudioParameter* param = nullptr;
+    juce::String name, valueText, lastStamp;
+};
+
+// The page itself: opaque, drawn from its own art, in place of the panel and the drawer.
+struct MillstoneEditor::RackPage : juce::Component {
+    explicit RackPage(MillstoneProcessor& p) {
+        setOpaque(true);
+        setBounds(0, 0, designW, rackH);
+        setComponentID("rack_page");
+        master = std::make_unique<RackMaster>(p);
+        addAndMakeVisible(*master);
+        int slot = 0;
+        for (const auto& spec : rackLcds()) {
+            auto* lcd = lcds.add(new RackLcd(p, spec, slot++));
+            addAndMakeVisible(lcd);
+        }
+    }
+    void paint(juce::Graphics& g) override {
+        g.setImageResamplingQuality(juce::Graphics::mediumResamplingQuality);
+        const auto& art = sharedRackArt();
+        g.drawImage(art, getLocalBounds().toFloat());
+    }
+    void refresh() {
+        master->refresh();
+        for (auto* lcd : lcds) lcd->refresh();
+    }
+    std::unique_ptr<RackMaster> master;
+    juce::OwnedArray<RackLcd> lcds;
+};
+
 MillstoneEditor::MillstoneEditor(MillstoneProcessor& p)
     : juce::AudioProcessorEditor(p), processor(p), lnf(std::make_unique<LookAndFeel>()), art(sharedPanelArt()) {
     setLookAndFeel(lnf.get());
-    content.setBounds(0, 0, designW, totalH);
+    content.setBounds(0, 0, designW, rackH);
     content.setInterceptsMouseClicks(false, true);
     addAndMakeVisible(content);
 
+    rack = std::make_unique<RackPage>(processor);
+    content.addChildComponent(*rack);
+
     presetBar = std::make_unique<PresetBar>(processor);
-    readoutTarget = [this](juce::Slider* s, juce::RangedAudioParameter* q) { presetBar->show(s, q); };
+    readoutTarget = [this](juce::Slider* s, juce::RangedAudioParameter* q) { presetBar->show(s, q); rack->master->show(s, q); };
 
     for (const auto& item : panelItems()) {
         std::unique_ptr<Control> c;
@@ -1675,30 +1803,32 @@ MillstoneEditor::MillstoneEditor(MillstoneProcessor& p)
         else if (item.kind == "popup") c = std::make_unique<PopupControl>(item, processor.apvts, *lnf);
         else if (item.kind == "button") c = std::make_unique<StepControl>(item, processor.apvts);
         else if (item.kind == "hold") c = std::make_unique<HoldControl>(item, processor.apvts);
-        else if (item.kind == "heading") c = std::make_unique<HeadingControl>(item);
         if (c == nullptr) continue;
         const auto when = item.str("when");
         c->whenKey = when.upToFirstOccurrenceOf(":", false, false);
         c->whenValue = when.fromFirstOccurrenceOf(":", false, false);
         c->page = item.str("page");
         c->channel = item.num("channel", -1);
-        content.addAndMakeVisible(*c);
+        (c->page == "rack" ? static_cast<juce::Component&>(*rack) : content).addAndMakeVisible(*c);
         controls.push_back(std::move(c));
     }
 
-    presetBar->setBounds(440, 13, 790, 66);
+    presetBar->setBounds(440, 13, 830, 66);
     presetBar->setInterceptsMouseClicks(false, true);
     presetBar->onPatch = [this] { setPatchBayOpen(!processor.patchBayOpen); };
+    presetBar->onRack = [this] { setRackOpen(true); };
+    rack->master->panel.onClick = [this] { setRackOpen(false); };
+    rack->master->previous.onClick = [this] { presetBar->stepPreset(-1); };
+    rack->master->next.onClick = [this] { presetBar->stepPreset(1); };
     content.addAndMakeVisible(*presetBar);
 
-    drawerTabs = std::make_unique<DrawerTabs>(processor, [this] { clockLcd->channelChanged(); timerCallback(); });
-    drawerTabs->setBounds(54, 878, 350, 96);
-    content.addAndMakeVisible(*drawerTabs);
-
     clockLcd = std::make_unique<ClockLcd>(processor);
-    clockLcd->setBounds(58, 884, 1360, 88);
-    content.addChildComponent(*clockLcd);
-    drawerTabs->toFront(false);
+    clockLcd->setBounds(0, 0, 1200, 88);
+    clockLcd->setTransform(juce::AffineTransform::scale(1.2f).translated(-45.0f, 130.0f));
+    rack->addAndMakeVisible(*clockLcd);
+    clockOutputs = std::make_unique<ClockOutputs>(processor, [this] { clockLcd->channelChanged(); timerCallback(); });
+    clockOutputs->setBounds(98, 178, 246, 50);
+    rack->addAndMakeVisible(*clockOutputs);
 
     patchBay = std::make_unique<PatchBay>(processor);
     patchBay->setBounds(0, designH, designW, drawerH);
@@ -1710,26 +1840,41 @@ MillstoneEditor::MillstoneEditor(MillstoneProcessor& p)
     setResizable(true, true);
     setSize(designW * 85 / 100, designH * 85 / 100);
     setPatchBayOpen(processor.patchBayOpen);
+    setRackOpen(processor.rackOpen);
+}
+
+void MillstoneEditor::setRackOpen(bool open) {
+    processor.rackOpen = open;
+    rack->setVisible(open);
+    if (open) rack->toFront(false);
+    presetBar->setVisible(!open);
+    patchBay->setVisible(!open);
+    timerCallback();
+    fitWindowHeight();
+    repaint();
 }
 
 void MillstoneEditor::setPatchBayOpen(bool open) {
     processor.patchBayOpen = open;
     presetBar->setPatchLit(open);
-    const int height = open ? totalH : designH;
+    fitWindowHeight();
+}
+
+void MillstoneEditor::fitWindowHeight() {
+    const int height = processor.rackOpen ? rackH : processor.patchBayOpen ? totalH : designH;
     setResizeLimits(designW / 2, height / 2, designW * 3 / 2, height * 3 / 2);
     if (auto* constrainer = getConstrainer())
         constrainer->setFixedAspectRatio((double)designW / height);
     // The panel keeps its size and the window grows, unless that would run off the screen: then it scales to fit,
-    // and closing the drawer goes back to the size it had.
-    int width = getWidth();
-    if (open) {
-        widthBeforeDrawer = width;
+    // and going back to the short window restores the size it had.
+    if (height > designH && !windowIsTall) widthBeforeDrawer = getWidth();
+    int width = windowIsTall || height > designH ? widthBeforeDrawer : getWidth();
+    if (height > designH) {
         if (const auto* display = juce::Desktop::getInstance().getDisplays().getDisplayForRect(getScreenBounds()))
             width = juce::jmin(width, (display->userArea.getHeight() - 40) * designW / height);
         width = juce::jmax(width, designW / 2);
-    } else if (widthBeforeDrawer > 0) {
-        width = widthBeforeDrawer;
     }
+    windowIsTall = height > designH;
     setSize(width, juce::roundToInt((double)width * height / designW));
 }
 
@@ -1741,9 +1886,7 @@ MillstoneEditor::~MillstoneEditor() {
 void MillstoneEditor::timerCallback() {
     for (auto& base : controls) {   // RATE swaps with DIVISION, and PHASE appears, when SYNC is on
         auto* c = static_cast<Control*>(base.get());
-        if (c->whenKey.isEmpty() && c->page.isEmpty()) continue;
-        static const char* const pageNames[] = { "tides", "clock", "delay", "fx" };
-        bool show = c->page.isEmpty() || c->page == pageNames[juce::jlimit(0, 3, processor.drawerPage)];
+        bool show = c->page == "rack" || !processor.rackOpen;   // the panel and the drawer give way to the rack; the rack's own go with it
         if (c->channel >= 0 && c->channel != processor.clockChannel) show = false;
         if (show && c->whenKey.isNotEmpty()) {
             auto* p = processor.apvts.getParameter(c->whenKey);
@@ -1751,9 +1894,9 @@ void MillstoneEditor::timerCallback() {
             const bool same = p != nullptr && p->getCurrentValueAsText() == (negate ? c->whenValue.substring(1) : c->whenValue);
             show = p != nullptr && same != negate;
         }
-        c->setVisible(show);
+        if (c->isVisible() != show) c->setVisible(show);
     }
-    clockLcd->setVisible(processor.drawerPage == 1);
+    if (processor.rackOpen) rack->refresh();
     clockLcd->refresh();
     presetBar->sync();
     patchBay->sync();
@@ -1777,12 +1920,15 @@ juce::StringArray MillstoneEditor::layoutProblems() {
     for (const auto& item : panelItems()) {
         const float cx = (float)item.num("cx"), cy = (float)item.num("cy");
         const auto label = item.str("label"), name = item.kind + " " + (item.str("key").isNotEmpty() ? item.str("key") : label);
-        if (item.kind == "frame") {
+        if (item.kind == "unit" || item.kind == "vent") {
+            frames.push_back({ (float)item.num("x"), (float)item.num("y"), (float)item.num("w"), (float)item.num("h") });
+        } else if (item.kind == "frame") {
             frames.push_back({ (float)item.num("x"), (float)item.num("y"), (float)item.num("w"), (float)item.num("h") });
             if (item.str("title").isNotEmpty()) parts.push_back({ "title " + item.str("title"), { (float)item.num("x"), (float)item.num("y"), juce::GlyphArrangement::getStringWidth(printFont(11.5f, true, 0.20f), item.str("title")) + 22.0f, 19.0f }, &item, false });
         } else if (item.kind == "knob") {
             const float r = (float)item.num("r", 20);
-            parts.push_back({ name, juce::Rectangle<float>(2 * (r + 8.5f), 2 * (r + 8.5f)).withCentre({ cx, cy }), &item, true, true });
+            const float reach = r + (item.num("marks") != 0 ? 30.0f : 8.5f);   // a stepped switch prints its positions around it
+            parts.push_back({ name, juce::Rectangle<float>(2 * reach, 2 * reach).withCentre({ cx, cy }), &item, true, true });
             parts.push_back({ name + " label", textRect(label, printFont(r >= 30 ? 13.0f : 11.0f), cx, cy + r + 10, 13), &item, true });
         } else if (item.kind == "fader") {
             const float h = (float)item.num("h", 160);
@@ -1816,20 +1962,32 @@ juce::StringArray MillstoneEditor::layoutProblems() {
     }
     static const Item fixedItem;
     parts.push_back({ "display", { 438, 11, 614, 66 }, &fixedItem, false });
-    parts.push_back({ "preset buttons", { 1066, 17, 152, 58 }, &fixedItem, false });
-    parts.push_back({ "model plate", { 1262, 22, 160, 46 }, &fixedItem, false });
-    parts.push_back({ "drawer page buttons", { 54, 878, 273, 18 }, &fixedItem, true });
-    static Item clockButtons;
-    clockButtons.attrs["page"] = "clock";
-    parts.push_back({ "clock output buttons", { 150, 930, 246, 26 }, &clockButtons, true });
-    parts.push_back({ "clock LCD", { 410, 884, 594, 86 }, &clockButtons, true });
-    parts.push_back({ "clock SELECT", { 1060 - 30.5f, 914 - 30.5f, 61, 61 }, &clockButtons, true, true });
-    parts.push_back({ "clock VALUE", { 1156 - 30.5f, 914 - 30.5f, 61, 61 }, &clockButtons, true, true });
-    parts.push_back({ "clock SELECT label", { 1035, 946, 50, 13 }, &clockButtons, true });
-    parts.push_back({ "clock VALUE label", { 1135, 946, 44, 13 }, &clockButtons, true });
+    parts.push_back({ "preset buttons", { 1066, 17, 192, 58 }, &fixedItem, false });
+    parts.push_back({ "model plate", { 1276, 22, 146, 46 }, &fixedItem, false });
+    static Item rackItem;
+    rackItem.attrs["page"] = "rack";
+    parts.push_back({ "rack master screen", { 418, 42, 644, 46 }, &rackItem, true });
+    parts.push_back({ "rack master keys", { 1076, 49, 284, 32 }, &rackItem, true });
+    parts.push_back({ "clock output buttons", { 98, 198, 246, 26 }, &rackItem, true });
+    parts.push_back({ "clock LCD", { 378, 128, 712, 106 }, &rackItem, true });
+    parts.push_back({ "clock SELECT", { 1157 - 36.0f, 166 - 36.0f, 72, 72 }, &rackItem, true, true });
+    parts.push_back({ "clock VALUE", { 1272 - 36.0f, 166 - 36.0f, 72, 72 }, &rackItem, true, true });
+    parts.push_back({ "clock SELECT label", { 1125, 204, 64, 18 }, &rackItem, true });
+    parts.push_back({ "clock VALUE label", { 1245, 204, 54, 18 }, &rackItem, true });
+    for (const auto& spec : rackLcds()) {
+        const juce::String id(spec.id);
+        parts.push_back({ id + " screen", spec.screen.toFloat().expanded(2.0f), &rackItem, true });
+        parts.push_back({ id + " preset keys", { (float)spec.keys.x, (float)spec.keys.y, 76, 26 }, &rackItem, true });
+        if (!spec.settings.empty()) {
+            const float reach = (float)spec.potR + 8.5f;
+            parts.push_back({ id + " VALUE", juce::Rectangle<float>(2 * reach, 2 * reach).withCentre(spec.pot.toFloat()), &rackItem, true, true });
+            parts.push_back({ id + " VALUE label", textRect("VALUE", printFont(11.0f), (float)spec.pot.x, (float)(spec.pot.y + spec.potR + 10), 13), &rackItem, true });
+        }
+    }
 
     // Two things can only collide if they can be on screen together.
     const auto together = [](const Item& a, const Item& b) {
+        if ((a.str("page") == "rack") != (b.str("page") == "rack")) return false;   // the rack replaces the panel
         if (a.str("page").isNotEmpty() && b.str("page").isNotEmpty() && a.str("page") != b.str("page")) return false;
         if (a.str("channel").isNotEmpty() && b.str("channel").isNotEmpty() && a.str("channel") != b.str("channel")) return false;
         const auto wa = a.str("when"), wb = b.str("when");

@@ -70,6 +70,8 @@ int main(int argc, char** argv) {
         const juce::String key(PARAMS[i].key);
         if (key.startsWithChar('c') && (key.endsWith("_src") || key.endsWith("_dst"))) continue;   // cables, tested below
         if (key.startsWith("ck_") || (key.startsWithChar('k') && key.containsChar('_'))) continue;   // on the clock's LCD, tested below
+        if (key == "t_smooth" || key == "t_shift") continue;   // on Tides' screen, tested below
+        if (key == "fx_dl_width" || key == "fx_dl_drive" || key == "fx_dl_wow" || key == "fx_dl_duck") continue;   // on the echo's screen, tested below
         if (PARAMS[i].popup_of >= 0 || (PARAMS[i].momentary && PARAMS[i].step_target < 0)) continue;
         const bool found = find(editor, key) != nullptr || find(editor, key + ":0") != nullptr;
         check(found, "on panel: " + key);
@@ -131,23 +133,21 @@ int main(int argc, char** argv) {
             walk(editor);
         };
         click("patch_toggle");
-        for (const char* type : {"o1_type:0", "o1_type:1"}) for (const char* sync : {"off", "on"}) for (const char* page : {"drawer_tides", "drawer_clock", "drawer_delay", "drawer_fx"}) for (int channel = 0; channel < 8; ++channel) {
-            click(type); click(page); click(("clock_channel:" + juce::String(channel)).toRawUTF8());
+        for (const char* type : {"o1_type:0", "o1_type:1"}) for (const char* sync : {"off", "on"}) {
+            click(type);
             const bool on = text("lfo_sync") == "ON"; if (on != (juce::String(sync) == "on")) click("lfo_sync");
             editor.refreshFromProcessor();
-            reachable(juce::String(type) + " " + sync + " " + page + " " + juce::String(channel));
+            reachable(juce::String(type) + " " + sync);
         }
-        click("o1_type:0"); click("drawer_tides"); click("clock_channel:0"); if (text("lfo_sync") == "ON") click("lfo_sync");
-        click("drawer_delay");
-        for (const char* sync : {"fx_dl_sync:0", "fx_dl_sync:1"}) for (const char* in : {"fx_dl_in:0", "fx_dl_in:1"}) for (const char* pong : {"fx_dl_pp:0", "fx_dl_pp:1"}) {
-            click(sync); click(in); click(pong); editor.refreshFromProcessor(); reachable(juce::String(sync) + in + pong);
+        click("o1_type:0"); if (text("lfo_sync") == "ON") click("lfo_sync");
+        click("rack_toggle");
+        for (const char* sync : {"fx_dl_sync:0", "fx_dl_sync:1"}) for (const char* type : {"fx_rv_type:0", "fx_rv_type:1"}) for (int channel = 0; channel < 8; ++channel) {
+            click(sync); click(type); click(("clock_channel:" + juce::String(channel)).toRawUTF8()); editor.refreshFromProcessor();
+            reachable(juce::String("rack ") + sync + type + juce::String(channel));
         }
-        click("fx_dl_in:0"); click("fx_dl_pp:0"); click("fx_dl_sync:1");
-        click("drawer_fx");
-        for (const char* type : {"fx_rv_type:0", "fx_rv_type:1"}) { click(type); editor.refreshFromProcessor(); reachable(type); }
-        click("fx_rv_type:0"); click("drawer_tides"); editor.refreshFromProcessor();
-        for (const char* trig : {"t_trig:0", "t_trig:1", "t_trig:2", "t_trig:3"}) { click(trig); editor.refreshFromProcessor(); reachable(trig); }
-        click("t_trig:0"); editor.refreshFromProcessor();
+        for (const char* trig : {"t_trig:0", "t_trig:1", "t_trig:2", "t_trig:3"}) { click(trig); editor.refreshFromProcessor(); reachable(juce::String("rack ") + trig); }
+        click("t_trig:0");
+        click("fx_dl_sync:1"); click("fx_rv_type:0"); click("clock_channel:0"); click("rack_back"); editor.refreshFromProcessor();
         std::cout << "info " << reached << " control positions reached across every page" << std::endl;
         check(reached > 1500, "the reach check really walked the panel");
 
@@ -235,46 +235,67 @@ int main(int argc, char** argv) {
     proc.connectCord(14, 22);    // TIDES 2 > T SHAPE
     editor.refreshFromProcessor();
     render("panel_patch");
-    click("drawer_delay");
-    editor.refreshFromProcessor();
-    render("panel_delay");
-    check(find(editor, "fx_dl_fb")->getParentComponent()->isVisible(), "DELAY page shows the delay");
-    check(!find(editor, "t_rate")->getParentComponent()->isVisible(), "...and hides Tides");
+    { const auto t0 = juce::Time::getMillisecondCounterHiRes(); click("rack_toggle"); editor.refreshFromProcessor(); render("panel_rack_first"); std::cout << "info first time the rack is drawn: " << juce::roundToInt(juce::Time::getMillisecondCounterHiRes() - t0) << " ms" << std::endl; }
+    check(proc.rackOpen && find(editor, "rack_page")->isVisible(), "RACK opens the rack");
+    check(editor.getHeight() > closedH, "and takes its tall window");
+    check(proc.patchBayOpen, "the patch bay's setting is kept for the panel");
+    check(!find(editor, "cutoff")->getParentComponent()->isVisible(), "the panel's knobs step aside");
+    check(find(editor, "t_rate")->getParentComponent()->isVisible(), "Tides is in the rack");
+    { bool jackShowing = false; for (auto* child : find(editor, "rack_page")->getParentComponent()->getChildren()) if (child != find(editor, "rack_page") && child->isVisible() && child->getBottom() > 864) jackShowing = true; check(!jackShowing, "nothing of the drawer is left showing"); }
+    check(!find(editor, "preset_list")->getParentComponent()->isVisible(), "so does the panel's display");
+    render("panel_rack");
     {
-        auto* divide = find(editor, "fx_dl_div");
-        auto* throwButton = dynamic_cast<juce::Button*>(find(editor, "fx_dl_throw"));
-        check(divide != nullptr && divide->getParentComponent()->isVisible(), "SYNC shows the division");
-        check(!find(editor, "fx_dl_time")->getParentComponent()->isVisible(), "...and hides the time");
+        check(find(editor, "fx_dl_div")->getParentComponent()->isVisible() && !find(editor, "fx_dl_time")->getParentComponent()->isVisible(), "SYNC shows the division, not the time");
         click("fx_dl_sync:0"); editor.refreshFromProcessor();
         check(find(editor, "fx_dl_time")->getParentComponent()->isVisible(), "FREE shows the time");
         click("fx_dl_sync:1"); editor.refreshFromProcessor();
-        check(!find(editor, "fx_dl_throw")->getParentComponent()->isVisible(), "INPUT ON hides THROW");
-        check(!find(editor, "fx_dl_width")->getParentComponent()->isVisible(), "PING PONG off hides WIDTH");
-        click("fx_dl_pp:1"); editor.refreshFromProcessor();
-        check(find(editor, "fx_dl_width")->getParentComponent()->isVisible(), "PING PONG on shows WIDTH");
-        click("fx_dl_pp:0");
-        click("fx_dl_in:1"); editor.refreshFromProcessor();
-        check(throwButton != nullptr && find(editor, "fx_dl_throw")->getParentComponent()->isVisible(), "INPUT THROW shows THROW");
+        auto* throwButton = dynamic_cast<juce::Button*>(find(editor, "fx_dl_throw"));
+        check(throwButton != nullptr && throwButton->getParentComponent()->isVisible(), "THROW is always there, one press away");
         throwButton->setState(juce::Button::buttonDown);
         check(text("fx_dl_throw") == "ON", "THROW is on while held");
         throwButton->setState(juce::Button::buttonNormal);
         check(text("fx_dl_throw") == "OFF", "THROW is off when released");
-        click("fx_dl_in:0"); editor.refreshFromProcessor();
+        check(!find(editor, "fx_rv_kick")->getParentComponent()->isVisible(), "NORMAL hides KICK");
+        click("fx_rv_type:1"); editor.refreshFromProcessor();
+        check(find(editor, "fx_rv_kick")->getParentComponent()->isVisible(), "SPRING shows KICK");
+        click("fx_rv_type:0"); editor.refreshFromProcessor();
+
+        // The echo's deeper settings: pick on the screen, turn VALUE, and it is that parameter that moves.
+        {
+            auto* pot = dynamic_cast<juce::Slider*>(find(editor, "lcd_value_delay"));
+            check(pot != nullptr, "the echo has a VALUE knob");
+            pot->setValue(61.0, juce::sendNotificationSync);
+            check(std::abs(ps.getRawParameterValue("fx_dl_drive")->load() - 61.0f) < 0.5f, "VALUE starts on DRIVE");
+        }
+
+        // Every unit's presets load, step round, say what they are, and bring a unit that is off up to where it can be heard.
+        for (const juce::String unit : {"tides", "delay", "reverb", "chorus", "phaser"}) {
+            auto* lcd = find(editor, "lcd_" + unit);
+            check(lcd != nullptr && lcd->isVisible(), unit + " has a screen");
+            juce::StringArray names;
+            for (int i = 0; i < 12; ++i) {
+                click(("preset_next_" + unit).toRawUTF8()); editor.refreshFromProcessor();
+                const auto name = lcd->getProperties()["preset"].toString();
+                check(name.isNotEmpty() && !name.endsWith("*") && name != "CUSTOM", unit + " preset reads back as loaded: " + name);
+                names.addIfNotAlreadyThere(name);
+            }
+            check(names.size() >= 5, unit + " offers its presets");
+        }
+        check(ps.getRawParameterValue("fx_dl_mix")->load() > 0.0f && ps.getRawParameterValue("fx_rv_mix")->load() > 0.0f && ps.getRawParameterValue("fx_ph_mix")->load() > 0.0f, "a preset turns a silent unit up");
+        ps.getParameter("fx_dl_mix")->setValueNotifyingHost(ps.getParameter("fx_dl_mix")->convertTo0to1(77.0f));
+        click("preset_next_delay");
+        check(std::abs(ps.getRawParameterValue("fx_dl_mix")->load() - 77.0f) < 0.5f, "but never moves a mix you have set");
+        ps.getParameter("fx_dl_fb")->setValueNotifyingHost(ps.getParameter("fx_dl_fb")->convertTo0to1(3.0f));
+        editor.refreshFromProcessor();
+        check(find(editor, "lcd_delay")->getProperties()["preset"].toString().endsWith("*"), "and an edited preset is marked");
+        render("panel_rack_loaded");
+                for (auto* base : proc.getParameters()) if (auto* q = dynamic_cast<juce::RangedAudioParameter*>(base)) if (q->getParameterID().startsWith("fx_") || q->getParameterID().startsWith("t_")) q->setValueNotifyingHost(q->getDefaultValue());
+        proc.fxPreset = { -1, -1, -1, -1, -1 };
     }
-    click("drawer_fx");
-    click("fx_rv_type:1");
-    editor.refreshFromProcessor();
-    render("panel_fx");
-    check(find(editor, "fx_rv_kick")->getParentComponent()->isVisible(), "SPRING shows KICK");
-    click("fx_rv_type:0");
-    editor.refreshFromProcessor();
-    check(!find(editor, "fx_rv_kick")->getParentComponent()->isVisible(), "NORMAL hides KICK");
-    click("drawer_clock");
     editor.refreshFromProcessor();
     auto* lcd = find(editor, "clock_lcd"), *rate = find(editor, "t_rate");
     auto* selectPot = dynamic_cast<juce::Slider*>(find(editor, "clock_select")), *valuePot = dynamic_cast<juce::Slider*>(find(editor, "clock_value"));
     check(lcd != nullptr && lcd->isVisible() && selectPot != nullptr && valuePot != nullptr, "CLOCK page shows the LCD and its pots");
-    check(rate != nullptr && !rate->getParentComponent()->isVisible(), "...and hides Tides");
     const auto lcdSays = [&](const char* what) { return lcd->getProperties()[what].toString(); };
 
     // Every setting on every output, through the pots: SELECT finds it, VALUE sets that parameter and no other.
@@ -338,9 +359,21 @@ int main(int argc, char** argv) {
     ps.getParameter("k4_fill")->setValueNotifyingHost(ps.getParameter("k4_fill")->convertTo0to1(5.0f));
     editor.refreshFromProcessor();
     render("panel_clock");
-    click("drawer_tides");
+    click("rack_back");
     editor.refreshFromProcessor();
-    check(rate->getParentComponent()->isVisible() && !lcd->isVisible(), "TIDES page goes back");
+    editor.refreshFromProcessor();
+    check(!rate->isShowing() && !find(editor, "rack_page")->isVisible() && proc.patchBayOpen, "PANEL goes back, with the patch bay as it was");
+    {   // With the patch bay closed, the rack still has its full size, and leaving restores the short window exactly.
+        patch->onClick();
+        const int shortW = editor.getWidth(), shortH = editor.getHeight();
+        click("rack_toggle"); editor.refreshFromProcessor();
+        check(!proc.patchBayOpen && editor.getHeight() > shortH, "from a closed patch bay, the rack still gets the tall window");
+        { int rackHeightFromClosed = editor.getHeight(); click("rack_back"); patch->onClick(); click("rack_toggle"); check(editor.getHeight() == rackHeightFromClosed, "the same size as from an open one"); click("rack_back"); patch->onClick(); click("rack_toggle"); editor.refreshFromProcessor(); }
+        check(std::abs((double)editor.getWidth() / editor.getHeight() - 1480.0 / 1209.0) < 0.01, "at the rack's own proportions");
+        click("rack_back"); editor.refreshFromProcessor();
+        check(editor.getWidth() == shortW && editor.getHeight() == shortH, "and back to the same short window");
+        patch->onClick();
+    }
     patch->onClick();
     check(editor.getHeight() == closedH && editor.getWidth() == width, "and closes back to the same size");
 

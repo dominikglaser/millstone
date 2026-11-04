@@ -90,17 +90,22 @@ full three-oscillator sound.
 Parameters, their ranges and defaults all come from `../vst/params.json`, the same file the MPC skin is built
 from, so the two builds never drift.
 
-## Effects
+## The rack
 
-The strip above the patch bay has four pages: TIDES, CLOCK, DELAY and FX. The effects run after the voices, in this plugin and not the
-shared engine, in the order phaser, chorus, delay, reverb. With all of them off the signal is not touched. The code is in `src/fx/`;
-the chorus, phaser and plate wrapper come from the `plaits-synth` project.
+RACK, beside the preset buttons, swaps the panel for a second page: a road-case rack of black units, each with its own colour. It always fills
+a tall window of its own, with no patch bay below it. PANEL goes back, with the patch bay open or closed as you left it.
 
-**Delay** is a tape echo for dub. TIME follows the song or is free in ms, and moving it glides the tape, bending the pitch of what is on it.
-REPEATS passes 100%: from there it builds on its own until the tape saturates. HEADS plays any of three heads, at 1x, 2x and 3x TIME.
-LOW CUT and HIGH CUT are 24 dB per octave filters in the loop, so each repeat is thinner and darker. DRIVE is tape saturation, WOW is wow and
-flutter, DUCK holds the echoes down while you play. PING PONG bounces left and right, and WIDTH narrows that down to the centre. With INPUT
-on THROW, only what you play while holding THROW reaches the echo. THROW is a parameter, so Live can map it to a pad.
+- **CK-8 Clock:** the eight-output clock, with its LCD.
+- **TD-2 Tidal Modulator:** Tides. Its screen has presets, draws one cycle of the slope, and holds SMOOTH and SHIFT on VALUE.
+- **DE-1 Tape Echo:** a tape delay for dub. See below.
+- **RV-2 Digital Reverb:** NORMAL (the plate from Mutable Instruments Rings) and SPRING (three dispersive springs, whose chirp is DRIP). KICK bangs the tank. DECAY changes how long the tail lasts, not how loud held notes are.
+- **DI-4 Ensemble:** the chorus, three settings.
+- **PH-6 Phaser:** six stages.
 
-**Reverb** switches between NORMAL (the plate from Mutable Instruments Rings) and SPRING (three dispersive springs, whose chirp is the DRIP
-knob). KICK bangs the spring tank; it also is a parameter. DECAY changes how long a tail lasts and not how loud held notes are.
+Each effect's screen has its own presets, on its < > keys. A preset leaves your MIX alone unless the unit is off, when it brings it up to be heard. A `*` means you have changed it since.
+
+The effects run after the voices, in this plugin and not the shared engine, in the order phaser, chorus, delay, reverb, and they cannot exceed -0.5 dB. With all of them off the signal is not touched. The code is in `src/fx/`; the chorus, phaser and plate wrapper come from the `plaits-synth` project. The page is in `src/RackPage.inc` and the `page=rack` items of `panel.conf`.
+
+**The echo.** TIME follows the song or is free in ms, and moving it glides the tape, bending the pitch of what is on it. REPEATS passes 100%: from there it builds on its own until the tape saturates. HEADS plays any of three heads, at 1x, 2x and 3x TIME. LOW CUT and HIGH CUT are 24 dB per octave filters in the loop, so each repeat is thinner and darker. PING PONG bounces left and right. On the screen, pick DRIVE (tape saturation), WOW (wow and flutter), DUCK (holds the echoes down while you play) or WIDTH (narrows the ping-pong), and turn VALUE. The screen also draws the pattern on the tape.
+
+THROW lets in what you play while you hold it. Close ECHO INPUT and only that reaches the tape. THROW and KICK are parameters, so Live can map them to pads.

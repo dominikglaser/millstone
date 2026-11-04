@@ -13,6 +13,7 @@ public:
     void resized() override;
     void refreshFromProcessor() { timerCallback(); }   // what the UI timer does; tests call it directly
     void setPatchBayOpen(bool);                        // the drawer below the panel
+    void setRackOpen(bool);                            // the effects rack, in place of the panel
 
     // For tests: how many art pixels the wear changed on each kind of surface.
     struct WearCheck { int onFlat = 0, onRaised = 0, onRecessed = 0, tried = 0, drawn = 0; };
@@ -22,22 +23,27 @@ public:
 
 private:
     void timerCallback() override;
+    void fitWindowHeight();                            // tall for the rack or the open drawer
 
     struct LookAndFeel;
     struct PresetBar;
     struct PatchBay;
-    struct DrawerTabs;
+    struct ClockOutputs;
+    struct RackMaster;
+    struct RackPage;
     struct ClockLcd;
 
     MillstoneProcessor& processor;
     std::unique_ptr<LookAndFeel> lnf;
     std::function<void(juce::Slider*, juce::RangedAudioParameter*)> readoutTarget;
     int widthBeforeDrawer = 0;
+    bool windowIsTall = false;
     juce::Image art;           // the static panel: metal, wood, printing, wear
     juce::Component content;   // laid out at the design size, scaled to the window
     std::vector<std::unique_ptr<juce::Component>> controls;
     std::unique_ptr<PresetBar> presetBar;
-    std::unique_ptr<DrawerTabs> drawerTabs;
+    std::unique_ptr<RackPage> rack;
+    std::unique_ptr<ClockOutputs> clockOutputs;
     std::unique_ptr<ClockLcd> clockLcd;
     std::unique_ptr<PatchBay> patchBay;
 

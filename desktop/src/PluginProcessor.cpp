@@ -96,8 +96,9 @@ void MillstoneProcessor::updateEffects() {
     // The song's tempo, or with no song playing (the standalone app) the instrument's own clock.
     const double bpm = pushedBpm > 0.0 ? pushedBpm : (double)fxValues.clockBpm->load();
     s.delay.timeSeconds = option(fxValues.dlSync) == 1 ? (float)(delayDivisionBeats(option(fxValues.dlDiv)) * 60.0 / bpm) : fxValues.dlTime->load() * 0.001f;
+    delaySecondsNow.store(s.delay.timeSeconds);
     s.delay.repeats = percent(fxValues.dlFb);
-    s.delay.send = option(fxValues.dlIn) == 0 ? 1.0f : 0.0f;   // ON: everything goes in. THROW: only what THROW lets in.
+    s.delay.send = option(fxValues.dlIn) == 0 ? 1.0f : 0.0f;   // OPEN: everything goes in. CLOSED: only what THROW lets in.
     s.delay.throwOn = option(fxValues.dlThrow) == 1;
     static constexpr int headsMask[] = { 1, 2, 4, 3, 5, 6, 7 };
     s.delay.heads = headsMask[juce::jlimit(0, 6, option(fxValues.dlHeads))];

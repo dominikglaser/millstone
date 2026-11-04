@@ -6,6 +6,7 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 #include "engine_host.h"
 #include "fx/FxChain.h"
+#include <array>
 
 class MillstoneProcessor : public juce::AudioProcessor {
 public:
@@ -48,7 +49,10 @@ public:
     int connectCord(int source, int dest, float amount = 50.0f);   // the cord used, the existing one if already patched, or -1 if all are in use
     void disconnectCord(int cord);
     bool patchBayOpen = false;                                     // the drawer, while the window is closed and reopened
-    int drawerPage = 0, clockChannel = 0, clockSetting = 0;        // which module, clock output and LCD setting it is showing
+    bool rackOpen = false;                                         // showing the effects rack rather than the panel
+    int clockChannel = 0, clockSetting = 0;                        // which clock output and LCD setting it is showing
+    std::array<int, 5> fxPreset { -1, -1, -1, -1, -1 };                // what each rack unit's screen last loaded
+    std::atomic<float> delaySecondsNow { 0.375f };                 // for the echo's screen
 
     struct Preset {
         juce::String name, category;

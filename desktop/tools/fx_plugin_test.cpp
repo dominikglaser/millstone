@@ -119,12 +119,12 @@ int main() {
         check(e.energy(12, 15) > 0.02, "REPEATS 120 is still going 12 s after the note", num(e.energy(12, 15)));
     }
     { // INPUT and THROW
-        const auto shut = echoes([](Synth& s) { s.opt("fx_dl_in", "THROW"); });
-        check(shut.energy(.3, 1) < 0.0005, "INPUT THROW: a note stays out of the echo", num(shut.energy(.3, 1)));
-        const auto thrown = echoes([](Synth& s) { s.opt("fx_dl_in", "THROW"); }, 2.0, [](Synth& s) { s.opt("fx_dl_throw", "ON"); });
+        const auto shut = echoes([](Synth& s) { s.opt("fx_dl_in", "CLOSED"); });
+        check(shut.energy(.3, 1) < 0.0005, "INPUT CLOSED: a note stays out of the echo", num(shut.energy(.3, 1)));
+        const auto thrown = echoes([](Synth& s) { s.opt("fx_dl_in", "CLOSED"); }, 2.0, [](Synth& s) { s.opt("fx_dl_throw", "ON"); });
         check(thrown.energy(.3, 1) > 0.02, "and holding THROW lets it in", num(thrown.energy(.3, 1)));
-        const auto open = echoes([](Synth& s) { s.opt("fx_dl_in", "ON"); });
-        check(open.energy(.3, 1) > 0.02, "INPUT ON: every note goes in", num(open.energy(.3, 1)));
+        const auto open = echoes([](Synth& s) { s.opt("fx_dl_in", "OPEN"); });
+        check(open.energy(.3, 1) > 0.02, "INPUT OPEN: every note goes in", num(open.energy(.3, 1)));
     }
     { // HEADS
         const std::vector<std::tuple<const char*, bool, bool, bool>> heads { {"1", 1, 0, 0}, {"2", 0, 1, 0}, {"3", 0, 0, 1}, {"1+2", 1, 1, 0}, {"1+3", 1, 0, 1}, {"2+3", 0, 1, 1}, {"1+2+3", 1, 1, 1} };

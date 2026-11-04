@@ -1,0 +1,46 @@
+# Build the desktop plugin on a macOS runner and upload VST3 + AU + Standalone as a downloadable artifact.
+# A no-toolchain fallback to building locally in VS Code: Actions -> "Desktop (macOS)" -> Run workflow.
+name: Desktop (macOS)
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'desktop/**'
+      - 'src/**'
+      - 'vst/params.json'
+      - '.github/workflows/desktop-mac.yml'
+
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure
+        run: cmake -B desktop/build -S desktop -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build desktop/build --config Release -j3
+
+      - name: Ad-hoc sign (so it loads without a developer ID)
+        run: |
+          A=desktop/build/Millstone_artefacts/Release
+          for p in "$A/VST3/Millstone.vst3" "$A/AU/Millstone.component" "$A/Standalone/Millstone.app"; do
+            [ -e "$p" ] && codesign --force --deep -s - "$p" || true
+          done
+
+      - name: Collect
+        run: |
+          A=desktop/build/Millstone_artefacts/Release
+          mkdir -p out
+          cp -R "$A/VST3/Millstone.vst3" out/ 2>/dev/null || true
+          cp -R "$A/AU/Millstone.component" out/ 2>/dev/null || true
+          cp -R "$A/Standalone/Millstone.app" out/ 2>/dev/null || true
+          cp desktop/README.md out/INSTALL.md
+          ls -R out
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Millstone-macOS
+          path: out

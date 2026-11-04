@@ -1,0 +1,100 @@
+# Millstone desktop build: VST3 + AU + Standalone from the shared engine, via JUCE.
+# Configure from this folder:
+#   cmake -B build -DCMAKE_BUILD_TYPE=Release
+#   cmake --build build --config Release
+# JUCE and the Open MPC kit (for wrapper/engine.h and the params generator) are fetched automatically.
+cmake_minimum_required(VERSION 3.22)
+project(Millstone VERSION 0.1.0 LANGUAGES C CXX)
+
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+    set(CMAKE_BUILD_TYPE Release)
+endif()
+if(APPLE)
+    set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "Universal binary")
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "")
+endif()
+
+set(REPO ${CMAKE_CURRENT_SOURCE_DIR}/..)
+
+include(FetchContent)
+# Pin JUCE to a released tag (at least two weeks old).
+FetchContent_Declare(juce
+    GIT_REPOSITORY https://github.com/juce-framework/JUCE.git
+    GIT_TAG 8.0.4
+    GIT_SHALLOW TRUE)
+# The Open MPC kit supplies wrapper/engine.h and tools/gen_vst.py; it has no CMakeLists, so this only populates it.
+FetchContent_Declare(mpcvst
+    GIT_REPOSITORY https://github.com/open-mpc/mpc-vst-plugins.git
+    GIT_TAG bf1054ce08460cf42b10f96985e73141d64a71af
+    GIT_SHALLOW FALSE)
+FetchContent_MakeAvailable(juce mpcvst)
+
+find_package(Python3 COMPONENTS Interpreter REQUIRED)
+
+# Generate params.h from the single source of truth (vst/params.json), exactly as the MPC build does.
+execute_process(
+    COMMAND ${Python3_EXECUTABLE} ${mpcvst_SOURCE_DIR}/tools/gen_vst.py ${REPO}/vst/vst.json --params-h
+    RESULT_VARIABLE gen_result
+    OUTPUT_VARIABLE gen_out ERROR_VARIABLE gen_out)
+if(NOT gen_result EQUAL 0)
+    message(FATAL_ERROR "gen_vst.py --params-h failed:\n${gen_out}")
+endif()
+
+# Read the engine source list from vst.json so it never drifts from the MPC build.
+execute_process(
+    COMMAND ${Python3_EXECUTABLE} -c
+        "import json;print(';'.join(json.load(open('${REPO}/vst/vst.json'))['build']['sources']))"
+    OUTPUT_VARIABLE ENGINE_SRC_REL OUTPUT_STRIP_TRAILING_WHITESPACE)
+set(ENGINE_SOURCES "")
+foreach(s ${ENGINE_SRC_REL})
+    list(APPEND ENGINE_SOURCES ${REPO}/${s})
+endforeach()
+
+# Build the shared engine as its own static library so JUCE's flags (C++17, strict) don't reach it: the
+# Plaits sources need GNU C++14 (zero-size arrays), -DTEST (portable math, not ARM asm) and -include cstdio.
+add_library(millstone_engine STATIC ${ENGINE_SOURCES})
+set_target_properties(millstone_engine PROPERTIES
+    CXX_STANDARD 14 CXX_EXTENSIONS ON POSITION_INDEPENDENT_CODE ON)
+target_compile_definitions(millstone_engine PRIVATE TEST)
+target_compile_options(millstone_engine PRIVATE -include cstdio -w)
+target_include_directories(millstone_engine PRIVATE
+    ${REPO}/src ${REPO}/src/third_party/eurorack ${REPO}/vst/build ${mpcvst_SOURCE_DIR}/wrapper)
+
+juce_add_plugin(Millstone
+    PRODUCT_NAME "Millstone"
+    COMPANY_NAME "Glaser"
+    BUNDLE_ID "com.glaser.millstone"
+    PLUGIN_MANUFACTURER_CODE Glsr
+    PLUGIN_CODE Mlst
+    FORMATS VST3 AU Standalone
+    IS_SYNTH TRUE
+    NEEDS_MIDI_INPUT TRUE
+    EDITOR_WANTS_KEYBOARD_FOCUS TRUE
+    VST3_CATEGORIES Instrument Synth
+    AU_MAIN_TYPE kAudioUnitType_MusicDevice
+    COPY_PLUGIN_AFTER_BUILD FALSE)
+
+target_sources(Millstone PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/PluginProcessor.cpp)
+
+target_include_directories(Millstone PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${REPO}/src
+    ${REPO}/src/third_party/eurorack
+    ${REPO}/vst/build
+    ${mpcvst_SOURCE_DIR}/wrapper)
+
+target_compile_definitions(Millstone PRIVATE
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_VST3_CAN_REPLACE_VST2=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0)
+
+target_link_libraries(Millstone PRIVATE
+    millstone_engine
+    juce::juce_audio_utils
+    PUBLIC
+    juce::juce_recommended_config_flags
+    juce::juce_recommended_warning_flags)

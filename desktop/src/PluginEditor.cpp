@@ -1,5 +1,6 @@
 #include "PluginEditor.h"
 #include "BinaryData.h"
+#include "workout_clock.h"
 #include <array>
 #include <map>
 
@@ -280,6 +281,9 @@ HeightMap buildHeightMap(float pad) {
     }
     map.rect(58 - pad, 914 - pad, 74 + 2 * pad, 55 + 2 * pad, raised);        // drawer page buttons
     map.rect(150 - pad, 930 - pad, 246 + 2 * pad, 26 + 2 * pad, raised);      // clock output buttons
+    map.rect(412 - pad, 884 - pad, 590 + 2 * pad, 86 + 2 * pad, raised);      // clock LCD
+    map.circle(58 + 354 + 590 + 58, 884 + 30, 22 + pad, raised);              // clock pots
+    map.circle(58 + 354 + 590 + 154, 884 + 30, 22 + pad, raised);
     map.rect(438 - pad, 11 - pad, 614 + 2 * pad, 66 + 2 * pad, raised);       // display
     map.rect(1066 - pad, 17 - pad, 152 + 2 * pad, 58 + 2 * pad, raised);      // preset buttons
     map.rect(1262 - pad, 22 - pad, 160 + 2 * pad, 46 + 2 * pad, raised);      // model plate
@@ -1398,6 +1402,202 @@ struct MillstoneEditor::DrawerTabs : juce::Component {
     juce::OwnedArray<Segment> buttons;
 };
 
+// The clock's screen and its two pots: SELECT scrolls through the settings, VALUE changes the one selected. The buttons beside
+// it pick which output is being edited. The parameters are ordinary ones, so a host can automate them and the screen follows.
+struct MillstoneEditor::ClockLcd : juce::Component {
+    static constexpr int numSettings = 13;
+    struct Setting { const char* suffix; const char* label; };
+    static const Setting* settings() {
+        static const Setting table[numSettings] = { {"div", "RATE"}, {"shape", "SHAPE"}, {"width", "WIDTH"}, {"swing", "SWING"}, {"prob", "PROB"}, {"phase", "PHASE"}, {"level", "LEVEL"}, {"offset", "OFFSET"}, {"steps", "STEPS"}, {"fill", "FILL"}, {"rot", "ROTATE"}, {"ck_src", "SOURCE"}, {"ck_bpm", "BPM"} };
+        return table;
+    }
+
+    explicit ClockLcd(MillstoneProcessor& p) : processor(p) {
+        setComponentID("clock_lcd");
+        for (auto* pot : { &select, &value }) {
+            pot->setSliderStyle(juce::Slider::RotaryVerticalDrag);
+            pot->setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
+            addAndMakeVisible(*pot);
+        }
+        select.setComponentID("clock_select");
+        value.setComponentID("clock_value");
+        select.setRange(0, numSettings - 1, 1);
+        select.setMouseDragSensitivity(200);
+        select.setDoubleClickReturnValue(false, 0);
+        select.onValueChange = [this] { processor.clockSetting = juce::roundToInt(select.getValue()); bindValue(); repaint(); };
+        value.setMouseDragSensitivity(220);
+        value.onDragStart = [this] { if (auto* q = current()) q->beginChangeGesture(); };
+        value.onDragEnd = [this] { if (auto* q = current()) q->endChangeGesture(); };
+        value.onValueChange = [this] { if (!binding) if (auto* q = current()) { q->setValueNotifyingHost(q->convertTo0to1((float)value.getValue())); refresh(); } };
+        select.setValue(processor.clockSetting, juce::dontSendNotification);
+        bindValue();
+    }
+
+    juce::RangedAudioParameter* current() const {
+        const juce::String suffix(settings()[processor.clockSetting].suffix);
+        return processor.apvts.getParameter(suffix.startsWith("ck_") ? suffix : "k" + juce::String(processor.clockChannel + 1) + "_" + suffix);
+    }
+
+    // Points the VALUE pot at whatever is selected.
+    void bindValue() {
+        auto* q = current();
+        if (q == nullptr) return;
+        binding = true;
+        const auto range = q->getNormalisableRange();
+        const bool stepped = q->getNumSteps() <= 64;
+        value.setRange(range.start, range.end, stepped ? 1.0 : 0.0);
+        value.setDoubleClickReturnValue(true, q->convertFrom0to1(q->getDefaultValue()));
+        value.setValue(q->convertFrom0to1(q->getValue()), juce::dontSendNotification);
+        binding = false;
+        refresh();
+    }
+
+    // Called by the timer as well, so automation, presets and a changed output all show.
+    void refresh() {
+        auto* q = current();
+        if (q == nullptr) return;
+        if (!value.isMouseButtonDown()) { binding = true; value.setValue(q->convertFrom0to1(q->getValue()), juce::dontSendNotification); binding = false; }
+        const auto text = valueText(*q);
+        const auto stamp = text + juce::String(processor.clockChannel) + juce::String(processor.clockSetting) + previewStamp();
+        getProperties().set("setting", settings()[processor.clockSetting].label);
+        getProperties().set("value", text);
+        getProperties().set("output", processor.clockChannel + 1);
+        if (stamp != lastStamp) { lastStamp = stamp; repaint(); }
+    }
+
+    void channelChanged() { bindValue(); repaint(); }
+
+    void resized() override {
+        select.setBounds(potX(0) - potR - knobPad, potY - potR - knobPad, 2 * (potR + knobPad), 2 * (potR + knobPad));
+        value.setBounds(potX(1) - potR - knobPad, potY - potR - knobPad, 2 * (potR + knobPad), 2 * (potR + knobPad));
+    }
+
+    void paint(juce::Graphics& g) override {
+        const auto screen = screenBounds();
+        g.setColour(juce::Colours::white.withAlpha(0.18f));
+        g.fillRoundedRectangle(screen.expanded(2.5f).translated(0.5f, 1.0f), 4.0f);
+        g.setGradientFill(juce::ColourGradient(juce::Colour(0xff2a2925), 0, screen.getY(), juce::Colour(0xff53514a), 0, screen.getBottom(), false));
+        g.fillRoundedRectangle(screen.expanded(2.0f), 4.0f);
+        g.setColour(screenFill);
+        g.fillRoundedRectangle(screen, 2.5f);
+
+        auto* q = current();
+        // Left: what is being edited.
+        auto left = screen.reduced(10, 6).withWidth(186);
+        g.setFont(displayFont(11.0f));
+        g.setColour(amberDim.brighter(0.4f));
+        g.drawText("OUTPUT " + juce::String(processor.clockChannel + 1), left.withHeight(15), juce::Justification::centredLeft);
+        g.setFont(displayFont(12.5f));
+        g.drawText(settings()[processor.clockSetting].label, left.withTrimmedTop(16).withHeight(17), juce::Justification::centredLeft);
+        g.setFont(displayFont(24.0f));
+        if (q != nullptr) drawGlowText(g, valueText(*q), left.withTrimmedTop(35).toNearestInt(), juce::Justification::centredLeft);
+
+        // Middle: every setting, with the selected one lit.
+        for (int i = 0; i < numSettings; ++i) {
+            const auto cell = settingCell(i);
+            const bool on = i == processor.clockSetting;
+            if (on) { g.setColour(amber); g.fillRoundedRectangle(cell, 1.5f); }
+            g.setColour(on ? screenFill : amberDim.brighter(0.25f));
+            g.setFont(displayFont(9.5f));
+            g.drawText(settings()[i].label, cell, juce::Justification::centred);
+        }
+
+        // Right: the output's shape, or its Euclidean pattern.
+        paintPreview(g, screen.withLeft(screen.getRight() - 136).reduced(10, 10));
+
+        // Glass.
+        g.setGradientFill(juce::ColourGradient(juce::Colours::white.withAlpha(0.08f), 0, screen.getY(), juce::Colours::transparentWhite, 0, screen.getCentreY(), false));
+        g.fillRoundedRectangle(screen.withHeight(screen.getHeight() * 0.5f), 2.5f);
+
+        for (const auto& [index, label] : { std::pair<int, const char*>(0, "SELECT"), std::pair<int, const char*>(1, "VALUE") }) {
+            Item item;
+            item.kind = "knob";
+            item.attrs["cx"] = juce::String(potX(index));
+            item.attrs["cy"] = juce::String(potY + designH);   // the drawer's printing is light
+            item.attrs["r"] = juce::String(potR);
+            item.attrs["label"] = label;
+            paintKnobPrinting(g, item, 0.0f, -(float)designH);
+        }
+    }
+
+    void mouseDown(const juce::MouseEvent& e) override {   // the settings on the screen can be picked directly
+        for (int i = 0; i < numSettings; ++i)
+            if (settingCell(i).contains(e.position)) select.setValue(i, juce::sendNotificationSync);
+    }
+
+    bool hitTest(int x, int y) override {   // the screen and the pots: the rest of this area belongs to what is beneath it
+        return screenBounds().contains((float)x, (float)y) || select.getBounds().contains(x, y) || value.getBounds().contains(x, y);
+    }
+
+    static constexpr int lcdX = 354, lcdY = 0, lcdW = 590, lcdH = 86;   // inside this component
+    static constexpr int potY = 30, potR = 22;
+    static int potX(int index) { return lcdX + lcdW + 58 + index * 96; }
+    static juce::Rectangle<float> screenBounds() { return { (float)lcdX, (float)lcdY + 2, (float)lcdW, (float)lcdH - 4 }; }
+
+private:
+    juce::Rectangle<float> settingCell(int i) const {
+        const auto s = screenBounds();
+        const float w = 50.0f, h = 21.0f, x0 = s.getX() + 202.0f, y0 = s.getY() + 9.0f;
+        return { x0 + (float)(i % 5) * (w + 0.0f), y0 + (float)(i / 5) * (h + 1.0f), w - 2.0f, h };
+    }
+
+    static juce::String valueText(juce::RangedAudioParameter& q) {
+        if (q.getNumSteps() <= 64 && dynamic_cast<juce::AudioParameterChoice*>(&q) != nullptr) return q.getCurrentValueAsText();
+        const float v = q.convertFrom0to1(q.getValue());
+        return q.getNumSteps() <= 64 ? juce::String(juce::roundToInt(v)) : juce::String(v, 1);
+    }
+
+    float channelValue(const char* suffix) const {
+        return processor.apvts.getRawParameterValue("k" + juce::String(processor.clockChannel + 1) + "_" + suffix)->load();
+    }
+
+    juce::String previewStamp() const {
+        return juce::String(channelValue("shape")) + "/" + juce::String(channelValue("width")) + "/" + juce::String(channelValue("steps")) + "/" + juce::String(channelValue("fill")) + "/" + juce::String(channelValue("rot"));
+    }
+
+    void paintPreview(juce::Graphics& g, juce::Rectangle<float> r) const {
+        const int steps = juce::roundToInt(channelValue("steps"));
+        if (steps > 0) {   // the pattern, as dots
+            const int fill = juce::roundToInt(channelValue("fill")), rotate = juce::roundToInt(channelValue("rot"));
+            const int perRow = juce::jmin(steps, 8), rows = (steps + perRow - 1) / perRow;
+            const float cell = juce::jmin(r.getWidth() / (float)perRow, r.getHeight() / (float)rows);
+            for (int i = 0; i < steps; ++i) {
+                const auto dot = juce::Rectangle<float>(cell * 0.7f, cell * 0.7f).withCentre({ r.getX() + cell * ((float)(i % perRow) + 0.5f), r.getY() + cell * ((float)(i / perRow) + 0.5f) });
+                if (ms::WorkoutClock::euclid(steps, fill, rotate, i)) { g.setColour(amber); g.fillEllipse(dot); }
+                else { g.setColour(amberDim); g.drawEllipse(dot, 1.0f); }
+            }
+            return;
+        }
+        // One cycle of the shape.
+        const int shape = juce::roundToInt(channelValue("shape"));
+        const float width = channelValue("width") * 0.01f;
+        juce::Path path;
+        const float mid = r.getCentreY(), half = r.getHeight() * 0.5f - 2.0f;
+        for (int i = 0; i <= 100; ++i) {
+            const float t = (float)i / 100.0f;
+            float v = 0.0f;
+            switch (shape) {
+                case ms::WorkoutClock::GATE: v = t < width ? 1.0f : -1.0f; break;
+                case ms::WorkoutClock::TRIG: v = t < 0.06f ? 1.0f : -1.0f; break;
+                case ms::WorkoutClock::SAW: v = 1.0f - 2.0f * t; break;
+                case ms::WorkoutClock::RAMP: v = 2.0f * t - 1.0f; break;
+                case ms::WorkoutClock::TRI: v = t < 0.5f ? 4.0f * t - 1.0f : 3.0f - 4.0f * t; break;
+                case ms::WorkoutClock::SINE: v = std::sin(t * juce::MathConstants<float>::twoPi); break;
+                default: { static const float held[5] = { 0.4f, -0.7f, 0.9f, -0.2f, 0.6f }; v = held[juce::jmin(4, (int)(t * 5.0f))]; break; }
+            }
+            const juce::Point<float> at(r.getX() + t * r.getWidth(), mid - v * half);
+            if (i == 0) path.startNewSubPath(at); else path.lineTo(at);
+        }
+        g.setColour(amber);
+        g.strokePath(path, juce::PathStrokeType(1.6f));
+    }
+
+    MillstoneProcessor& processor;
+    ParamSlider select, value;
+    bool binding = false;
+    juce::String lastStamp;
+};
+
 MillstoneEditor::MillstoneEditor(MillstoneProcessor& p)
     : juce::AudioProcessorEditor(p), processor(p), lnf(std::make_unique<LookAndFeel>()), art(sharedPanelArt()) {
     setLookAndFeel(lnf.get());
@@ -1432,9 +1632,13 @@ MillstoneEditor::MillstoneEditor(MillstoneProcessor& p)
     presetBar->onPatch = [this] { setPatchBayOpen(!processor.patchBayOpen); };
     content.addAndMakeVisible(*presetBar);
 
-    drawerTabs = std::make_unique<DrawerTabs>(processor, [this] { timerCallback(); });
+    drawerTabs = std::make_unique<DrawerTabs>(processor, [this] { clockLcd->channelChanged(); timerCallback(); });
     drawerTabs->setBounds(58, 890, 350, 84);
     content.addAndMakeVisible(*drawerTabs);
+
+    clockLcd = std::make_unique<ClockLcd>(processor);
+    clockLcd->setBounds(58, 884, 1360, 88);
+    content.addChildComponent(*clockLcd);
 
     patchBay = std::make_unique<PatchBay>(processor);
     patchBay->setBounds(0, designH, designW, drawerH);
@@ -1488,6 +1692,8 @@ void MillstoneEditor::timerCallback() {
         }
         c->setVisible(show);
     }
+    clockLcd->setVisible(processor.drawerPage == 1);
+    clockLcd->refresh();
     presetBar->sync();
     patchBay->sync();
 }
@@ -1549,6 +1755,11 @@ juce::StringArray MillstoneEditor::layoutProblems() {
     static Item clockButtons;
     clockButtons.attrs["page"] = "clock";
     parts.push_back({ "clock output buttons", { 150, 930, 246, 26 }, &clockButtons, true });
+    parts.push_back({ "clock LCD", { 410, 884, 594, 86 }, &clockButtons, true });
+    parts.push_back({ "clock SELECT", { 1060 - 30.5f, 914 - 30.5f, 61, 61 }, &clockButtons, true, true });
+    parts.push_back({ "clock VALUE", { 1156 - 30.5f, 914 - 30.5f, 61, 61 }, &clockButtons, true, true });
+    parts.push_back({ "clock SELECT label", { 1035, 946, 50, 13 }, &clockButtons, true });
+    parts.push_back({ "clock VALUE label", { 1135, 946, 44, 13 }, &clockButtons, true });
 
     // Two things can only collide if they can be on screen together.
     const auto together = [](const Item& a, const Item& b) {

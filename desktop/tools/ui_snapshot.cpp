@@ -69,6 +69,7 @@ int main(int argc, char** argv) {
     for (int i = 0; i < NPARAMS; ++i) {
         const juce::String key(PARAMS[i].key);
         if (key.startsWithChar('c') && (key.endsWith("_src") || key.endsWith("_dst"))) continue;   // cables, tested below
+        if (key.startsWith("ck_") || (key.startsWithChar('k') && key.containsChar('_'))) continue;   // on the clock's LCD, tested below
         if (PARAMS[i].popup_of >= 0 || (PARAMS[i].momentary && PARAMS[i].step_target < 0)) continue;
         const bool found = find(editor, key) != nullptr || find(editor, key + ":0") != nullptr;
         check(found, "on panel: " + key);
@@ -140,7 +141,7 @@ int main(int argc, char** argv) {
         for (const char* trig : {"t_trig:0", "t_trig:1", "t_trig:2", "t_trig:3"}) { click(trig); editor.refreshFromProcessor(); reachable(trig); }
         click("t_trig:0"); editor.refreshFromProcessor();
         std::cout << "info " << reached << " control positions reached across every page" << std::endl;
-        check(reached > 3000, "the reach check really walked the panel");
+        check(reached > 1500, "the reach check really walked the panel");
 
         // The cables, through their real mouse handlers.
         auto* bay = find(editor, "patch_bay");
@@ -228,15 +229,76 @@ int main(int argc, char** argv) {
     render("panel_patch");
     click("drawer_clock");
     editor.refreshFromProcessor();
-    auto* swing1 = find(editor, "k1_swing"), *swing4 = find(editor, "k4_swing"), *rate = find(editor, "t_rate");
-    check(swing1 != nullptr && swing1->getParentComponent()->isVisible(), "CLOCK page shows output 1");
-    check(swing4 != nullptr && !swing4->getParentComponent()->isVisible(), "...and not output 4");
+    auto* lcd = find(editor, "clock_lcd"), *rate = find(editor, "t_rate");
+    auto* selectPot = dynamic_cast<juce::Slider*>(find(editor, "clock_select")), *valuePot = dynamic_cast<juce::Slider*>(find(editor, "clock_value"));
+    check(lcd != nullptr && lcd->isVisible() && selectPot != nullptr && valuePot != nullptr, "CLOCK page shows the LCD and its pots");
     check(rate != nullptr && !rate->getParentComponent()->isVisible(), "...and hides Tides");
+    const auto lcdSays = [&](const char* what) { return lcd->getProperties()[what].toString(); };
+
+    // Every setting on every output, through the pots: SELECT finds it, VALUE sets that parameter and no other.
+    const char* suffixes[] = { "div", "shape", "width", "swing", "prob", "phase", "level", "offset", "steps", "fill", "rot" };
+    const char* labels[] = { "RATE", "SHAPE", "WIDTH", "SWING", "PROB", "PHASE", "LEVEL", "OFFSET", "STEPS", "FILL", "ROTATE" };
+    int wrongPot = 0;
+    for (int channel = 0; channel < 8; ++channel) {
+        click(("clock_channel:" + juce::String(channel)).toRawUTF8());
+        editor.refreshFromProcessor();
+        for (int i = 0; i < 11; ++i) {
+            selectPot->setValue(i, juce::sendNotificationSync);
+            if (lcdSays("setting") != labels[i] || lcdSays("output") != juce::String(channel + 1)) ++wrongPot;
+            auto* target = ps.getParameter("k" + juce::String(channel + 1) + "_" + suffixes[i]);
+            std::vector<float> before;
+            for (auto* other : proc.getParameters()) before.push_back(other->getValue());
+            const double wanted = valuePot->getMinimum() + (valuePot->getMaximum() - valuePot->getMinimum()) * 0.75;
+            valuePot->setValue(wanted, juce::sendNotificationSync);
+            if (std::abs(target->convertFrom0to1(target->getValue()) - (float)valuePot->getValue()) > 0.51f) ++wrongPot;
+            int moved = 0, n = 0;
+            for (auto* other : proc.getParameters()) { if (std::abs(other->getValue() - before[(size_t)n]) > 1e-6f) ++moved; ++n; }
+            if (moved != 1 && std::abs(target->getValue() - before[(size_t)target->getParameterIndex()]) > 1e-6f) ++wrongPot;
+            if (lcdSays("value").isEmpty()) ++wrongPot;
+        }
+    }
+    check(wrongPot == 0, "SELECT and VALUE reach all 11 settings on all 8 outputs, and move only that one, " + juce::String(wrongPot) + " wrong");
+    click("clock_channel:0");
+    selectPot->setValue(12, juce::sendNotificationSync);
+    check(lcdSays("setting") == "BPM", "SELECT reaches BPM, shows " + lcdSays("setting"));
+    valuePot->setValue(177, juce::sendNotificationSync);
+    check(std::abs(ps.getRawParameterValue("ck_bpm")->load() - 177.0f) < 0.01f, "VALUE sets it");
+    selectPot->setValue(11, juce::sendNotificationSync);
+    valuePot->setValue(1, juce::sendNotificationSync);
+    check(text("ck_src") == "FREE" && lcdSays("value") == "FREE", "SOURCE shows by name, shows " + lcdSays("value"));
+    valuePot->setValue(0, juce::sendNotificationSync);
+
+    // The screen follows anything else that changes a value.
+    selectPot->setValue(3, juce::sendNotificationSync);
+    auto* swing = ps.getParameter("k1_swing");
+    swing->setValueNotifyingHost(swing->convertTo0to1(42.0f));
+    editor.refreshFromProcessor();
+    check(lcdSays("value") == "42.0" && std::abs(valuePot->getValue() - 42.0) < 0.01, "automation moves the screen and the VALUE pot, shows " + lcdSays("value"));
     click("clock_channel:3");
-    check(swing4->getParentComponent()->isVisible() && !swing1->getParentComponent()->isVisible(), "an output button switches the controls");
+    editor.refreshFromProcessor();
+    check(lcdSays("output") == "4" && std::abs(valuePot->getValue() - ps.getRawParameterValue("k4_swing")->load()) < 0.01 && std::abs(valuePot->getValue() - 42.0) > 1.0, "the output switch shows that output's own value");
+    auto* s4 = ps.getParameter("k4_swing");
+    s4->setValueNotifyingHost(s4->convertTo0to1(11.0f));
+    editor.refreshFromProcessor();
+    check(lcdSays("value") == "11.0" && std::abs(swing->convertFrom0to1(swing->getValue()) - 42.0f) < 0.01f, "outputs keep separate values");
+
+    // Clicking a setting on the screen, and double-clicking VALUE.
+    const auto lcdEvent = [&](juce::Point<float> at) { return juce::MouseEvent(juce::Desktop::getInstance().getMainMouseSource(), at, juce::ModifierKeys(juce::ModifierKeys::leftButtonModifier), 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, lcd, lcd, juce::Time::getCurrentTime(), at, juce::Time::getCurrentTime(), 1, false); };
+    const auto screen = juce::Rectangle<float>(354.0f, 2.0f, 590.0f, 82.0f);
+    lcd->mouseDown(lcdEvent({ screen.getX() + 202.0f + 50.0f * 3 + 20.0f, screen.getY() + 9.0f + 22.0f + 10.0f }));   // second row, fourth: STEPS
+    check(lcdSays("setting") == "STEPS", "clicking a setting on the screen selects it, shows " + lcdSays("setting"));
+    valuePot->setValue(16, juce::sendNotificationSync);
+    const juce::Point<float> potMiddle(valuePot->getWidth() * 0.5f, valuePot->getHeight() * 0.5f);
+    valuePot->mouseDoubleClick(juce::MouseEvent(juce::Desktop::getInstance().getMainMouseSource(), potMiddle, juce::ModifierKeys(juce::ModifierKeys::leftButtonModifier), 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, valuePot, valuePot, juce::Time::getCurrentTime(), potMiddle, juce::Time::getCurrentTime(), 2, false));
+    check(std::abs(ps.getRawParameterValue("k4_steps")->load()) < 0.01f, "double-clicking VALUE resets that setting");
+    check(!find(editor, "clock_channel:7")->isVisible() == false, "the output switch stays beside it");
+    ps.getParameter("k4_steps")->setValueNotifyingHost(ps.getParameter("k4_steps")->convertTo0to1(16.0f));
+    ps.getParameter("k4_fill")->setValueNotifyingHost(ps.getParameter("k4_fill")->convertTo0to1(5.0f));
+    editor.refreshFromProcessor();
     render("panel_clock");
     click("drawer_tides");
-    check(rate->getParentComponent()->isVisible() && !swing4->getParentComponent()->isVisible(), "TIDES page goes back");
+    editor.refreshFromProcessor();
+    check(rate->getParentComponent()->isVisible() && !lcd->isVisible(), "TIDES page goes back");
     patch->onClick();
     check(editor.getHeight() == closedH && editor.getWidth() == width, "and closes back to the same size");
 

@@ -71,7 +71,8 @@ full three-oscillator sound.
 - The clock (desktop only, `../src/workout_clock.h`) is one shared 8-output clock, an original design in the spirit of
   Pamela's Workout. Each output has a rate, shape, width, swing, probability, phase, level, offset and a Euclidean pattern, and
   patches through the drawer as CLOCK 1 to 8. Trigger inputs fire as a cord rises past a quarter: T TRIG, LFO RST, ENV TRIG,
-  MOD TRIG, and O1 to O3 TRIG, which strike percussive models while a note is held. With SOURCE on SONG it follows Live.
+  MOD TRIG, and O1 to O3 TRIG, which strike percussive models while a note is held. With SOURCE on SONG it follows Live. It is edited on an LCD: the buttons pick the
+  output, SELECT scrolls through the settings (or click one on the screen), and VALUE changes the one selected.
 - Elements (desktop only) replaces Plaits on OSC 1 when its type switch says so, one instance per voice, run at its own 32 kHz
   and resampled. Its exciter takes audio from the patch bay through E STK IN and E BLW IN, and O1 TRIG strikes it again.
 - Each oscillator has an amp switch. AUTO follows VCA MODE. ENV is a plain oscillator with its trigger unpatched, shaped by the VCA

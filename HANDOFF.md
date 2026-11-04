@@ -76,6 +76,4 @@ the way to actually use the synth now; the MPC conversion stays a rebuild for wh
 
 ## Planned
 
-- **An LCD screen for the clock module.** The clock in the drawer should get its own LCD, in the spirit of Pamela's Workout: show
-  and edit the selected output there, rather than with one row of knobs.
 - Sort the `Testing` presets into the library, or drop them.

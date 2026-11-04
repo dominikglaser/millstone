@@ -47,7 +47,7 @@ public:
     int connectCord(int source, int dest, float amount = 50.0f);   // the cord used, the existing one if already patched, or -1 if all are in use
     void disconnectCord(int cord);
     bool patchBayOpen = false;                                     // the drawer, while the window is closed and reopened
-    int drawerPage = 0, clockChannel = 0;                          // which module and clock output it is showing
+    int drawerPage = 0, clockChannel = 0, clockSetting = 0;        // which module, clock output and LCD setting it is showing
 
     struct Preset {
         juce::String name, category;

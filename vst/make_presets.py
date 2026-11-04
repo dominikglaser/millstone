@@ -189,6 +189,52 @@ TESTING = [
     P("P Pressure Play", "Velocity, wheel and pressure patched to the filter and wave", o(1, "Virtual Analog", morph=100), cords(("VEL", "CUTOFF", 60), ("WHEEL", "O1 TIMB", 80), ("AT", "CUTOFF", 40)), cutoff=30, reso=30, release=30),
 ]
 
+# Built around what the newer modules do best. Anything clocked plays while a key is held, and follows the song when it runs.
+ON = dict(vca_mode="ON", release=40)
+OPEN = dict(ON, cutoff=100, reso=0, keytrack=0, vel_filt=0)
+SONG = {
+"Elements": [
+    P("Glass Marimba", "Bright struck bars, short and woody", dict(ELEMENTS), e_model="MODAL", e_strike=90, e_mallet=70, e_strike_t=60, e_geom=55, e_bright=70, e_damp=45, e_pos=40, e_space=25, vel_amp=60),
+    P("Felt Piano", "A soft-hammered string in a warm room", dict(ELEMENTS), e_model="STRING", e_strike=85, e_mallet=20, e_strike_t=30, e_geom=12, e_bright=35, e_damp=55, e_pos=25, e_space=45, vel_amp=70),
+    P("Low Cello", "Bowed low string. Play it slowly", dict(ELEMENTS), o(1, oct=-1), e_model="STRING", e_strike=0, e_bow=85, e_bow_t=40, e_geom=15, e_bright=35, e_damp=75, e_pos=20, e_space=40, e_contour=60),
+    P("Temple Bowl", "A huge struck bowl, long ring", dict(ELEMENTS), e_model="MODAL", e_strike=80, e_mallet=30, e_geom=85, e_bright=45, e_damp=20, e_pos=50, e_space=75, release=60),
+    P("Night Flute", "Airy blown tube", dict(ELEMENTS), e_model="MODAL", e_strike=0, e_blow=85, e_flow=70, e_blow_t=45, e_geom=8, e_bright=55, e_damp=70, e_space=50),
+    P("Harp Cloud", "Each key rings a chord of strings", dict(ELEMENTS), e_model="STRINGS", e_strike=75, e_mallet=35, e_geom=40, e_bright=50, e_damp=55, e_space=65, voices=4),
+    P("Rubber Drum", "Tuned, dead and bouncy", dict(ELEMENTS), e_model="MODAL", e_strike=95, e_mallet=15, e_strike_t=30, e_geom=5, e_bright=30, e_damp=35, e_pos=30, e_space=15),
+    P("Glass Harmonica", "Bowed glass. Pressure brings it forward", dict(ELEMENTS), cords(("AT", "E BOW", 40)), e_model="MODAL", e_strike=0, e_bow=55, e_bow_t=65, e_geom=65, e_bright=70, e_damp=65, e_space=60),
+],
+"Tides": [
+    P("Slow Tide Pad", "Saws washing in and out, each voice on its own", o(1, "Virtual Analog", morph=100), o(2, "Virtual Analog", morph=100, fine=9), cords(("TIDES 1", "CUTOFF", 45), ("TIDES 2", "O2 LEVEL", -30)), t_trig="FREE", t_mode="LOOP", t_rate=30, t_shift=70, cutoff=46, reso=20, attack=70, release=78, vel_amp=15),
+    P("Four Winds", "Four related outputs moving four things", o(1, "Wavetable", harm=55, timbre=50, morph=40), o(2, "Wave Terrain", harm=45, fine=6, level=80), cords(("TIDES 1", "O1 TIMB", 40), ("TIDES 2", "O1 MRPH", 40), ("TIDES 3", "O2 TIMB", 40), ("TIDES 4", "CUTOFF", 35)), t_trig="FREE", t_mode="LOOP", t_out="PHASE", t_rate=36, t_shift=80, cutoff=56, attack=62, release=74, vel_amp=15),
+    P("Tide Bass", "Each note fires a curved filter sweep", o(1, "Virtual Analog", oct=-1, morph=100), o(2, "Virtual Analog", oct=-2, morph=0, level=60), cords(("TIDES 1", "CUTOFF", 80)), ON, voice_mode="LEGATO", voices=1, glide=6, t_trig="NOTE", t_mode="AD", t_rate=58, t_shape=30, t_slope=30, cutoff=22, reso=35, release=22),
+    P("Breathing Swarm", "A swarm that swells on the tide", o(1, "Swarm", harm=60, timbre=50, morph=50), cords(("TIDES 1", "O1 LEVEL", 35), ("TIDES 2", "O1 TIMB", 40)), t_trig="FREE", t_mode="LOOP", t_rate=34, t_shift=70, o1_level=60, cutoff=68, attack=55, release=74, vel_amp=15),
+    P("Folded Lead", "Tides pushing the waveshaper", o(1, "Waveshaper", harm=30, timbre=40, morph=50), cords(("TIDES 1", "O1 TIMB", 55)), ON, voice_mode="LEGATO", voices=1, glide=8, t_trig="FREE", t_mode="LOOP", t_rate=54, t_smooth=70, cutoff=78, reso=15, release=30),
+    P("Drift Organ", "An organ whose drawbars never quite settle", o(1, "Additive", harm=35, timbre=40, morph=60), cords(("TIDES 1", "O1 TIMB", 22), ("TIDES 2", "O1 HARM", 18)), t_trig="FREE", t_mode="LOOP", t_rate=32, t_shift=65, cutoff=80, release=25, vel_amp=0, vel_filt=0),
+    P("Tidal Pluck", "Tides shaping the strike of each note", o(1, "Virtual Analog", morph=100), o(2, "Virtual Analog", morph=100, fine=7), cords(("TIDES 1", "CUTOFF", 75), ("TIDES 1", "VCA", 70)), ON, t_trig="NOTE", t_mode="AD", t_rate=64, t_shape=25, cutoff=30, reso=25, release=25),
+    P("Eighths Motion", "Filter and wave moving in time with the song", o(1, "Wavetable", harm=45, timbre=60, morph=35), o(2, "Virtual Analog", morph=100, oct=-1, level=55), cords(("TIDES 1", "CUTOFF", 55), ("TIDES 2", "O1 MRPH", 35)), ON, t_trig="CLOCK", t_mode="LOOP", t_div="1/8", t_shift=60, cutoff=40, reso=35, release=30),
+],
+"Clocked": [
+    P("Four On The Floor", "Hold a key: kick and offbeat hats", o(1, "Bass Drum", harm=25, timbre=35, morph=40), o(3, "Hi-Hat", harm=30, timbre=60, morph=18), cords(("CLOCK 1", "O1 TRIG", 100), ("CLOCK 2", "O3 TRIG", 100)), clock(1, div="x1", shape="TRIG"), clock(2, div="x1", shape="TRIG", phase=50), OPEN, voices=2),
+    P("Euclid Trio", "Hold a key: three interlocking patterns", o(1, "Bass Drum", harm=25, timbre=35, morph=45), o(2, "Snare Drum", harm=45, timbre=50, morph=40), o(3, "Hi-Hat", harm=30, timbre=60, morph=20), cords(("CLOCK 1", "O1 TRIG", 100), ("CLOCK 2", "O2 TRIG", 100), ("CLOCK 3", "O3 TRIG", 100)), clock(1, div="x2", shape="TRIG", steps=16, fill=5), clock(2, div="x2", shape="TRIG", steps=16, fill=3, rot=4), clock(3, div="x4", shape="TRIG", steps=16, fill=11, prob=90), OPEN, voices=2),
+    P("Broken Beat", "Hold a key: swung, with hits that come and go", o(1, "Bass Drum", harm=30, timbre=40, morph=35), o(2, "Snare Drum", harm=60, timbre=60, morph=35), cords(("CLOCK 1", "O1 TRIG", 100), ("CLOCK 2", "O2 TRIG", 100)), clock(1, div="x4", shape="TRIG", steps=16, fill=6, swing=60, prob=85), clock(2, div="x2", shape="TRIG", steps=8, fill=3, rot=2, swing=60), OPEN, voices=2),
+    P("Dub Stabs", "Off-kilter chords re-struck by the clock", o(1, "Chords", harm=30, timbre=40, morph=40), cords(("CLOCK 1", "ENV TRIG", 100)), clock(1, div="x2", shape="TRIG", steps=8, fill=3), decay=46, sustain=0, cutoff=55, reso=25, release=25, voices=4),
+    P("Random Melody", "Sample and hold wanders over a plucked tone", o(1, "Virtual Analog", morph=0, timbre=40), cords(("CLOCK 1", "O1 PITCH", 20), ("CLOCK 2", "ENV TRIG", 100)), clock(1, div="x2", shape="S/H"), clock(2, div="x2", shape="TRIG"), decay=48, sustain=10, cutoff=70, release=25, voices=1),
+    P("Gated Strings", "A soft 16th chop over strings", o(1, "String Machine", harm=45, timbre=55, morph=50), cords(("CLOCK 1", "VCA", -90)), clock(1, div="x4", shape="GATE", width=55, swing=30), ON, cutoff=72, release=40),
+    P("Sidechain Pump", "Every beat ducks a pad, like a compressor", o(1, "Virtual Analog", morph=100), o(2, "Virtual Analog", morph=100, fine=9), cords(("CLOCK 1", "VCA", 90)), clock(1, div="x1", shape="RAMP", level=100, offset=-50), ON, cutoff=62, release=45),
+    P("Polymeter Pad", "Thirds, fourths and fifths drifting against each other", o(1, "Wavetable", harm=55, timbre=55, morph=40), o(2, "Wave Terrain", harm=45, fine=6, level=80), cords(("CLOCK 1", "O1 TIMB", 35), ("CLOCK 2", "O1 MRPH", 35), ("CLOCK 3", "CUTOFF", 30)), clock(1, div="/3", shape="TRI"), clock(2, div="/4", shape="SINE"), clock(3, div="/5", shape="TRI"), cutoff=52, reso=20, attack=62, release=74, vel_amp=15),
+],
+"Patched": [
+    P("Bell Ring", "Two sines ring modulated: bright metal", o(1, "FM 2-Op", **SINE), o(2, "FM 2-Op", semi=7, fine=10, level=0, **SINE), cords(("OSC 2", "VCA", 100)), cutoff=100, reso=0, keytrack=0, vel_filt=0, decay=72, sustain=0, release=60),
+    P("Metal FM", "Stepped FM between oscillators, with an envelope on it", o(1, "FM 2-Op", **SINE), o(3, "FM 2-Op", semi=-5, level=0, **SINE), cords(("OSC 3", "O1 PITCH", 30), ("MOD ENV", "O1 PITCH", 8)), m_decay=52, cutoff=100, reso=0, keytrack=0, vel_filt=0, decay=62, sustain=30, release=40),
+    P("Growl Bass", "An oscillator gnawing at the filter", o(1, "Virtual Analog", oct=-1, morph=100), o(2, "FM 2-Op", oct=-2, level=0, **SINE), cords(("OSC 2", "CUTOFF", 45), ("MOD ENV", "CUTOFF", 35)), ON, voice_mode="LEGATO", voices=1, glide=5, m_decay=50, cutoff=26, reso=45, drive=30, release=22),
+    P("Noise Snarl", "Noise tearing at the level and the filter", o(1, "Virtual Analog", morph=100), o(2, "Virtual Analog", morph=100, fine=8), cords(("NOISE", "VCA", 40), ("NOISE", "CUTOFF", 20)), ON, cutoff=58, reso=30, release=30),
+    P("Feedback Drone", "An oscillator into its own pitch. Move the knobs", o(1, "FM 2-Op", timbre=25, oct=-1), cords(("OSC 1", "O1 PITCH", 14), ("LFO", "O1 TIMB", 20)), ON, lfo_rate=24, cutoff=60, reso=20, attack=45, release=50),
+    P("Touch Morph", "Velocity picks the tone, pressure and the wheel move it", o(1, "Wave Terrain", harm=50, timbre=35, morph=30), cords(("VEL", "O1 TIMB", 45), ("AT", "O1 MRPH", 50), ("WHEEL", "CUTOFF", 40)), cutoff=46, reso=25, release=32),
+    P("Pluck Over Pad", "OSC 1 struck through its LPG, OSC 2 a soft pad", o(1, "FM 2-Op", harm=40, timbre=30, morph=10, amp="LPG"), o(2, "Virtual Analog", morph=100, level=55, amp="ENV"), lpg_decay=46, lpg_colour=40, attack=62, release=70, cutoff=72, vel_amp=30),
+    P("Struck By Osc", "Elements excited by a wavetable, ringing with the note", dict(ELEMENTS), cords(("OSC 2", "E STK IN", 70), ("LFO", "E GEOM", 20)), o(2, "Wavetable", level=0, harm=60, timbre=50, morph_mod=30), lfo_rate=30, e_model="STRING", e_strike=0, e_geom=20, e_damp=65, e_bright=55, e_space=40),
+],
+}
+
 def main():
     spec = json.load(open(os.path.join(HERE, "params.json")))
     params = [p for p in spec["params"] if not p.get("momentary")]
@@ -219,7 +265,8 @@ def main():
     options = {p["key"]: p.get("options") for p in params}
     ranges = {p["key"]: (p.get("min"), p.get("max")) for p in params}
     aliases = {"VEL": "VELOCITY", "AT": "AFTERTOUCH"}   # the jack labels, for readability above
-    for name, note, delta in TESTING:
+    checked = [(category, entry) for category, entries in SONG.items() for entry in entries] + [("Testing", entry) for entry in TESTING]
+    for category, (name, note, delta) in checked:
         assert len(name) <= 24 and name not in seen, name
         seen.add(name)
         values = dict(BASE)
@@ -234,8 +281,8 @@ def main():
             values[k] = v
         if name in trim:
             values["volume"] = trim[name]
-        out.append({"name": name, "category": "Testing", "values": {k: values[k] for k in keys}})
-        table.append(("Testing", name, note))
+        out.append({"name": name, "category": category, "values": {k: values[k] for k in keys}})
+        table.append((category, name, note))
     with open(os.path.join(HERE, "presets.json"), "w") as f:
         json.dump({"presets": out}, f, indent=1)
         f.write("\n")

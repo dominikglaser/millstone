@@ -27,6 +27,7 @@ private:
     struct PresetBar;
     struct PatchBay;
     struct DrawerTabs;
+    struct ClockLcd;
 
     MillstoneProcessor& processor;
     std::unique_ptr<LookAndFeel> lnf;
@@ -37,6 +38,7 @@ private:
     std::vector<std::unique_ptr<juce::Component>> controls;
     std::unique_ptr<PresetBar> presetBar;
     std::unique_ptr<DrawerTabs> drawerTabs;
+    std::unique_ptr<ClockLcd> clockLcd;
     std::unique_ptr<PatchBay> patchBay;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MillstoneEditor)

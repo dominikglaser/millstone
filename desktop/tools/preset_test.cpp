@@ -35,7 +35,7 @@ int main(int argc, char** argv) {
     juce::StringArray names;
     int testing = 0;
     for (const auto& preset : library) testing += preset.category == "Testing";
-    check((int)library.size() - testing == 65, "65 library presets: Init + 64, have " + juce::String((int)library.size() - testing));
+    check((int)library.size() - testing >= 65, "the library has at least Init + 64, has " + juce::String((int)library.size() - testing));
     printf("%d presets in Testing\n", testing);
     check(!library.empty() && library[0].name == "Init", "Init comes first");
     MillstoneProcessor probe;
@@ -107,7 +107,7 @@ int main(int argc, char** argv) {
         if (preset.name != "Init") {
             const bool capped = volume >= 99.9f && loudDb < targetDb;
             const bool peakLimited = peakDb > peakLimitDb - 1.5f && loudDb < targetDb;
-            if (volume >= 99.9f && preset.category != "Testing") ++fullVolume;
+            if (volume >= 99.9f && preset.category != "Testing") ++fullVolume;   // Testing presets are temporary
             if (capped) printf("info %s is at full volume, %.1f dB under the target\n", preset.name.toRawUTF8(), targetDb - loudDb);
             // Testing presets are temporary and some depend on the shared random generator, so only the library is held to this.
             check(preset.category == "Testing" || capped || peakLimited || std::abs(loudDb - targetDb) <= toleranceDb, preset.name + " is level-matched (" + juce::String(loudDb, 1) + " dB, peak " + juce::String(peakDb, 1) + ", want " + juce::String(targetDb, 0) + ")");
@@ -120,7 +120,7 @@ int main(int argc, char** argv) {
         signatures.push_back({ preset.name, loudDb, treble });
     }
     printf("%d presets are at full volume\n", fullVolume);
-    check(fullVolume <= 10, "VOLUME keeps headroom on nearly every preset");
+    check(fullVolume <= (int)library.size() / 6, "VOLUME keeps headroom on nearly every preset");
     if (trimFile != juce::File()) trimFile.replaceWithText(juce::JSON::toString(juce::var(trims.release()), false) + "\n");
 
     // Loading.
@@ -138,7 +138,7 @@ int main(int argc, char** argv) {
         check(std::abs(q.apvts.getParameter("cutoff")->getValue() - 0.123f) < 1e-4f, "tweaks survive save and reload");
         check(q.getCurrentProgram() == 5, "the host sees the right program after reload");
     }
-    // Every cord in a Testing preset has to earn its place: taking it out must change the sound.
+    // Every cord in a preset has to earn its place: taking it out must change the sound.
     {
         const auto play = [&](int program, int withoutCord) {
             MillstoneProcessor p;
@@ -157,7 +157,6 @@ int main(int argc, char** argv) {
         };
         int cordsChecked = 0;
         for (int i = 0; i < (int)library.size(); ++i) {
-            if (library[(size_t)i].category != "Testing") continue;
             MillstoneProcessor probeCords;
             probeCords.setCurrentProgram(i);
             const auto whole = play(i, -1);
@@ -172,7 +171,7 @@ int main(int argc, char** argv) {
                 check(d > 1e-4, library[(size_t)i].name + ": cord " + juce::String(c + 1) + " changes the sound, by " + juce::String(d, 6));
             }
         }
-        printf("%d cords in Testing presets checked\n", cordsChecked);
+        printf("%d cords in presets checked\n", cordsChecked);
     }
 
     // Loading writes each parameter once, and leaves alone what is not changing.

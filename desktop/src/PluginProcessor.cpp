@@ -2,6 +2,7 @@
 #include "PluginEditor.h"
 #include "BinaryData.h"
 #include <limits>
+#include <map>
 
 namespace {
 // Build a stable JUCE parameter id from an engine key (keys are already id-safe: letters, digits, _).
@@ -188,12 +189,17 @@ const std::vector<MillstoneProcessor::Preset>& MillstoneProcessor::factoryPreset
 }
 
 void MillstoneProcessor::applyDefaultsThenValues(const std::vector<std::pair<juce::String, float>>& values) {
-    for (auto* base : getParameters())
-        if (auto* p = dynamic_cast<juce::RangedAudioParameter*>(base))
-            p->setValueNotifyingHost(p->getDefaultValue());
-    for (const auto& [key, value] : values)
-        if (auto* p = apvts.getParameter(key))
-            p->setValueNotifyingHost(p->convertTo0to1(value));
+    // Each parameter is written once, straight to where it is going, and only if it has to move. Resetting everything first
+    // would let the audio thread catch defaults in between: a jump in volume, or a voice mode flip that cuts held notes.
+    std::map<juce::String, float> wanted;
+    for (const auto& [key, value] : values) wanted[key] = value;
+    for (auto* base : getParameters()) {
+        auto* p = dynamic_cast<juce::RangedAudioParameter*>(base);
+        if (p == nullptr) continue;
+        const auto it = wanted.find(p->getParameterID());
+        const float target = it != wanted.end() ? p->convertTo0to1(it->second) : p->getDefaultValue();   // not listed: its default
+        if (std::abs(p->getValue() - target) > 1e-6f) p->setValueNotifyingHost(target);
+    }
 }
 
 int MillstoneProcessor::getCurrentProgram() {

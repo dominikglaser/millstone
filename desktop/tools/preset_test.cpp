@@ -134,6 +134,55 @@ int main(int argc, char** argv) {
         check(std::abs(q.apvts.getParameter("cutoff")->getValue() - 0.123f) < 1e-4f, "tweaks survive save and reload");
         check(q.getCurrentProgram() == 5, "the host sees the right program after reload");
     }
+    // Loading writes each parameter once, and leaves alone what is not changing.
+    {
+        struct Watch : juce::AudioProcessorParameter::Listener {
+            int writes = 0;
+            void parameterValueChanged(int, float) override { ++writes; }
+            void parameterGestureChanged(int, bool) override {}
+        };
+        const auto findPreset = [&](const char* name) { for (int i = 0; i < (int)library.size(); ++i) if (library[(size_t)i].name == name) return i; return -1; };
+        MillstoneProcessor p;
+        p.setCurrentProgram(findPreset("Classic Lead"));
+        Watch volume, mode, cord;
+        p.apvts.getParameter("volume")->addListener(&volume);
+        p.apvts.getParameter("voice_mode")->addListener(&mode);
+        p.apvts.getParameter("c1_src")->addListener(&cord);
+        p.setCurrentProgram(findPreset("Acid Line"));   // LEGATO to LEGATO, a different volume, no cords in either
+        check(volume.writes == 1, "a load writes VOLUME once, not via its default, got " + juce::String(volume.writes));
+        check(mode.writes == 0, "a load leaves an unchanged voice mode alone, got " + juce::String(mode.writes));
+        check(cord.writes == 0, "a load leaves an unchanged cord alone, got " + juce::String(cord.writes));
+        p.apvts.getParameter("volume")->removeListener(&volume);
+        p.apvts.getParameter("voice_mode")->removeListener(&mode);
+        p.apvts.getParameter("c1_src")->removeListener(&cord);
+
+        // A note held across a load with the same voice mode keeps sounding.
+        MillstoneProcessor q;
+        q.setRateAndBufferSizeDetails(44100, 256);
+        q.prepareToPlay(44100, 256);
+        q.setCurrentProgram(findPreset("Classic Lead"));
+        juce::MidiBuffer m;
+        m.addEvent(juce::MidiMessage::noteOn(1, 60, (juce::uint8)100), 0);
+        juce::AudioBuffer<float> b(2, 256);
+        for (int i = 0; i < 80; ++i) { b.clear(); q.processBlock(b, m); m.clear(); }
+        q.setCurrentProgram(findPreset("Acid Line"));
+        float tail = 0;
+        for (int i = 0; i < 120; ++i) { b.clear(); q.processBlock(b, m); if (i > 60) tail = juce::jmax(tail, b.getMagnitude(0, 256)); }
+        check(tail > 1e-3f, "a held note survives loading a preset with the same voice mode, peak " + juce::String(tail, 4));
+
+        // A saved preset from before a parameter existed gets that parameter's default.
+        const auto dir = juce::File::createTempFile("millstone_old_preset");
+        dir.createDirectory();
+        dir.getChildFile("old.millstone").replaceWithText("<MillstonePreset name=\"Old\"><param id=\"cutoff\" value=\"33\"/></MillstonePreset>");
+        MillstoneProcessor u;
+        u.setUserPresetDirectory(dir);
+        u.connectCord(1, 2);
+        u.apvts.getParameter("t_rate")->setValueNotifyingHost(0.9f);
+        check(u.loadUserPreset("Old"), "an older user preset still loads");
+        auto* uc = u.apvts.getParameter("cutoff"), *ut = u.apvts.getParameter("t_rate");
+        check(std::abs(uc->convertFrom0to1(uc->getValue()) - 33.0f) < 0.01f && std::abs(ut->getValue() - ut->getDefaultValue()) < 1e-5f && u.cordSource(0) == 0, "and fills in what it does not list");
+        dir.deleteRecursively();
+    }
     // No leaks between presets: anything one sets is restored by the next.
     {
         MillstoneProcessor a, b;

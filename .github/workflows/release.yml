@@ -1,0 +1,34 @@
+# Build Millstone into a DRAFT GitHub release (millstone-v<version>) on the Open MPC port kit's pinned
+# toolchain: Actions -> "VST release (draft)" -> Run workflow. Both zips are produced (armv7 for Gen1 and
+# Force, aarch64 for Gen2). Install the draft's zip on a device, smoke-test it, then publish the draft, which
+# creates the tag (mpc-vst-plugins docs/RELEASING.md). dry_run keeps the zips and skin previews as run artifacts.
+# The port kit's host test is not wired in: its step_of check double-taps a button within one block, which the
+# wrapper's tap debounce drops (README "Known notes"); run it locally and read the one expected FAIL.
+name: VST release (draft)
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version, e.g. 0.1.0
+        required: true
+      dry_run:
+        description: Build only (zips + skin previews as run artifacts), no draft release
+        type: boolean
+        default: false
+
+jobs:
+  millstone:
+    uses: open-mpc/mpc-vst-plugins/.github/workflows/vst-release.yml@bf1054ce08460cf42b10f96985e73141d64a71af
+    permissions:
+      contents: write
+    with:
+      tag: millstone-v${{ inputs.version }}
+      version: ${{ inputs.version }}
+      tools_ref: bf1054ce08460cf42b10f96985e73141d64a71af
+      vst_dir: vst
+      plugin_id: millstone
+      license: MIT
+      build: bash vst/build.sh all
+      about: Hybrid 8-voice poly synth - three Plaits macro-oscillators per voice, 24 dB ladder LP/HP, ADS envelope, LFO, VCA ENV/LPG/ON.
+      dry_run: ${{ inputs.dry_run }}

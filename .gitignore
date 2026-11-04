@@ -1,0 +1,6 @@
+build/
+dist/
+vst/build/
+*.o
+*.so
+*.wav

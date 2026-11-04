@@ -76,6 +76,16 @@ target_compile_options(millstone_engine PRIVATE -include cstdio -w)
 target_include_directories(millstone_engine PRIVATE
     ${REPO}/src ${REPO}/src/third_party/eurorack ${REPO}/vst/build ${mpcvst_SOURCE_DIR}/wrapper)
 
+# The effects after the engine, on their own so that the test tools can reach them directly. The plate reverb is Rings', which needs
+# the same -DTEST as the engine; C++17 for std::clamp.
+add_library(millstone_fx STATIC
+    src/fx/Chorus.cpp src/fx/FxChain.cpp src/fx/Phaser.cpp src/fx/Reverb.cpp src/fx/SpringReverb.cpp src/fx/TapeDelay.cpp)
+set_target_properties(millstone_fx PROPERTIES CXX_STANDARD 17 CXX_EXTENSIONS ON POSITION_INDEPENDENT_CODE ON)
+target_compile_definitions(millstone_fx PRIVATE TEST)
+target_compile_options(millstone_fx PRIVATE -include cstdio)
+target_include_directories(millstone_fx PRIVATE src/fx ${REPO}/src/third_party/eurorack)
+target_include_directories(millstone_fx INTERFACE src/fx)
+
 juce_add_plugin(Millstone
     PRODUCT_NAME "Millstone"
     COMPANY_NAME "Glaser"
@@ -112,6 +122,7 @@ target_compile_definitions(Millstone PRIVATE
 
 target_link_libraries(Millstone PRIVATE
     millstone_engine
+    millstone_fx
     MillstoneData
     juce::juce_audio_utils
     PUBLIC
@@ -141,6 +152,17 @@ if(MILLSTONE_UI_SNAPSHOT)
         ${REPO}/vst/build
         ${mpcvst_SOURCE_DIR}/wrapper)
     target_link_libraries(millstone_ui_snapshot PRIVATE Millstone millstone_engine MillstoneData juce::juce_audio_utils)
+    add_executable(millstone_fx_test tools/fx_test.cpp)
+    set_target_properties(millstone_fx_test PROPERTIES CXX_STANDARD 17)
+    target_link_libraries(millstone_fx_test PRIVATE millstone_fx)
+    add_executable(millstone_fx_plugin_test tools/fx_plugin_test.cpp)
+    target_include_directories(millstone_fx_plugin_test PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${REPO}/src
+        ${REPO}/src/third_party/eurorack
+        ${REPO}/vst/build
+        ${mpcvst_SOURCE_DIR}/wrapper)
+    target_link_libraries(millstone_fx_plugin_test PRIVATE Millstone millstone_engine MillstoneData juce::juce_audio_utils)
     add_executable(millstone_behaviour_test tools/behaviour_test.cpp)
     target_include_directories(millstone_behaviour_test PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src

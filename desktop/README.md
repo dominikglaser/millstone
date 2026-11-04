@@ -89,3 +89,18 @@ full three-oscillator sound.
 
 Parameters, their ranges and defaults all come from `../vst/params.json`, the same file the MPC skin is built
 from, so the two builds never drift.
+
+## Effects
+
+The strip above the patch bay has four pages: TIDES, CLOCK, DELAY and FX. The effects run after the voices, in this plugin and not the
+shared engine, in the order phaser, chorus, delay, reverb. With all of them off the signal is not touched. The code is in `src/fx/`;
+the chorus, phaser and plate wrapper come from the `plaits-synth` project.
+
+**Delay** is a tape echo for dub. TIME follows the song or is free in ms, and moving it glides the tape, bending the pitch of what is on it.
+REPEATS passes 100%: from there it builds on its own until the tape saturates. HEADS plays any of three heads, at 1x, 2x and 3x TIME.
+LOW CUT and HIGH CUT are 24 dB per octave filters in the loop, so each repeat is thinner and darker. DRIVE is tape saturation, WOW is wow and
+flutter, DUCK holds the echoes down while you play. PING PONG bounces left and right, and WIDTH narrows that down to the centre. With INPUT
+on THROW, only what you play while holding THROW reaches the echo. THROW is a parameter, so Live can map it to a pad.
+
+**Reverb** switches between NORMAL (the plate from Mutable Instruments Rings) and SPRING (three dispersive springs, whose chirp is the DRIP
+knob). KICK bangs the spring tank; it also is a parameter. DECAY changes how long a tail lasts and not how loud held notes are.

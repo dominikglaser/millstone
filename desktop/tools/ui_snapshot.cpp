@@ -131,13 +131,21 @@ int main(int argc, char** argv) {
             walk(editor);
         };
         click("patch_toggle");
-        for (const char* type : {"o1_type:0", "o1_type:1"}) for (const char* sync : {"off", "on"}) for (const char* page : {"drawer_tides", "drawer_clock"}) for (int channel = 0; channel < 8; ++channel) {
+        for (const char* type : {"o1_type:0", "o1_type:1"}) for (const char* sync : {"off", "on"}) for (const char* page : {"drawer_tides", "drawer_clock", "drawer_delay", "drawer_fx"}) for (int channel = 0; channel < 8; ++channel) {
             click(type); click(page); click(("clock_channel:" + juce::String(channel)).toRawUTF8());
             const bool on = text("lfo_sync") == "ON"; if (on != (juce::String(sync) == "on")) click("lfo_sync");
             editor.refreshFromProcessor();
             reachable(juce::String(type) + " " + sync + " " + page + " " + juce::String(channel));
         }
         click("o1_type:0"); click("drawer_tides"); click("clock_channel:0"); if (text("lfo_sync") == "ON") click("lfo_sync");
+        click("drawer_delay");
+        for (const char* sync : {"fx_dl_sync:0", "fx_dl_sync:1"}) for (const char* in : {"fx_dl_in:0", "fx_dl_in:1"}) for (const char* pong : {"fx_dl_pp:0", "fx_dl_pp:1"}) {
+            click(sync); click(in); click(pong); editor.refreshFromProcessor(); reachable(juce::String(sync) + in + pong);
+        }
+        click("fx_dl_in:0"); click("fx_dl_pp:0"); click("fx_dl_sync:1");
+        click("drawer_fx");
+        for (const char* type : {"fx_rv_type:0", "fx_rv_type:1"}) { click(type); editor.refreshFromProcessor(); reachable(type); }
+        click("fx_rv_type:0"); click("drawer_tides"); editor.refreshFromProcessor();
         for (const char* trig : {"t_trig:0", "t_trig:1", "t_trig:2", "t_trig:3"}) { click(trig); editor.refreshFromProcessor(); reachable(trig); }
         click("t_trig:0"); editor.refreshFromProcessor();
         std::cout << "info " << reached << " control positions reached across every page" << std::endl;
@@ -227,6 +235,40 @@ int main(int argc, char** argv) {
     proc.connectCord(14, 22);    // TIDES 2 > T SHAPE
     editor.refreshFromProcessor();
     render("panel_patch");
+    click("drawer_delay");
+    editor.refreshFromProcessor();
+    render("panel_delay");
+    check(find(editor, "fx_dl_fb")->getParentComponent()->isVisible(), "DELAY page shows the delay");
+    check(!find(editor, "t_rate")->getParentComponent()->isVisible(), "...and hides Tides");
+    {
+        auto* divide = find(editor, "fx_dl_div");
+        auto* throwButton = dynamic_cast<juce::Button*>(find(editor, "fx_dl_throw"));
+        check(divide != nullptr && divide->getParentComponent()->isVisible(), "SYNC shows the division");
+        check(!find(editor, "fx_dl_time")->getParentComponent()->isVisible(), "...and hides the time");
+        click("fx_dl_sync:0"); editor.refreshFromProcessor();
+        check(find(editor, "fx_dl_time")->getParentComponent()->isVisible(), "FREE shows the time");
+        click("fx_dl_sync:1"); editor.refreshFromProcessor();
+        check(!find(editor, "fx_dl_throw")->getParentComponent()->isVisible(), "INPUT ON hides THROW");
+        check(!find(editor, "fx_dl_width")->getParentComponent()->isVisible(), "PING PONG off hides WIDTH");
+        click("fx_dl_pp:1"); editor.refreshFromProcessor();
+        check(find(editor, "fx_dl_width")->getParentComponent()->isVisible(), "PING PONG on shows WIDTH");
+        click("fx_dl_pp:0");
+        click("fx_dl_in:1"); editor.refreshFromProcessor();
+        check(throwButton != nullptr && find(editor, "fx_dl_throw")->getParentComponent()->isVisible(), "INPUT THROW shows THROW");
+        throwButton->setState(juce::Button::buttonDown);
+        check(text("fx_dl_throw") == "ON", "THROW is on while held");
+        throwButton->setState(juce::Button::buttonNormal);
+        check(text("fx_dl_throw") == "OFF", "THROW is off when released");
+        click("fx_dl_in:0"); editor.refreshFromProcessor();
+    }
+    click("drawer_fx");
+    click("fx_rv_type:1");
+    editor.refreshFromProcessor();
+    render("panel_fx");
+    check(find(editor, "fx_rv_kick")->getParentComponent()->isVisible(), "SPRING shows KICK");
+    click("fx_rv_type:0");
+    editor.refreshFromProcessor();
+    check(!find(editor, "fx_rv_kick")->getParentComponent()->isVisible(), "NORMAL hides KICK");
     click("drawer_clock");
     editor.refreshFromProcessor();
     auto* lcd = find(editor, "clock_lcd"), *rate = find(editor, "t_rate");

@@ -25,3 +25,8 @@ in `stmlib/dsp/dsp.h`) and `-include cstdio` (`plaits/user_data.h`'s mock flash 
 `printf` without including it).
 
 License: MIT, Emilie Gillet (`src/third_party/eurorack/LICENSE.txt`).
+
+## Mutable Instruments Rings reverb (MIT)
+
+`src/third_party/eurorack/rings/dsp/fx/{fx_engine.h,reverb.h}` come from the same upstream repository, commit `f4cfa76`,
+unchanged, for the desktop plugin's NORMAL reverb (`desktop/src/fx/Reverb.cpp`). The MPC build does not compile them.

@@ -5,6 +5,7 @@
 #pragma once
 #include <juce_audio_processors/juce_audio_processors.h>
 #include "engine_host.h"
+#include "fx/FxChain.h"
 
 class MillstoneProcessor : public juce::AudioProcessor {
 public:
@@ -24,7 +25,7 @@ public:
     bool acceptsMidi() const override { return true; }
     bool producesMidi() const override { return false; }
     bool isMidiEffect() const override { return false; }
-    double getTailLengthSeconds() const override { return 10.0; }   // the longest release
+    double getTailLengthSeconds() const override { return 10.0 + fx.tailSeconds(); }   // the longest release, then the echoes
 
     // Factory presets are also the host's program list. User presets are not: hosts handle a program count that
     // changes at runtime badly.
@@ -69,6 +70,7 @@ public:
 private:
     static juce::AudioProcessorValueTreeState::ParameterLayout makeLayout();
     void pushParamsToEngine();
+    void updateEffects();
     juce::File userPresetFile(const juce::String& name) const;
     void applyDefaultsThenValues(const std::vector<std::pair<juce::String, float>>&);
     float cordValue(int cord, const char* field) const;
@@ -81,6 +83,12 @@ private:
     std::vector<std::atomic<float>*> rawValues;
     std::vector<float> pushedValues;   // what the engine last got: only changes are sent, as a lookup is by name
     double pushedBpm = -1.0;
+    FxChain fx;
+    struct FxValues {
+        std::atomic<float>* phRate, *phDepth, *phFb, *phMix, *chMode, *chMix;
+        std::atomic<float>* dlSync, *dlTime, *dlDiv, *dlFb, *dlIn, *dlThrow, *dlHeads, *dlPp, *dlWidth, *dlLow, *dlHigh, *dlDrive, *dlWow, *dlDuck, *dlMix;
+        std::atomic<float>* rvType, *rvDecay, *rvDiff, *rvDamp, *rvKick, *rvMix, *clockBpm;
+    } fxValues {};
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MillstoneProcessor)
 };

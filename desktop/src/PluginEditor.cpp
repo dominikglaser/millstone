@@ -273,13 +273,16 @@ HeightMap buildHeightMap(float pad) {
         } else if (item.kind == "popup") {
             const float w = (float)item.num("w", 200), h = (float)item.num("h", 38);
             map.rect(cx - w * 0.5f - pad, cy - h * 0.5f - pad, w + 2 * pad, h + 2 * pad, raised);
+        } else if (item.kind == "hold") {
+            const float w = (float)item.num("w", 60), h = (float)item.num("h", 26);
+            map.rect(cx - w * 0.5f - pad, cy - h * 0.5f - pad, w + 2 * pad, h + 2 * pad, raised);
         } else if (item.kind == "button") {
             map.rect(cx - 16 - pad, cy - 16 - pad, 32 + 2 * pad, 32 + 2 * pad, raised);
         } else if (item.kind == "jack") {
             map.circle(cx, cy, 12.5f + pad, raised);
         }
     }
-    map.rect(58 - pad, 914 - pad, 74 + 2 * pad, 55 + 2 * pad, raised);        // drawer page buttons
+    map.rect(54 - pad, 878 - pad, 273 + 2 * pad, 18 + 2 * pad, raised);       // drawer page buttons
     map.rect(150 - pad, 930 - pad, 246 + 2 * pad, 26 + 2 * pad, raised);      // clock output buttons
     map.rect(412 - pad, 884 - pad, 590 + 2 * pad, 86 + 2 * pad, raised);      // clock LCD
     map.circle(58 + 354 + 590 + 58, 884 + 30, 22 + pad, raised);              // clock pots
@@ -480,6 +483,7 @@ juce::Image makePanelArt(bool wear = true, WearCounts* counts = nullptr) {
             g.setColour(ink.withAlpha(tray ? 0.45f : 0.75f));
             g.drawRoundedRectangle(r, 3.0f, 1.2f);
             const auto title = item.str("title");
+            if (title.isEmpty()) continue;
             const auto font = printFont(11.5f, true, 0.20f);
             const float titleW = juce::GlyphArrangement::getStringWidth(font, title) + 22.0f;
             const auto strip = juce::Rectangle<float>(r.getX(), r.getY(), titleW, 19.0f);
@@ -848,6 +852,56 @@ private:
 };
 
 // The - / + model buttons, small rubber caps. Same behaviour as the MPC build: wraps around the list.
+// Sounds only while it is held down, like the send on a dub desk. It is an ordinary parameter, so a host can map it to a pad.
+class HoldControl : public Control {
+public:
+    HoldControl(const Item& item, juce::AudioProcessorValueTreeState& apvts) : button(item.str("label")) {
+        auto* param = apvts.getParameter(item.str("key"));
+        jassert(param != nullptr);
+        const int w = item.num("w", 60), h = item.num("h", 26);
+        setBounds(item.num("cx") - w / 2, item.num("cy") - h / 2, w, h);
+        setInterceptsMouseClicks(false, true);
+        button.setComponentID(item.str("key"));
+        button.setBounds(getLocalBounds());
+        attachment = std::make_unique<juce::ParameterAttachment>(*param, [this](float v) { button.setToggleState(v > 0.5f, juce::dontSendNotification); });
+        button.onStateChange = [this] { hold(button.isDown()); };
+        addAndMakeVisible(button);
+        attachment->sendInitialUpdate();
+    }
+    ~HoldControl() override { hold(false); }
+private:
+    void hold(bool down) {
+        if (down == held) return;
+        held = down;
+        attachment->setValueAsCompleteGesture(down ? 1.0f : 0.0f);
+    }
+    Segment button;
+    bool held = false;
+    std::unique_ptr<juce::ParameterAttachment> attachment;
+};
+
+// A printed group name with a rule either side, for a page that holds several effects.
+class HeadingControl : public Control {
+public:
+    explicit HeadingControl(const Item& item) : title(item.str("label")) {
+        const int w = item.num("w", 100);
+        setBounds(item.num("cx") - w / 2, item.num("cy") - 7, w, 14);
+        setInterceptsMouseClicks(false, false);
+    }
+    void paint(juce::Graphics& g) override {
+        const auto font = printFont(10.5f, true, 0.2f);
+        const float textW = juce::GlyphArrangement::getStringWidth(font, title) + 14.0f, y = (float)getHeight() * 0.5f, w = (float)getWidth();
+        g.setColour(cream.withAlpha(0.45f));
+        g.drawLine(0.0f, y, (w - textW) * 0.5f, y, 1.0f);
+        g.drawLine((w + textW) * 0.5f, y, w, y, 1.0f);
+        g.setColour(cream);
+        g.setFont(font);
+        g.drawText(title, getLocalBounds(), juce::Justification::centred);
+    }
+private:
+    juce::String title;
+};
+
 class StepControl : public Control {
 public:
     StepControl(const Item& item, juce::AudioProcessorValueTreeState& apvts) : button(item.str("label")) {
@@ -1366,6 +1420,7 @@ private:
 
 // The drawer's page buttons, and the clock's output buttons.
 struct MillstoneEditor::DrawerTabs : juce::Component {
+    static constexpr int numPages = 4;
     DrawerTabs(MillstoneProcessor& p, std::function<void()> changed) : processor(p), onChanged(std::move(changed)) {
         setInterceptsMouseClicks(false, true);
         const auto add = [this](const juce::String& text, const juce::String& id, juce::Rectangle<int> bounds, std::function<void()> click) {
@@ -1376,24 +1431,26 @@ struct MillstoneEditor::DrawerTabs : juce::Component {
             addAndMakeVisible(b);
             return b;
         };
-        add("TIDES", "drawer_tides", { 0, 24, 74, 26 }, [this] { processor.drawerPage = 0; });
-        add("CLOCK", "drawer_clock", { 0, 53, 74, 26 }, [this] { processor.drawerPage = 1; });
+        const char* names[numPages] = { "TIDES", "CLOCK", "DELAY", "FX" };
+        const char* ids[numPages] = { "drawer_tides", "drawer_clock", "drawer_delay", "drawer_fx" };
+        for (int page = 0; page < numPages; ++page)
+            add(names[page], ids[page], { page * 69, 0, 66, 18 }, [this, page] { processor.drawerPage = page; });
         for (int c = 0; c < 8; ++c)
-            add(juce::String(c + 1), "clock_channel:" + juce::String(c), { 92 + c * 31, 40, 29, 26 }, [this, c] { processor.clockChannel = c; });
+            add(juce::String(c + 1), "clock_channel:" + juce::String(c), { 96 + c * 31, 52, 29, 26 }, [this, c] { processor.clockChannel = c; });
         refresh();
     }
     void paint(juce::Graphics& g) override {
         if (processor.drawerPage != 1) return;
         g.setColour(cream);
         g.setFont(printFont(10.5f));
-        g.drawText("OUTPUT", 92, 23, 246, 14, juce::Justification::centred);
+        g.drawText("OUTPUT", 96, 35, 246, 14, juce::Justification::centred);
     }
     void refresh() {
-        buttons[0]->setToggleState(processor.drawerPage == 0, juce::dontSendNotification);
-        buttons[1]->setToggleState(processor.drawerPage == 1, juce::dontSendNotification);
+        for (int page = 0; page < numPages; ++page)
+            buttons[page]->setToggleState(processor.drawerPage == page, juce::dontSendNotification);
         for (int c = 0; c < 8; ++c) {
-            buttons[c + 2]->setVisible(processor.drawerPage == 1);
-            buttons[c + 2]->setToggleState(processor.clockChannel == c, juce::dontSendNotification);
+            buttons[c + numPages]->setVisible(processor.drawerPage == 1);
+            buttons[c + numPages]->setToggleState(processor.clockChannel == c, juce::dontSendNotification);
         }
         repaint();
     }
@@ -1617,6 +1674,8 @@ MillstoneEditor::MillstoneEditor(MillstoneProcessor& p)
         else if (item.kind == "toggle") c = std::make_unique<ToggleControl>(item, processor.apvts);
         else if (item.kind == "popup") c = std::make_unique<PopupControl>(item, processor.apvts, *lnf);
         else if (item.kind == "button") c = std::make_unique<StepControl>(item, processor.apvts);
+        else if (item.kind == "hold") c = std::make_unique<HoldControl>(item, processor.apvts);
+        else if (item.kind == "heading") c = std::make_unique<HeadingControl>(item);
         if (c == nullptr) continue;
         const auto when = item.str("when");
         c->whenKey = when.upToFirstOccurrenceOf(":", false, false);
@@ -1633,12 +1692,13 @@ MillstoneEditor::MillstoneEditor(MillstoneProcessor& p)
     content.addAndMakeVisible(*presetBar);
 
     drawerTabs = std::make_unique<DrawerTabs>(processor, [this] { clockLcd->channelChanged(); timerCallback(); });
-    drawerTabs->setBounds(58, 890, 350, 84);
+    drawerTabs->setBounds(54, 878, 350, 96);
     content.addAndMakeVisible(*drawerTabs);
 
     clockLcd = std::make_unique<ClockLcd>(processor);
     clockLcd->setBounds(58, 884, 1360, 88);
     content.addChildComponent(*clockLcd);
+    drawerTabs->toFront(false);
 
     patchBay = std::make_unique<PatchBay>(processor);
     patchBay->setBounds(0, designH, designW, drawerH);
@@ -1682,7 +1742,8 @@ void MillstoneEditor::timerCallback() {
     for (auto& base : controls) {   // RATE swaps with DIVISION, and PHASE appears, when SYNC is on
         auto* c = static_cast<Control*>(base.get());
         if (c->whenKey.isEmpty() && c->page.isEmpty()) continue;
-        bool show = c->page.isEmpty() || c->page == (processor.drawerPage == 0 ? "tides" : "clock");
+        static const char* const pageNames[] = { "tides", "clock", "delay", "fx" };
+        bool show = c->page.isEmpty() || c->page == pageNames[juce::jlimit(0, 3, processor.drawerPage)];
         if (c->channel >= 0 && c->channel != processor.clockChannel) show = false;
         if (show && c->whenKey.isNotEmpty()) {
             auto* p = processor.apvts.getParameter(c->whenKey);
@@ -1718,7 +1779,7 @@ juce::StringArray MillstoneEditor::layoutProblems() {
         const auto label = item.str("label"), name = item.kind + " " + (item.str("key").isNotEmpty() ? item.str("key") : label);
         if (item.kind == "frame") {
             frames.push_back({ (float)item.num("x"), (float)item.num("y"), (float)item.num("w"), (float)item.num("h") });
-            parts.push_back({ "title " + item.str("title"), { (float)item.num("x"), (float)item.num("y"), juce::GlyphArrangement::getStringWidth(printFont(11.5f, true, 0.20f), item.str("title")) + 22.0f, 19.0f }, &item, false });
+            if (item.str("title").isNotEmpty()) parts.push_back({ "title " + item.str("title"), { (float)item.num("x"), (float)item.num("y"), juce::GlyphArrangement::getStringWidth(printFont(11.5f, true, 0.20f), item.str("title")) + 22.0f, 19.0f }, &item, false });
         } else if (item.kind == "knob") {
             const float r = (float)item.num("r", 20);
             parts.push_back({ name, juce::Rectangle<float>(2 * (r + 8.5f), 2 * (r + 8.5f)).withCentre({ cx, cy }), &item, true, true });
@@ -1740,6 +1801,12 @@ juce::StringArray MillstoneEditor::layoutProblems() {
             const float w = (float)item.num("w", 200), h = (float)item.num("h", 38);
             parts.push_back({ name, { cx - w * 0.5f, cy - h * 0.5f, w, h }, &item, true });
             if (label.isNotEmpty()) parts.push_back({ name + " label", textRect(label, printFont(10.5f), cx, cy - h * 0.5f - 15, 12), &item, true });
+        } else if (item.kind == "hold") {
+            const float w = (float)item.num("w", 60), h = (float)item.num("h", 26);
+            parts.push_back({ name, { cx - w * 0.5f, cy - h * 0.5f, w, h }, &item, true });
+        } else if (item.kind == "heading") {
+            const float w = (float)item.num("w", 100);
+            parts.push_back({ name + " " + label, { cx - w * 0.5f, cy - 5, w, 10 }, &item, true });
         } else if (item.kind == "button") {
             parts.push_back({ name, { cx - 16, cy - 16, 32, 32 }, &item, true });
         } else if (item.kind == "jack") {
@@ -1751,7 +1818,7 @@ juce::StringArray MillstoneEditor::layoutProblems() {
     parts.push_back({ "display", { 438, 11, 614, 66 }, &fixedItem, false });
     parts.push_back({ "preset buttons", { 1066, 17, 152, 58 }, &fixedItem, false });
     parts.push_back({ "model plate", { 1262, 22, 160, 46 }, &fixedItem, false });
-    parts.push_back({ "drawer page buttons", { 58, 914, 74, 55 }, &fixedItem, true });
+    parts.push_back({ "drawer page buttons", { 54, 878, 273, 18 }, &fixedItem, true });
     static Item clockButtons;
     clockButtons.attrs["page"] = "clock";
     parts.push_back({ "clock output buttons", { 150, 930, 246, 26 }, &clockButtons, true });

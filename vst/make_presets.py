@@ -35,6 +35,11 @@ for n in range(1, 9):
     BASE.update({"k%d_%s" % (n, k): v for k, v in dict(div="x1", shape="GATE", width=50, swing=0, prob=100, phase=0, level=100, offset=0, steps=0, fill=4, rot=0).items()})
 
 BASE.update(o1_type="PLAITS", e_model="MODAL", e_contour=100, e_bow=0, e_bow_t=50, e_blow=0, e_flow=50, e_blow_t=50, e_strike=80, e_mallet=50, e_strike_t=50, e_geom=20, e_bright=50, e_damp=25, e_pos=30, e_space=30)
+# Effects are all off in a preset unless it says otherwise, so a sound is what the voices make.
+BASE.update(fx_ph_rate=30, fx_ph_depth=70, fx_ph_fb=30, fx_ph_mix=0, fx_ch_mode="OFF", fx_ch_mix=100,
+            fx_dl_sync="SYNC", fx_dl_time=375, fx_dl_div="1/8 D", fx_dl_fb=45, fx_dl_in="ON", fx_dl_throw="OFF", fx_dl_heads="1", fx_dl_pp="OFF", fx_dl_width=100,
+            fx_dl_low=25, fx_dl_high=70, fx_dl_drive=25, fx_dl_wow=20, fx_dl_duck=0, fx_dl_mix=0,
+            fx_rv_type="NORMAL", fx_rv_decay=50, fx_rv_diff=60, fx_rv_damp=40, fx_rv_kick="OFF", fx_rv_mix=0)
 
 def o(n, model=None, **kw):
     out = {"o%d_on" % n: "ON"}

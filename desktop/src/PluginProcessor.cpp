@@ -1,6 +1,7 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 #include "BinaryData.h"
+#include <cstring>
 #include <limits>
 #include <map>
 
@@ -10,6 +11,9 @@ juce::String pid(const char* key) { return juce::String(key); }
 
 // Hidden: the model prev/next steppers (the model choice covers them) and the MPC skin's popup open/closed flags.
 bool exposedToHost(const param_t& p) { return !p.momentary && p.popup_of < 0; }
+
+// The effects run in this plugin, after the engine, so the engine is not told about them.
+bool isEffect(const param_t& p) { return std::strncmp(p.key, "fx_", 3) == 0; }
 }
 
 juce::AudioProcessorValueTreeState::ParameterLayout MillstoneProcessor::makeLayout() {
@@ -39,8 +43,13 @@ MillstoneProcessor::MillstoneProcessor()
       apvts(*this, nullptr, "PARAMS", makeLayout()) {
     rawValues.assign(NPARAMS, nullptr);
     for (int i = 0; i < NPARAMS; ++i)
-        if (exposedToHost(PARAMS[i]))
+        if (exposedToHost(PARAMS[i]) && !isEffect(PARAMS[i]))
             rawValues[i] = apvts.getRawParameterValue(pid(PARAMS[i].key));
+    const auto value = [this](const char* key) { return apvts.getRawParameterValue(key); };
+    fxValues = { value("fx_ph_rate"), value("fx_ph_depth"), value("fx_ph_fb"), value("fx_ph_mix"), value("fx_ch_mode"), value("fx_ch_mix"),
+                 value("fx_dl_sync"), value("fx_dl_time"), value("fx_dl_div"), value("fx_dl_fb"), value("fx_dl_in"), value("fx_dl_throw"), value("fx_dl_heads"),
+                 value("fx_dl_pp"), value("fx_dl_width"), value("fx_dl_low"), value("fx_dl_high"), value("fx_dl_drive"), value("fx_dl_wow"), value("fx_dl_duck"), value("fx_dl_mix"),
+                 value("fx_rv_type"), value("fx_rv_decay"), value("fx_rv_diff"), value("fx_rv_damp"), value("fx_rv_kick"), value("fx_rv_mix"), value("ck_bpm") };
 }
 
 juce::AudioProcessorEditor* MillstoneProcessor::createEditor() { return new MillstoneEditor(*this); }
@@ -50,6 +59,8 @@ void MillstoneProcessor::prepareToPlay(double sampleRate, int) {
     pushedValues.assign(NPARAMS, std::numeric_limits<float>::quiet_NaN());   // a new engine knows nothing yet
     pushedBpm = -1.0;
     pushParamsToEngine();
+    fx.prepare(sampleRate);
+    updateEffects();
 }
 
 bool MillstoneProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const {
@@ -69,6 +80,43 @@ void MillstoneProcessor::pushParamsToEngine() {
             std::snprintf(buf, sizeof buf, "%g", v);
         engine.setParam(PARAMS[i].key, buf);
     }
+}
+
+void MillstoneProcessor::updateEffects() {
+    const auto percent = [](std::atomic<float>* v) { return v->load() * 0.01f; };
+    const auto option = [](std::atomic<float>* v) { return (int)std::lround(v->load()); };
+    FxChain::Settings s;
+    s.phaserRateHz = 0.05f * std::pow(160.0f, percent(fxValues.phRate));   // 0.05 to 8 Hz, evenly by ear
+    s.phaserDepth = percent(fxValues.phDepth);
+    s.phaserFeedback = percent(fxValues.phFb) * 0.9f;
+    s.phaserMix = percent(fxValues.phMix);
+    s.chorusMode = static_cast<ChorusMode>(option(fxValues.chMode));
+    s.chorusMix = percent(fxValues.chMix);
+
+    // The song's tempo, or with no song playing (the standalone app) the instrument's own clock.
+    const double bpm = pushedBpm > 0.0 ? pushedBpm : (double)fxValues.clockBpm->load();
+    s.delay.timeSeconds = option(fxValues.dlSync) == 1 ? (float)(delayDivisionBeats(option(fxValues.dlDiv)) * 60.0 / bpm) : fxValues.dlTime->load() * 0.001f;
+    s.delay.repeats = percent(fxValues.dlFb);
+    s.delay.send = option(fxValues.dlIn) == 0 ? 1.0f : 0.0f;   // ON: everything goes in. THROW: only what THROW lets in.
+    s.delay.throwOn = option(fxValues.dlThrow) == 1;
+    static constexpr int headsMask[] = { 1, 2, 4, 3, 5, 6, 7 };
+    s.delay.heads = headsMask[juce::jlimit(0, 6, option(fxValues.dlHeads))];
+    s.delay.pingPong = option(fxValues.dlPp) == 1;
+    s.delay.width = percent(fxValues.dlWidth);
+    s.delay.lowCutHz = 20.0f * std::pow(100.0f, percent(fxValues.dlLow));    // 20 Hz to 2 kHz
+    s.delay.highCutHz = 150.0f * std::pow(100.0f, percent(fxValues.dlHigh)); // 150 Hz to 15 kHz
+    s.delay.drive = percent(fxValues.dlDrive);
+    s.delay.wow = percent(fxValues.dlWow);
+    s.delay.duck = percent(fxValues.dlDuck);
+    s.delay.mix = percent(fxValues.dlMix);
+
+    s.reverbType = option(fxValues.rvType) == 1 ? FxChain::ReverbType::spring : FxChain::ReverbType::plate;
+    s.reverbDecay = percent(fxValues.rvDecay);
+    s.reverbDiffusion = percent(fxValues.rvDiff);
+    s.reverbDamping = percent(fxValues.rvDamp);
+    s.reverbMix = percent(fxValues.rvMix);
+    s.springKick = option(fxValues.rvKick) == 1;
+    fx.setSettings(s);
 }
 
 void MillstoneProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midi) {
@@ -102,7 +150,8 @@ void MillstoneProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mi
     float* L = buffer.getWritePointer(0);
     float* R = buffer.getNumChannels() > 1 ? buffer.getWritePointer(1) : L;
     engine.render(L, R, n);
-    if (buffer.getNumChannels() == 1) {} // mono host: L already holds the signal
+    updateEffects();
+    if (R != L) fx.process(L, R, n);
 }
 
 void MillstoneProcessor::processBlockBypassed(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midi) {

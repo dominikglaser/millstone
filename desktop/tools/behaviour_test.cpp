@@ -530,6 +530,45 @@ int main() {
     { MillstoneProcessor p; int helper = 0; for (auto* q : p.getParameters()) if (q->getName(64).containsIgnoreCase("Closed") || dynamic_cast<juce::RangedAudioParameter*>(q)->getParameterID().contains("__open")) ++helper; check(helper == 0, "no internal helper parameters shown to the host", juce::String(helper) + " exposed"); }
     { MillstoneProcessor p; check(p.getTailLengthSeconds() >= 10.0, "host told about the release tail", num(p.getTailLengthSeconds()) + " s"); }
 
+    puts("--- effects");
+    {   // Off: the two channels stay the same and every preset says off.
+        Synth s; s.clean(); s.on(60); auto b = s.run(0.2); (void)b;
+        int on = 0; for (const auto& preset : MillstoneProcessor::factoryPresets()) for (const auto& [key, value] : preset.values)
+            if ((key == "fx_ph_mix" || key == "fx_dl_mix" || key == "fx_rv_mix" || key == "fx_ch_mode") && value != 0.0f) ++on;
+        check(on == 0, "no preset has effects on yet");
+    }
+    {   // The echo of a short note lands on the song's tempo, and moves with it.
+        const auto echoAt = [&](double bpm) {
+            Synth s; s.head.bpm = bpm; s.clean(); s.set("release", 0); s.set("decay", 5); s.set("sustain", 0);
+            s.opt("fx_dl_sync", "SYNC"); s.opt("fx_dl_div", "1/4"); s.set("fx_dl_mix", 50); s.set("fx_dl_fb", 0); s.set("fx_dl_wow", 0);
+            s.run(0.05); s.on(60); auto a = s.run(0.08); s.off(60); auto tail = s.run(1.5);
+            float top = 0; for (float x : a) top = std::max(top, std::abs(x));
+            size_t quiet = 0; while (quiet < tail.size() && std::abs(tail[quiet]) > top * 0.03f) ++quiet;   // the note's own end
+            for (size_t i = quiet + 2000; i < tail.size(); ++i) if (std::abs(tail[i]) > top * 0.1f) return (double)(i + a.size()) / 44100.0;
+            return -1.0;
+        };
+        const double at120 = echoAt(120), at60 = echoAt(60);
+        check(std::abs(at120 - 0.5) < 0.03, "a synced 1/4 at 120 BPM echoes after half a second", num(at120) + " s");
+        check(std::abs(at60 - 1.0) < 0.03, "and at 60 BPM after a whole second", num(at60) + " s");
+    }
+    {   // Stereo, bounded, and a whole chain at full tilt on a loud chord.
+        Synth s; s.opt("fx_ch_mode", "I+II"); s.set("fx_ph_mix", 100); s.set("fx_dl_mix", 100); s.set("fx_dl_fb", 120); s.set("fx_dl_drive", 100); s.opt("fx_dl_sync", "FREE"); s.set("fx_dl_time", 40);
+        s.opt("fx_dl_heads", "1+2+3"); s.opt("fx_rv_type", "SPRING"); s.set("fx_rv_mix", 100); s.set("fx_rv_decay", 100);
+        for (int n : { 36, 48, 55, 60, 64, 67, 72, 79 }) s.on(n, 127);
+        float top = 0; bool bad = false; auto out = s.run(3.0); for (float x : out) { top = std::max(top, std::abs(x)); bad = bad || !std::isfinite(x); }
+        check(!bad && top <= 1.0f, "every effect flat out on a full chord stays within full scale", num(top));
+    }
+    {   // The host's tail knows about the echoes, and an endless one is capped so a bounce still finishes.
+        Synth s; const double plain = s.p->getTailLengthSeconds();
+        s.set("fx_dl_mix", 50); s.set("fx_dl_fb", 50); s.run(0.02); const double some = s.p->getTailLengthSeconds();
+        s.set("fx_dl_fb", 120); s.run(0.02); const double endless = s.p->getTailLengthSeconds();
+        check(some > plain && endless > some && endless < 100.0, "the tail reported follows the delay", num(some) + " " + num(endless) + " s");
+    }
+    {   // Saved and restored with the set.
+        Synth a; a.set("fx_dl_fb", 77); a.opt("fx_rv_type", "SPRING"); juce::MemoryBlock mb; a.p->getStateInformation(mb); Synth b; b.p->setStateInformation(mb.getData(), (int)mb.getSize());
+        check(std::abs(b.p->apvts.getRawParameterValue("fx_dl_fb")->load() - 77.0f) < 0.01f && b.p->apvts.getRawParameterValue("fx_rv_type")->load() > 0.5f, "effect settings come back with the set");
+    }
+
     printf("\n%s (%d failed)\n", failures == 0 ? "PASSED" : "FAILED", failures);
     return failures == 0 ? 0 : 1;
 }

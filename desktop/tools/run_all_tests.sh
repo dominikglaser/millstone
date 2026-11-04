@@ -7,6 +7,8 @@ B=$ROOT/desktop/build
 OUT=$(mktemp -d)
 FAILED=0
 step() { name=$1; shift; if "$@" > "$OUT/$name.txt" 2>&1; then echo "PASS  $name: $(tail -1 "$OUT/$name.txt")"; else echo "FAIL  $name"; grep -E '^FAIL' "$OUT/$name.txt" | head -30; tail -3 "$OUT/$name.txt"; FAILED=1; fi; }
+step fx "$B/millstone_fx_test"
+step fxplugin "$B/millstone_fx_plugin_test"
 step behaviour "$B/millstone_behaviour_test"
 step presets "$B/millstone_preset_test"
 step ui "$B/millstone_ui_snapshot" "$OUT"

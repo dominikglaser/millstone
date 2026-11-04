@@ -10,7 +10,8 @@ constexpr int drawerH = 200, totalH = designH + drawerH;   // the patch bay draw
 constexpr int woodW = 36;
 constexpr int artScale = 2;                       // the static art is rendered at twice the design size, for Retina
 constexpr int knobPad = 8;                        // room around a knob for its shadow, or the control's edge cuts it off
-constexpr bool showWear = false;                  // scratches, gouges, scuffs and rubbed printing: off for now
+constexpr bool showMetalWear = true;              // height-aware scratches on the metal face and its printing
+constexpr bool showWear = false;                  // wear on the other materials (wood, plastic, knob caps): not done yet
 
 const juce::Colour ink(0xff1b1a18), cream(0xffe9e4d4), capFill(0xffd9d3c2), capInk(0xff20201d), screenFill(0xff0d0b08),
                    amber(0xffffb347), amberDim(0xff6e4a1c), ledOn(0xffff4a2a), ledOff(0xff4a1d14);
@@ -217,7 +218,235 @@ void paintFaderPrinting(juce::Graphics& g, const Item& item) {
     g.fillRoundedRectangle(slot, 2.5f);
 }
 
-juce::Image makePanelArt() {
+// ---- wear on the metal ----------------------------------------------------------------------------------------------
+// What each spot on the face is, in design pixels. A scratch has to obey this: it ends where something stands proud of the
+// metal, and it jumps a slot in the metal, because whatever made it was sliding along the surface.
+enum Surface : juce::uint8 { flat, raised, recessed };
+
+struct HeightMap {
+    std::vector<juce::uint8> cells = std::vector<juce::uint8>((size_t)designW * totalH, (juce::uint8)flat);
+    Surface at(float x, float y) const {
+        const int ix = (int)x, iy = (int)y;
+        if (ix < 0 || iy < 0 || ix >= designW || iy >= totalH) return raised;
+        return (Surface)cells[(size_t)iy * designW + (size_t)ix];
+    }
+    void rect(float x, float y, float w, float h, Surface s) {
+        for (int iy = juce::jmax(0, (int)y); iy < juce::jmin(totalH, (int)std::ceil(y + h)); ++iy)
+            for (int ix = juce::jmax(0, (int)x); ix < juce::jmin(designW, (int)std::ceil(x + w)); ++ix)
+                cells[(size_t)iy * designW + (size_t)ix] = s;
+    }
+    void circle(float cx, float cy, float r, Surface s) {
+        for (int iy = juce::jmax(0, (int)(cy - r)); iy < juce::jmin(totalH, (int)std::ceil(cy + r) + 1); ++iy)
+            for (int ix = juce::jmax(0, (int)(cx - r)); ix < juce::jmin(designW, (int)std::ceil(cx + r) + 1); ++ix)
+                if (juce::square((float)ix + 0.5f - cx) + juce::square((float)iy + 0.5f - cy) <= r * r)
+                    cells[(size_t)iy * designW + (size_t)ix] = s;
+    }
+};
+
+std::vector<juce::Point<float>> screwPositions() {
+    const float left = (float)woodW, right = (float)(designW - woodW);
+    return { {left + 12, 12}, {right - 12, 12}, {left + 12, designH - 12.0f}, {right - 12, designH - 12.0f}, {740, designH - 12.0f}, {right - 12, 44},
+             {1255, 44}, {1429, 44}, {left + 12, totalH - 10.0f}, {right - 12, totalH - 10.0f}, {left + 12, designH + 11.0f}, {right - 12, designH + 11.0f} };
+}
+
+// pad grows raised parts, so a scratch stops short of them rather than running under their shadow.
+HeightMap buildHeightMap(float pad) {
+    HeightMap map;
+    for (const auto& item : panelItems()) {
+        const float cx = (float)item.num("cx"), cy = (float)item.num("cy");
+        if (item.kind == "knob") {
+            map.circle(cx, cy, (float)item.num("r", 20) + pad, raised);
+        } else if (item.kind == "fader") {
+            const float h = (float)item.num("h", 160);
+            map.rect(cx - 5 - pad * 0.3f, cy - h * 0.5f + 3, 10 + pad * 0.6f, h - 6, recessed);
+        } else if (item.kind == "enum_v" || item.kind == "enum_h") {
+            const auto* def = findEngineParam(item.str("key"));
+            const int n = def != nullptr ? def->nopts : 1, sw = item.num("sw", 60), sh = item.num("sh", 26);
+            const float w = item.kind == "enum_v" ? (float)sw : (float)(n * sw + (n - 1) * 3), h = item.kind == "enum_v" ? (float)(n * sh + (n - 1) * 3) : (float)sh;
+            map.rect(cx - w * 0.5f - pad, cy - h * 0.5f - pad, w + 2 * pad, h + 2 * pad, raised);
+        } else if (item.kind == "toggle") {
+            map.rect(cx - 15 - pad, cy - 18 - pad, 44 + 2 * pad, 36 + 2 * pad, raised);
+        } else if (item.kind == "popup") {
+            const float w = (float)item.num("w", 200), h = (float)item.num("h", 38);
+            map.rect(cx - w * 0.5f - pad, cy - h * 0.5f - pad, w + 2 * pad, h + 2 * pad, raised);
+        } else if (item.kind == "button") {
+            map.rect(cx - 16 - pad, cy - 16 - pad, 32 + 2 * pad, 32 + 2 * pad, raised);
+        } else if (item.kind == "jack") {
+            map.circle(cx, cy, 12.5f + pad, raised);
+        }
+    }
+    map.rect(438 - pad, 11 - pad, 614 + 2 * pad, 66 + 2 * pad, raised);       // display
+    map.rect(1066 - pad, 17 - pad, 152 + 2 * pad, 58 + 2 * pad, raised);      // preset buttons
+    map.rect(1262 - pad, 22 - pad, 160 + 2 * pad, 46 + 2 * pad, raised);      // model plate
+    for (const auto& p : screwPositions()) map.circle(p.x, p.y, 6.0f + pad, raised);
+    map.rect(0, 0, (float)woodW + pad, (float)totalH, raised);                // wood stands proud of the face
+    map.rect((float)(designW - woodW) - pad, 0, (float)woodW + pad, (float)totalH, raised);
+    map.rect(0, 0, (float)designW, 2 + pad * 0.3f, raised);                   // the casing's lip
+    map.rect(0, (float)designH - 2 - pad * 0.3f, (float)designW, 6 + pad * 0.6f, raised);
+    return map;
+}
+
+// Light comes from the top left. In a groove, the wall nearest the light is in shadow and the far wall catches it, so a
+// scratch's look depends on its direction: one running along the light hardly shows.
+void paintGrooveSegment(juce::Graphics& g, juce::Point<float> a, juce::Point<float> b, float width, float alpha, bool onInk, bool anodised) {
+    const auto d = b - a;
+    const float length = std::sqrt(d.x * d.x + d.y * d.y);
+    if (length < 0.01f) return;
+    juce::Point<float> toLight(-d.y / length, d.x / length);
+    float facing = toLight.x * -0.6f + toLight.y * -0.8f;
+    if (facing < 0) { toLight = -toLight; facing = -facing; }
+    const float wall = width * 0.5f;
+    if (onInk) {   // the ink is gone along here, down to the metal
+        g.setColour(juce::Colour(metalR, metalG, metalB).withAlpha(juce::jmin(1.0f, alpha * 2.0f)));
+        g.drawLine({ a, b }, width + 0.7f);
+    }
+    if (anodised) {   // through the dark coat: the aluminium shows pale, with little to see of the walls
+        g.setColour(juce::Colour(0xffb9b6ab).withAlpha(alpha * 0.75f));
+        g.drawLine({ a, b }, width);
+        return;
+    }
+    g.setColour(juce::Colour(0xff17120b).withAlpha(alpha * (0.25f + 0.75f * facing)));
+    g.drawLine({ a + toLight * wall, b + toLight * wall }, width * 0.8f);
+    g.setColour(juce::Colour(0xfffbf8ee).withAlpha(alpha * (0.45f + 0.55f * facing)));
+    g.drawLine({ a - toLight * wall, b - toLight * wall }, width * 0.8f);
+}
+
+struct InkMap {   // where the printing is, read back from the art
+    std::vector<bool> cells = std::vector<bool>((size_t)designW * designH, false);
+    bool at(float x, float y) const {
+        const int ix = (int)x, iy = (int)y;
+        return ix >= 0 && iy >= 0 && ix < designW && iy < designH && cells[(size_t)iy * designW + (size_t)ix];
+    }
+};
+
+// Could something really have made this mark? Every stroke has to pass as a whole, or it is not drawn at all. It must stay
+// on one flat surface, with room around it for whatever made it, and follow a path a hand or a dragged object can follow.
+bool scratchIsFeasible(const HeightMap& clearance, const std::vector<juce::Point<float>>& stroke, float maxTurnRadians) {
+    if (stroke.size() < 2) return false;
+    for (const auto& p : stroke)
+        if (clearance.at(p.x, p.y) != flat) return false;
+    float turned = 0.0f;
+    for (size_t i = 2; i < stroke.size(); ++i) {
+        const auto d0 = stroke[i - 1] - stroke[i - 2], d1 = stroke[i] - stroke[i - 1];
+        float step = std::atan2(d1.y, d1.x) - std::atan2(d0.y, d0.x);
+        while (step > juce::MathConstants<float>::pi) step -= juce::MathConstants<float>::twoPi;
+        while (step < -juce::MathConstants<float>::pi) step += juce::MathConstants<float>::twoPi;
+        turned += std::abs(step);
+    }
+    return turned <= maxTurnRadians;
+}
+
+void drawScratch(juce::Graphics& g, const InkMap& ink, const std::vector<juce::Point<float>>& stroke, float width, float alpha) {
+    const float count = (float)stroke.size();
+    for (size_t i = 1; i < stroke.size(); ++i) {
+        // pressure builds and fades: scratches taper out rather than ending square
+        const float t = (float)i / count, taper = juce::jmin(1.0f, juce::jmin(t, 1.0f - t) * 6.0f + 0.1f);
+        const bool tray = stroke[i].y >= designH;
+        paintGrooveSegment(g, stroke[i - 1], stroke[i], width * (0.65f + 0.35f * taper), alpha * taper, !tray && ink.at(stroke[i].x, stroke[i].y), tray);
+    }
+}
+
+std::vector<juce::Point<float>> scratchStroke(juce::Random& rng, juce::Point<float> from, float angle, float length, float wander) {
+    const auto to = from.getPointOnCircumference(length, angle);
+    const juce::Point<float> bend = (from + to) * 0.5f + juce::Point<float>((rng.nextFloat() - 0.5f) * length * wander, (rng.nextFloat() - 0.5f) * length * wander);
+    std::vector<juce::Point<float>> points;
+    const int steps = juce::jmax(2, (int)(length / 2.5f));
+    for (int i = 0; i <= steps; ++i) {
+        const float t = (float)i / (float)steps, u = 1.0f - t;
+        points.push_back(from * (u * u) + bend * (2 * u * t) + to * (t * t));
+    }
+    return points;
+}
+
+struct WearCounts { int tried = 0, drawn = 0; };
+
+void paintMetalWear(juce::Graphics& g, const juce::Image& printed, WearCounts* counts) {
+    // The bigger the thing that made a mark, the more open space it needs to have moved through.
+    const HeightMap fingernail = buildHeightMap(3.0f), object = buildHeightMap(7.0f), heavy = buildHeightMap(14.0f);
+    const HeightMap& map = fingernail;
+    InkMap ink;
+    {   // anything much darker than the metal at this stage is printing
+        juce::Image::BitmapData px(printed, juce::Image::BitmapData::readOnly);
+        for (int y = 0; y < designH; ++y)
+            for (int x = 0; x < designW; ++x)
+                ink.cells[(size_t)y * designW + (size_t)x] = px.getPixelColour(x * artScale + 1, y * artScale + 1).getPerceivedBrightness() < 0.42f;
+    }
+    juce::Random rng(2023);
+    const float left = (float)woodW, width = (float)(designW - 2 * woodW), twoPi = juce::MathConstants<float>::twoPi;
+    const auto anywhere = [&] { return juce::Point<float>(left + rng.nextFloat() * width, rng.nextFloat() * totalH); };
+    WearCounts local;
+    // Keeps trying fresh strokes, but never bends the rule to reach the number: a wanted count is only an upper limit.
+    const auto attempt = [&](const HeightMap& clearance, const std::vector<juce::Point<float>>& stroke, float maxTurn, float w, float alpha) {
+        ++local.tried;
+        if (!scratchIsFeasible(clearance, stroke, maxTurn)) return false;
+        ++local.drawn;
+        drawScratch(g, ink, stroke, w, alpha);
+        return true;
+    };
+
+    for (int i = 0; i < 1400; ++i)   // fine scuffing from years of use
+        attempt(fingernail, scratchStroke(rng, anywhere(), rng.nextFloat() * twoPi, 4.0f + rng.nextFloat() * rng.nextFloat() * 42.0f, 0.1f), 0.7f, 0.28f + rng.nextFloat() * 0.22f, 0.10f + rng.nextFloat() * 0.18f);
+    for (int tries = 0, done = 0; tries < 1500 && done < 80; ++tries)   // proper scratches
+        if (attempt(object, scratchStroke(rng, anywhere(), rng.nextFloat() * twoPi, 30.0f + rng.nextFloat() * 130.0f, 0.12f), 0.6f, 0.35f + rng.nextFloat() * 0.3f, 0.26f + rng.nextFloat() * 0.26f)) ++done;
+    for (int tries = 0, done = 0; tries < 500 && done < 6; ++tries) {   // scrapes: parallel lines from one dragged object, all possible or none
+        const auto origin = anywhere();
+        const float angle = rng.nextFloat() * twoPi, length = 30.0f + rng.nextFloat() * 90.0f;
+        const juce::Point<float> across(-std::sin(angle), std::cos(angle));
+        const int lines = 3 + rng.nextInt(6);
+        std::vector<std::vector<juce::Point<float>>> strokes;
+        bool possible = true;
+        for (int i = 0; i < lines && possible; ++i) {
+            strokes.push_back(scratchStroke(rng, origin + across * ((float)i * 2.2f + rng.nextFloat() * 1.6f), angle, length * (0.6f + rng.nextFloat() * 0.5f), 0.02f));
+            possible = scratchIsFeasible(heavy, strokes.back(), 0.15f);
+        }
+        ++local.tried;
+        if (!possible) continue;
+        ++local.drawn;
+        ++done;
+        for (const auto& stroke : strokes) drawScratch(g, ink, stroke, 0.3f + rng.nextFloat() * 0.22f, 0.28f + rng.nextFloat() * 0.26f);
+    }
+    for (int tries = 0, done = 0; tries < 800 && done < 3; ++tries)   // a few real gouges: only where something heavy could have slid
+        if (attempt(heavy, scratchStroke(rng, anywhere(), rng.nextFloat() * twoPi, 50.0f + rng.nextFloat() * 110.0f, 0.1f), 0.45f, 0.9f + rng.nextFloat() * 0.5f, 0.55f)) ++done;
+
+    // Hands: more scuffing along the front edge, and rings worn around the knobs that get used most.
+    for (int i = 0; i < 300; ++i)
+        attempt(fingernail, scratchStroke(rng, { left + rng.nextFloat() * width, designH - rng.nextFloat() * 42.0f }, rng.nextFloat() * twoPi, 5.0f + rng.nextFloat() * 36.0f, 0.1f), 0.7f, 0.3f, 0.12f + rng.nextFloat() * 0.2f);
+    for (const auto& item : panelItems()) {
+        if (item.kind != "knob" || item.num("r") < 26) continue;
+        const juce::Point<float> c((float)item.num("cx"), (float)item.num("cy"));
+        for (int i = 0; i < 26; ++i) {   // a fingertip following the knob: an arc is the path here, so it may turn with it
+            const float radius = (float)item.num("r") + 8.0f + rng.nextFloat() * 8.0f, start = rng.nextFloat() * twoPi, sweep = 0.2f + rng.nextFloat() * 0.8f;
+            std::vector<juce::Point<float>> arc;
+            for (int k = 0; k <= 12; ++k) arc.push_back(c.getPointOnCircumference(radius, start + sweep * (float)k / 12.0f));
+            attempt(fingernail, arc, sweep + 0.1f, 0.3f, 0.09f + rng.nextFloat() * 0.13f);
+        }
+    }
+    if (counts != nullptr) *counts = local;
+
+    // Printing wears thin in tiny flecks, evenly: nothing here says why any one spot would be rubbed harder.
+    const juce::Colour bare(metalR, metalG, metalB);
+    const auto fleck = [&](juce::Point<float> p) {
+        if (!ink.at(p.x, p.y) || map.at(p.x, p.y) != flat) return;
+        const float d = 0.3f + rng.nextFloat() * rng.nextFloat() * 1.5f;
+        g.setColour(bare.withAlpha(0.35f + rng.nextFloat() * 0.55f));
+        g.fillEllipse(p.x, p.y, d, d * (0.5f + rng.nextFloat()));
+    };
+    for (int i = 0; i < 14000; ++i) fleck({ left + rng.nextFloat() * width, rng.nextFloat() * designH });
+
+    // Dings: small dents, shaded for the same light, mostly along the edges.
+    for (int i = 0; i < 40; ++i) {
+        const bool edge = rng.nextBool();
+        const juce::Point<float> p(left + rng.nextFloat() * width, edge ? (rng.nextBool() ? 3.0f + rng.nextFloat() * 8.0f : designH - 3.0f - rng.nextFloat() * 8.0f) : rng.nextFloat() * designH);
+        if (map.at(p.x, p.y) != flat || map.at(p.x + 5, p.y) != flat || map.at(p.x, p.y + 4) != flat || map.at(p.x + 5, p.y + 4) != flat) continue;
+        const float w = 1.2f + rng.nextFloat() * 3.0f, h = 0.8f + rng.nextFloat() * 1.8f;
+        g.setColour(juce::Colour(0xff17120b).withAlpha(0.5f));   // the wall nearest the light is in shadow
+        g.fillEllipse(p.x - 0.4f, p.y - 0.5f, w, h);
+        g.setColour(juce::Colour(0xfff6f3e8).withAlpha(0.6f));
+        g.fillEllipse(p.x + 0.4f, p.y + 0.6f, w, h);
+    }
+}
+
+juce::Image makePanelArt(bool wear = true, WearCounts* counts = nullptr) {
     juce::Image img(juce::Image::RGB, designW * artScale, totalH * artScale, true, juce::SoftwareImageType());
     paintBrushedMetal(img);
     paintWood(img, 0, woodW * artScale, 7);
@@ -298,57 +527,9 @@ juce::Image makePanelArt() {
     g.setFont(printFont(11.5f, true, 0.30f));
     g.drawText("HYBRID POLYPHONIC SYNTHESIZER", juce::Rectangle<float>(left + 20, 52, 352, 16), juce::Justification::centredLeft);
 
-    // Wear: fine scuffing everywhere, heavier at the edges and where hands rest, and a few long gouges.
-    juce::Random rng(2023);
+    if (wear && showMetalWear) paintMetalWear(g, img, counts);
+    juce::Random rng(2023);   // for the materials still behind showWear
     const juce::Rectangle<float> face(left, 0, right - left, (float)designH);
-    paintScratches(g, rng, 1100, face, 34.0f, 0.16f);
-    paintScratches(g, rng, 280, face, 110.0f, 0.30f);
-    paintScratches(g, rng, 46, face, 340.0f, 0.50f);
-    for (int i = 0; showWear && i < 7; ++i) {   // real gouges, where something heavy slid across it
-        const juce::Point<float> a(left + rng.nextFloat() * (right - left), rng.nextFloat() * designH);
-        const auto b = a.getPointOnCircumference(60.0f + rng.nextFloat() * 230.0f, juce::MathConstants<float>::halfPi + (rng.nextFloat() - 0.5f) * 1.5f);
-        juce::Path gouge;
-        gouge.startNewSubPath(a);
-        gouge.quadraticTo((a + b) * 0.5f + juce::Point<float>(rng.nextFloat() * 26.0f - 13.0f, rng.nextFloat() * 26.0f - 13.0f), b);
-        const float w = 0.6f + rng.nextFloat() * 0.7f;
-        g.setColour(juce::Colour(0xff19140e).withAlpha(0.55f));
-        g.strokePath(gouge, juce::PathStrokeType(w + 0.5f), juce::AffineTransform::translation(0.6f, 0.9f));
-        g.setColour(juce::Colour(0xfffbf9f0).withAlpha(0.46f));
-        g.strokePath(gouge, juce::PathStrokeType(w));
-    }
-    paintScratches(g, rng, 200, juce::Rectangle<float>(left, 800, right - left, 64), 60.0f, 0.28f);   // the front edge
-    paintScratches(g, rng, 90, juce::Rectangle<float>(left, 0, 70, (float)designH), 40.0f, 0.24f);
-    paintScratches(g, rng, 90, juce::Rectangle<float>(right - 70, 0, 70, (float)designH), 40.0f, 0.24f);
-    for (const auto& item : panelItems()) {                                                            // a ring worn around well-used knobs
-        if (!showWear || item.kind != "knob" || item.num("r") < 26) continue;
-        const float r = (float)item.num("r") + 11.0f;
-        for (int i = 0; i < 26; ++i) {
-            const float start = rng.nextFloat() * juce::MathConstants<float>::twoPi;
-            juce::Path arc;
-            const float radius = r + rng.nextFloat() * 5.0f;
-            arc.addCentredArc((float)item.num("cx"), (float)item.num("cy"), radius, radius, 0, start, start + 0.2f + rng.nextFloat() * 0.8f, true);
-            g.setColour(juce::Colour(0xfff6f3e8).withAlpha(0.05f + rng.nextFloat() * 0.13f));
-            g.strokePath(arc, juce::PathStrokeType(0.5f));
-        }
-    }
-    // Rubbed-off printing: small flecks of bare metal.
-    const juce::Colour bare(metalR, metalG, metalB);
-    for (int i = 0; showWear && i < 9000; ++i) {
-        const float d = 0.25f + rng.nextFloat() * rng.nextFloat() * 1.3f;
-        g.setColour(bare.withAlpha(0.25f + rng.nextFloat() * 0.5f));
-        g.fillEllipse(left + rng.nextFloat() * (right - left), rng.nextFloat() * designH, d, d * (0.5f + rng.nextFloat()));
-    }
-    // Dings: bright nicks with a shadow, mostly near corners and the front edge.
-    for (int i = 0; showWear && i < 46; ++i) {
-        const bool edge = rng.nextBool();
-        const float x = left + rng.nextFloat() * (right - left);
-        const float y = edge ? (rng.nextBool() ? rng.nextFloat() * 10.0f : designH - rng.nextFloat() * 12.0f) : rng.nextFloat() * designH;
-        const float w = 1.0f + rng.nextFloat() * 3.5f, h = 0.6f + rng.nextFloat() * 1.8f;
-        g.setColour(juce::Colours::black.withAlpha(0.32f));
-        g.fillEllipse(x + 0.5f, y + 0.7f, w, h);
-        g.setColour(juce::Colour(0xfff1eee3).withAlpha(0.55f));
-        g.fillEllipse(x, y, w, h);
-    }
 
     // The display's recess.
     const juce::Rectangle<float> bezel(440, 13, 610, 62);
@@ -695,6 +876,13 @@ private:
 };
 
 } // namespace
+
+namespace {
+const juce::Image& sharedPanelArt() {   // drawn once, then every window of every instance shares it
+    static const juce::Image image = makePanelArt();
+    return image;
+}
+}
 
 struct MillstoneEditor::LookAndFeel : juce::LookAndFeel_V4 {
     LookAndFeel() {
@@ -1160,7 +1348,7 @@ private:
 };
 
 MillstoneEditor::MillstoneEditor(MillstoneProcessor& p)
-    : juce::AudioProcessorEditor(p), processor(p), lnf(std::make_unique<LookAndFeel>()), art(makePanelArt()) {
+    : juce::AudioProcessorEditor(p), processor(p), lnf(std::make_unique<LookAndFeel>()), art(sharedPanelArt()) {
     setLookAndFeel(lnf.get());
     content.setBounds(0, 0, designW, totalH);
     content.setInterceptsMouseClicks(false, true);
@@ -1227,6 +1415,26 @@ void MillstoneEditor::timerCallback() {
     }
     presetBar->sync();
     patchBay->sync();
+}
+
+MillstoneEditor::WearCheck MillstoneEditor::checkWear() {
+    WearCounts counts;
+    const auto clean = makePanelArt(false), worn = makePanelArt(true, &counts);
+    const auto strict = buildHeightMap(0.0f);
+    WearCheck out;
+    out.tried = counts.tried;
+    out.drawn = counts.drawn;
+    juce::Image::BitmapData a(clean, juce::Image::BitmapData::readOnly), b(worn, juce::Image::BitmapData::readOnly);
+    for (int y = 0; y < totalH * artScale; ++y)
+        for (int x = 0; x < designW * artScale; ++x) {
+            const auto s = strict.at((float)x / artScale, (float)y / artScale);
+            const auto ca = a.getPixelColour(x, y), cb = b.getPixelColour(x, y);
+            if (ca == cb) continue;
+            if (s == raised) ++out.onRaised;
+            else if (s == recessed) ++out.onRecessed;
+            else ++out.onFlat;
+        }
+    return out;
 }
 
 void MillstoneEditor::paint(juce::Graphics& g) {

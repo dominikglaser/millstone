@@ -20,7 +20,14 @@ int main(int argc, char** argv) {
     juce::ScopedJuceInitialiser_GUI gui;
     juce::File dir(argv[1]);
     MillstoneProcessor proc;
+    const auto openStart = juce::Time::getMillisecondCounterHiRes();
     MillstoneEditor editor(proc);
+    const auto firstOpen = juce::Time::getMillisecondCounterHiRes() - openStart;
+    const auto againStart = juce::Time::getMillisecondCounterHiRes();
+    { MillstoneEditor second(proc); }
+    const auto nextOpen = juce::Time::getMillisecondCounterHiRes() - againStart;
+    std::cout << "info opening the window: first " << (int)firstOpen << " ms, later " << (int)nextOpen << " ms" << std::endl;
+    check(nextOpen < 300, "later windows open quickly");
     auto& ps = proc.apvts;
     auto text = [&](const char* k) { return ps.getParameter(k)->getCurrentValueAsText(); };
 
@@ -87,6 +94,14 @@ int main(int argc, char** argv) {
     click("lfo_sync");
     editor.refreshFromProcessor();
     check(phase != nullptr && !phase->getParentComponent()->isVisible(), "PHASE hides when SYNC is off");
+
+    // Wear obeys the height of what it is on.
+    const auto wear = MillstoneEditor::checkWear();
+    std::cout << "info " << wear.drawn << " of " << wear.tried << " candidate marks were physically possible and drawn" << std::endl;
+    check(wear.drawn > 0 && wear.drawn < wear.tried, "the feasibility check really rejects marks");
+    check(wear.onFlat > 10000, "wear reaches the flat metal, " + juce::String(wear.onFlat) + " pixels");
+    check(wear.onRaised == 0, "no wear lands on anything raised, " + juce::String(wear.onRaised) + " pixels");
+    check(wear.onRecessed == 0, "no wear lands in a slot, " + juce::String(wear.onRecessed) + " pixels");
 
     // The drawer.
     const int closedH = editor.getHeight(), width = editor.getWidth();

@@ -14,6 +14,10 @@ public:
     void refreshFromProcessor() { timerCallback(); }   // what the UI timer does; tests call it directly
     void setPatchBayOpen(bool);                        // the drawer below the panel
 
+    // For tests: how many art pixels the wear changed on each kind of surface.
+    struct WearCheck { int onFlat = 0, onRaised = 0, onRecessed = 0, tried = 0, drawn = 0; };
+    static WearCheck checkWear();
+
 private:
     void timerCallback() override;
 

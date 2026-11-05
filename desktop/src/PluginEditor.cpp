@@ -797,7 +797,10 @@ public:
             auto* b = segments.add(new Segment(choices[i]));
             if (item.str("page") == "rack") { b->dark = true; b->lampOn = itemAccentOf(item); }
             b->setComponentID(key + ":" + juce::String(i));
-            b->setBounds((ownLabel ? 30 : 0) + (vertical ? 0 : i * (segW + gap)), labelH + (vertical ? i * (segH + gap) : 0), segW, segH);
+            // `order=` lists options as drawn. A saved value is an option's number, so options can only be added at the end of the parameter.
+            const auto order = juce::StringArray::fromTokens(item.str("order"), ",", "");
+            const int slot = order.isEmpty() || order[0].isEmpty() ? i : order.indexOf(juce::String(i));
+            b->setBounds((ownLabel ? 30 : 0) + (vertical ? 0 : slot * (segW + gap)), labelH + (vertical ? slot * (segH + gap) : 0), segW, segH);
             b->onClick = [this, i] { attachment->setValueAsCompleteGesture((float)i); };
             addAndMakeVisible(b);
         }

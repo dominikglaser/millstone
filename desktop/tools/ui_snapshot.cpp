@@ -101,6 +101,17 @@ int main(int argc, char** argv) {
     click("lfo_sync");
     editor.refreshFromProcessor();
     check(phase != nullptr && !phase->getParentComponent()->isVisible(), "PHASE hides when SYNC is off");
+    {   // The source switches read LFO, LFO 2, ENV from the top, whatever their options' numbers are.
+        const auto top = [&](const char* id) { auto* c = find(editor, id); return c != nullptr ? c->getY() : -1; };
+        for (const char* osc : { "o1", "o2", "o3" }) {
+            const juce::String k = juce::String(osc) + "_cv_src:";
+            check(top((k + "0").toRawUTF8()) < top((k + "2").toRawUTF8()) && top((k + "2").toRawUTF8()) < top((k + "1").toRawUTF8()), k + " reads LFO, LFO 2, ENV");
+        }
+        check(top("f_src:1") < top("f_src:2") && top("f_src:2") < top("f_src:0"), "MOD SOURCE reads LFO, LFO 2, ENV");
+        click("o2_cv_src:1");
+        check(text("o2_cv_src") == "ENV", "and the button marked ENV still sets ENV");
+        click("o2_cv_src:0");
+    }
     {   // The LFO section's switch flips its controls, and its screen follows.
         const auto shown = [&](const char* id) { auto* c = find(editor, id); return c != nullptr && c->isVisible() && c->getParentComponent()->isVisible(); };
         editor.refreshFromProcessor();

@@ -130,7 +130,7 @@ const Index &IDX() { static Index idx; return idx; }
 
 enum { VM_POLY, VM_MONO, VM_LEGATO };
 enum { VCA_ENV, VCA_LPG, VCA_ON };
-enum { FS_ENV, FS_LFO };
+enum { FS_ENV, FS_LFO, FS_LFO2 };
 
 const float kDivBeats[8] = {16, 8, 4, 2, 1, 0.5f, 0.25f, 0.125f};
 
@@ -437,7 +437,8 @@ void all_sound_off(Instance *in) {   // MIDI CC120: silence now, without the rel
 inline float cutoff_octaves(const Instance *in, const Voice *v, float env, float lfo) {
     float base_oct = 10.0f * in->P(G_CUTOFF) * 0.01f;               // 20 Hz .. 20.48 kHz
     float mod = in->P(G_FMOD) * 0.01f;
-    float src = ((int)in->P(G_FSRC) == FS_ENV) ? env : lfo;
+    const int fsrc = (int)in->P(G_FSRC);
+    float src = fsrc == FS_ENV ? env : fsrc == FS_LFO2 ? in->lfo2_raw : lfo;
     float oct = base_oct + mod * src * 6.0f;
     oct += in->P(G_KEYTRACK) * 0.01f * (v->pitch_cur - 60.0f) / 12.0f;
     oct += in->P(G_VEL_FILT) * 0.01f * (v->velocity * 2.0f - 1.0f) * 3.0f;
@@ -775,7 +776,8 @@ void render_voice(Instance *in, Voice *v, int index, int frames, float lfo) {
         m.note = 0.0f;
         m.frequency = env_now * 24.0f;                 // FM knob = mod envelope -> pitch, up to +-24 semitones
         m.harmonics = 0.0f;
-        const float cv = (int)in->O(n, O_CV_SRC) == 1 ? env_now : lfo;   // TIMBRE CV / MORPH CV attenuators take this
+        const int cv_src = (int)in->O(n, O_CV_SRC);
+        const float cv = cv_src == 1 ? env_now : cv_src == 2 ? in->lfo2_raw : lfo;   // TIMBRE CV / MORPH CV attenuators take this
         m.timbre = cv;
         m.morph = cv;
         m.trigger = v->osc_trigger_low[n] > 0 ? 0.0f : trig;

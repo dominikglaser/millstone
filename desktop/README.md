@@ -1,15 +1,12 @@
 # Millstone desktop (VST3 / AU / Standalone)
 
-The same Millstone engine as the MPC build (`../src/millstone.cpp`, `mpc_engine()`), wrapped with JUCE so it
-runs on a computer as a normal plugin and as a standalone app. The engine file is byte-identical to the MPC
-version; only the wrapper differs. Converting back to the MPC plugin is a rebuild with the Open MPC wrapper,
-not a rewrite.
+Millstone as a normal plugin and a standalone app: the engine in `../src/millstone.cpp`, wrapped with JUCE.
 
 ## What you get
 
 - `Millstone.vst3` — drop into your VST3 folder
 - `Millstone.component` — Audio Unit (macOS), for Logic/GarageBand and AU hosts
-- `Millstone.app` — standalone, pick an audio output and a MIDI input (your MPC Key 37 over USB) and play
+- `Millstone.app` — standalone, pick an audio output and a MIDI input and play
 
 A universal macOS binary (Apple Silicon + Intel) when built on macOS.
 
@@ -47,7 +44,7 @@ them; clear it with `xattr -dr com.apple.quarantine <path>`. Built locally, ther
 After a rebuild, quit Ableton completely (Cmd-Q) and reopen it: a running Live keeps the copy it already loaded.
 
 In Ableton: rescan plugins (Preferences → Plug-Ins), add Millstone to a MIDI track, set the track's MIDI input
-to the MPC Key 37, play. OSC 1 and OSC 2 (Virtual Analog, slightly detuned) are on by default; turn OSC 3 on for the
+to your keyboard, play. OSC 1 and OSC 2 (Virtual Analog, slightly detuned) are on by default; turn OSC 3 on for the
 full three-oscillator sound.
 
 ## How it fits together
@@ -57,12 +54,18 @@ full three-oscillator sound.
 - `src/PluginProcessor.{h,cpp}` — the JUCE shell: parameters (one per engine parameter, from the generated
   `params.h`), MIDI, tempo for the synced LFO, state save/load.
 - `src/PluginEditor.{h,cpp}` and `panel.conf` — the one-screen panel: worn metal and wood, all drawn in code, placed by
-  `panel.conf`. The MPC skin stays in `../vst/layout.conf`. Point at or move a control to see it on the display; double-click
+  `panel.conf`. Point at or move a control to see it on the display; double-click
   a control to reset it, or the value on the display to type one.
-- The patch bay drawer (PATCH button) holds 12 cords between 12 outputs and 20 inputs. Drag from an output to an input to
+- The patch bay drawer (PATCH button) holds 12 cords between 26 outputs and 46 inputs. Drag from an output to an input to
   patch, pull a plug out of an input to move or remove it, double-click an input to clear it. Oscillators and noise reach the
   filter and VCA every sample; into an oscillator they step every 12 samples, like CV into the real module. Set an
   oscillator's LEVEL to 0 to use it only as a modulator. Cords are ordinary parameters (`cN_src`, `cN_dst`, `cN_amt`).
+  Jacks are grouped by module, and each label takes its module's colour, the same on both sides of the bay: purple for the LFOs
+  and RANDOM, orange for the envelopes, cream for what you play, blue for the oscillators, green for the filter and voice, teal
+  for Tides, amber for the clock and pink for Elements.
+- RANDOM is a new value for each note, held for that note. DRIVE pushes the filter's drive. LFO RATE and L2 RATE speed an LFO up
+  or slow it down, and LFO RST and L2 RST restart one. The LFOs are shared between voices, so with several notes held the voice
+  patching a rate hardest sets the speed.
 - Tides 2 (desktop only) runs per voice, patched through the drawer as TIDES 1 to 4. TRIGGER picks NOTE (restarts on each
   note), FREE (keeps running) or CLOCK (locked to the song, with DIV for bars, notes and triplets), or PATCH (fired only by what is patched into T TRIG, such
   as one of the clock outputs). OUTPUT follows the module:
@@ -70,9 +73,9 @@ full three-oscillator sound.
   the four jacks, and all are silent with it centred. PHASE, the default, is live on all four.
 - The clock (desktop only, `../src/workout_clock.h`) is one shared 8-output clock, an original design in the spirit of
   Pamela's Workout. Each output has a rate, shape, width, swing, probability, phase, level, offset and a Euclidean pattern, and
-  patches through the drawer as CLOCK 1 to 8. Trigger inputs fire as a cord rises past a quarter: T TRIG, LFO RST, ENV TRIG,
+  patches through the drawer as CLOCK 1 to 8. Trigger inputs fire as a cord rises past a quarter: T TRIG, LFO RST, L2 RST, ENV TRIG,
   MOD TRIG, and O1 to O3 TRIG, which strike percussive models while a note is held. With SOURCE on SONG it follows Live. It is edited on an LCD: the buttons pick the
-  output, SELECT scrolls through the settings (or click one on the screen), and VALUE changes the one selected.
+  output, SELECT scrolls through the settings (or click one on the screen), and VALUE changes the one selected. Dragging a setting's name on the screen, or the big reading, changes it directly.
 - Elements (desktop only) replaces Plaits on OSC 1 when its type switch says so, one instance per voice, run at its own 32 kHz
   and resampled. Its exciter takes audio from the patch bay through E STK IN and E BLW IN, and O1 TRIG strikes it again.
 - Each oscillator has an amp switch. AUTO follows VCA MODE. ENV is a plain oscillator with its trigger unpatched, shaped by the VCA
@@ -87,14 +90,25 @@ full three-oscillator sound.
 - `CMakeLists.txt` — fetches JUCE + the kit, generates `params.h` from `../vst/params.json` (one source of
   truth), builds the engine as an isolated GNU-C++14 static library (Plaits needs that), links the plugin.
 
-Parameters, their ranges and defaults all come from `../vst/params.json`, the same file the MPC skin is built
-from, so the two builds never drift.
+Parameters, their ranges and defaults all come from `../vst/params.json`. Only ever add to the end of that list, and to the end
+of a parameter's options: saved sets store a parameter by name and a choice by its number. A switch can still draw its options in
+another order, with `order=` in `panel.conf`.
+
+## The LFOs
+
+The switch at the top of the LFO section flips its controls and its screen between LFO 1 and LFO 2. Each has its own shape, rate,
+retrigger, sync, division and phase.
+
+LFO 1 is wired to OSC MOD, and is scaled by WHEEL > LFO and AT > LFO, which go away on LFO 2's page. Both reach MOD SOURCE on the
+filter and CV SOURCE on each oscillator, so each oscillator can follow a different one, and both have a jack on the patch bay.
 
 ## The panel's screens
 
 The filter, both envelopes and the LFO each have a small screen showing the real curve and the real numbers, using the engine's own formulas: cutoff in Hz, envelope times in ms and s, LFO rate in Hz or the division it is locked to. Envelope time is drawn compressed, so a 2 ms attack and a 10 s release both fit.
 
 ## Presets
+
+**A preset plays the note you press:** MIDI note 60 sounds at 261.6 Hz, and for a bass you transpose down. (Live labels that note C3.) A bass has its lowest oscillator you can hear on the note, and anything else has the pitch you hear most on it. Drums, risers and textures are left alone, as they are not meant to hold a pitch. A few bells and FM keys have strong partials off the note, as those sounds do. New presets simply start on the note; `vst/preset_pitch.py` moved the older ones, and moves CUTOFF against KEYTRACK so that each still sounds the same at the same pitch.
 
 Click the preset name in the display, or in the rack's top unit, to open the browser. Search looks through names, notes and tags. Within a group, several choices widen the list; between groups they narrow it, and a filter that would leave nothing is dimmed. Click a row to hear it, double-click to load and close. < > step through whatever the filter left.
 
@@ -109,7 +123,7 @@ The star marks a favourite. FLAG asks for a note. Both are plain text files besi
 RACK, beside the preset buttons, swaps the panel for a second page: a road-case rack of black units, each with its own colour. It always fills
 a tall window of its own, with no patch bay below it. PANEL goes back, with the patch bay open or closed as you left it.
 
-- **Top unit:** the current preset, the control last touched, and OUTPUT: up to 18 dB of gain after all the effects, for a sound that full VOLUME leaves too quiet. Presets use it too. At 0 dB it is not in the path at all.
+- **Top unit:** the synth preset and the control last touched, the FX preset and FX LOCK, and OUTPUT: up to 18 dB of gain after all the effects, for a sound that full VOLUME leaves too quiet. Presets use it too. At 0 dB it is not in the path at all.
 - **CK-8 Clock:** the eight-output clock, with its LCD.
 - **TD-2 Tidal Modulator:** Tides. Its screen has presets, draws one cycle of the slope, and holds SMOOTH and SHIFT on VALUE.
 - **DE-1 Tape Echo:** a tape delay for dub. See below.
@@ -118,6 +132,12 @@ a tall window of its own, with no patch bay below it. PANEL goes back, with the 
 - **PH-6 Phaser:** six stages.
 
 Each effect's screen has its own presets, on its < > keys. A preset leaves your MIX alone unless the unit is off, when it brings it up to be heard. A `*` means you have changed it since.
+
+Values on the screens work like knobs: drag one up or down, double-click it for its default, or roll the wheel over it. A plain click changes nothing. That covers the echo's settings and time, the reverb's tail reading (its DECAY) and type, and Tides' settings, mode, output and trigger.
+
+**FX presets.** One FX preset sets the echo, reverb, chorus and phaser together, and nothing else: your voice, Tides, the clock and OUTPUT stay as they are. The strip at the top of the rack steps through them with its < > keys, and clicking the FX PRESET screen opens the browser. Search, filter by style and by the effects a preset uses, and click a row to hear it. Dry turns every effect off. SAVE keeps the effects as they are now, with a name and a style; your own are in `~/Library/Application Support/Glaser/Millstone/FX Presets/`, and DELETE only reaches those. A `*` means the rack has moved since the preset loaded. The factory ones are written in `vst/make_fx_presets.py`.
+
+**FX LOCK**, on by default, stops a synth preset changing the effects, so a voice and its effects can be chosen separately. With it off, a synth preset brings the effects it was written with, as they were before the lock existed. Each set remembers its own lock. Sets saved earlier keep the effects they were saved with.
 
 The effects run after the voices, in this plugin and not the shared engine, in the order phaser, chorus, delay, reverb, and they cannot exceed -0.5 dB. With all of them off the signal is not touched. The code is in `src/fx/`; the chorus, phaser and plate wrapper come from the `plaits-synth` project. The page is in `src/RackPage.inc` and the `page=rack` items of `panel.conf`.
 

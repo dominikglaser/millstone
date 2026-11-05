@@ -68,7 +68,6 @@ static Echoes echoes(std::function<void(Synth&)> setup, double seconds = 2.0, st
 }
 
 int main() {
-    MillstoneProcessor::fxLockDefault = false;
     juce::ScopedJuceInitialiser_GUI gui;
     const std::vector<juce::String> names = []{ std::vector<juce::String> n; const auto& l = MillstoneProcessor::factoryPresets(); for (size_t i = 0; i < l.size(); i += 18) n.push_back(l[i].name); return n; }();
 

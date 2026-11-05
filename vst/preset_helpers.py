@@ -14,8 +14,8 @@ def SAW(n, timbre=100, **kw):
 def SQUARE(n, timbre=100, **kw):
     return o(n, "VA VCF", harm=50, timbre=timbre, morph=50, **kw)
 
-def SOFT(n, **kw):   # close to a triangle: for subs and flutes
-    return o(n, "Virtual Analog", timbre=0, morph=0, **kw)
+def SOFT(n, timbre=0, **kw):   # close to a triangle: for subs and flutes
+    return o(n, "Virtual Analog", timbre=timbre, morph=0, **kw)
 
 def P(name, note, *oscs, **kw):
     d = {}
@@ -44,3 +44,22 @@ SINE = dict(timbre=0)
 
 ON = dict(vca_mode="ON", release=40)
 OPEN = dict(ON, cutoff=100, reso=0, keytrack=0, vel_filt=0)
+
+# For the packs built around the patch bay: every one has a cord and an effect, or it is in the wrong pack.
+def Lab(name, note, type_, styles, characters, *parts, **kw):
+    delta = P(name, note, *parts, **kw)[2]
+    assert any(k.endswith("_src") for k in delta), name + " has no cord"
+    assert any(k in delta for k in ("fx_dl_mix", "fx_rv_mix", "fx_ph_mix", "fx_ch_mode")), name + " has no effect"
+    return name, note, delta, type_, styles, characters
+
+def L1(rate=45, shape="TRI", **kw):
+    return dict(lfo_rate=rate, lfo_shape=shape, **{"lfo_" + k: v for k, v in kw.items()})
+
+def L2(rate=45, shape="TRI", **kw):
+    return dict(lfo2_rate=rate, lfo2_shape=shape, **{"lfo2_" + k: v for k, v in kw.items()})
+
+def Tid(rate, mode="LOOP", out="PHASE", trig="FREE", **kw):
+    return dict(t_trig=trig, t_mode=mode, t_out=out, t_rate=rate, **{"t_" + k: v for k, v in kw.items()})
+
+HIT = dict(attack=0, sustain=0, release=20)
+NOISE_ONLY = dict(o1_on="OFF", o2_on="OFF", o3_on="OFF")

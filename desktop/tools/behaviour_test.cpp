@@ -591,22 +591,43 @@ int main() {
         check(std::abs(b.p->apvts.getRawParameterValue("fx_dl_fb")->load() - 77.0f) < 0.01f && b.p->apvts.getRawParameterValue("fx_rv_type")->load() > 0.5f, "effect settings come back with the set");
     }
 
+    puts("--- fast repeated notes");
+    {   // A retriggered note with a different velocity must glide to its level. A step is a click.
+        // The same notes with varying and with steady velocity: only a step in level can tell them apart.
+        const auto worstStep = [&](bool poly, bool varying) {
+            Synth s; s.clean(50); s.opt("o2_on", "OFF"); s.set("o1_timbre", 0); s.set("o1_morph", 0); s.set("vel_amp", 80); s.opt("vca_mode", "ENV");
+            if (!poly) { s.opt("voice_mode", "MONO"); s.set("voices", 1); }
+            const auto blocks = [&](int n) { return (n * s.block + 0.5) / s.sr; };   // whole blocks: run() trims to the second, and a trim would be a join with a step in it
+            s.on(36, 127); auto x = s.run(blocks(35));
+            for (int k = 0; k < 20; ++k) {
+                if (poly) s.off(36);
+                s.on(36, varying && k % 2 == 0 ? 40 : 127);
+                auto y = s.run(blocks(14)); x.insert(x.end(), y.begin(), y.end());
+            }
+            double worst = 0; for (size_t i = 8000; i + 2 < x.size(); ++i) worst = juce::jmax(worst, std::abs((double)x[i + 2] - 2.0 * x[i + 1] + x[i]));
+            return (float)worst; };
+        const float mono = worstStep(false, true) / juce::jmax(1e-7f, worstStep(false, false)), poly = worstStep(true, true) / juce::jmax(1e-7f, worstStep(true, false));
+        check(mono < 1.5f, "mono: fast notes at different velocities do not click", num(mono) + "x the same notes at one velocity");
+        check(poly < 1.5f, "poly: nor does repeating a key at another velocity", num(poly) + "x the same notes at one velocity");
+        { Synth a; a.clean(50); a.set("vel_amp", 80); a.set("attack", 0); a.on(60, 127); auto x = a.run(0.05); float first = 0; for (size_t i = 0; i < 200; ++i) first = juce::jmax(first, std::abs(x[i])); check(first > 0.05f, "and a fresh note still starts at once", num(first)); }
+    }
+
     puts("--- FX presets and the lock");
     {
         const auto dir = juce::File::createTempFile("millstone_fx"); dir.deleteFile();
         const auto userDir = dir.getChildFile("Presets");
         const auto named = [](Synth& s) { for (int i = 0; i < s.p->getNumPrograms(); ++i) if (s.p->getProgramName(i) == "Dub Stabs") return i; return 0; };
-        { Synth s; check(s.p->fxLock, "the lock starts on");
+        { Synth s; check(!s.p->fxLock, "the lock starts off"); s.p->fxLock = true;
           s.set("fx_rv_mix", 33); s.p->setCurrentProgram(named(s));
           check(std::abs(s.p->apvts.getRawParameterValue("fx_rv_mix")->load() - 33.0f) < 0.01f && std::abs(s.p->apvts.getRawParameterValue("fx_dl_mix")->load()) < 0.01f, "locked: a synth preset leaves the effects alone");
           check(s.p->getCurrentPresetName() == "Dub Stabs", "and still loads its voice"); }
-        { Synth s; s.p->fxLock = false; s.set("fx_rv_mix", 33); s.p->setCurrentProgram(named(s));
+        { Synth s; s.set("fx_rv_mix", 33); s.p->setCurrentProgram(named(s));
           check(s.p->apvts.getRawParameterValue("fx_dl_mix")->load() > 1.0f, "unlocked: a synth preset brings its own effects"); }
-        { Synth a; a.p->fxLock = false; juce::MemoryBlock mb; a.p->getStateInformation(mb); Synth b; b.p->setStateInformation(mb.getData(), (int)mb.getSize()); check(!b.p->fxLock, "the lock is saved with the set"); }
-        { // A set from before the lock: it restores whatever it held, and the lock is on from then on.
+        { Synth a; a.p->fxLock = true; juce::MemoryBlock mb; a.p->getStateInformation(mb); Synth b; b.p->setStateInformation(mb.getData(), (int)mb.getSize()); check(b.p->fxLock, "the lock is saved with the set"); }
+        { // A set from before the lock: it restores whatever it held, with the lock off.
           Synth a; a.set("fx_dl_mix", 40); juce::MemoryBlock mb; a.p->getStateInformation(mb); auto xml = juce::AudioProcessor::getXmlFromBinary(mb.getData(), (int)mb.getSize()); xml->removeAttribute("fxLock"); xml->removeAttribute("fxPreset"); juce::MemoryBlock old; juce::AudioProcessor::copyXmlToBinary(*xml, old);
           Synth b; b.p->setStateInformation(old.getData(), (int)old.getSize());
-          check(b.p->fxLock && std::abs(b.p->apvts.getRawParameterValue("fx_dl_mix")->load() - 40.0f) < 0.01f, "an older set keeps its effects"); }
+          check(!b.p->fxLock && std::abs(b.p->apvts.getRawParameterValue("fx_dl_mix")->load() - 40.0f) < 0.01f, "an older set keeps its effects"); }
         { Synth s; const auto& library = MillstoneProcessor::factoryFxRacks(); check(library.size() >= 20, "the FX library is there", juce::String((int)library.size()));
           juce::StringArray styles; int outside = 0, wrong = 0, loud = 0, dead = 0;
           std::vector<float> before; for (auto* q : s.p->getParameters()) before.push_back(q->getValue());

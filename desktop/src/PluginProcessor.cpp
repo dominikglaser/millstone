@@ -175,7 +175,7 @@ void MillstoneProcessor::setStateInformation(const void* data, int sizeInBytes) 
         auto state = juce::ValueTree::fromXml(*xml);
         currentPresetName = state.getProperty("preset").toString();   // empty for sets saved before presets existed
         currentFxRack = state.getProperty("fxPreset").toString();
-        fxLock = (bool)state.getProperty("fxLock", true);
+        fxLock = (bool)state.getProperty("fxLock", false);
         currentFxValues.clear();
         for (const auto& rack : allFxRacks()) if (rack.name == currentFxRack) for (const auto& [key, value] : rack.values) currentFxValues[key] = value;
         apvts.replaceState(state);

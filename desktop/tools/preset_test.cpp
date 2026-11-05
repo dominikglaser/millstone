@@ -25,7 +25,6 @@ static int noteFor(const juce::String& category) {
 
 int main(int argc, char** argv) {
     juce::ScopedJuceInitialiser_GUI gui;
-    MillstoneProcessor::fxLockDefault = false;
     const auto& library = MillstoneProcessor::factoryPresets();
     const juce::File trimFile = argc > 2 ? juce::File(juce::String(argv[2])) : juce::File();
     auto trims = std::make_unique<juce::DynamicObject>();
@@ -207,9 +206,11 @@ int main(int argc, char** argv) {
             p.setRateAndBufferSizeDetails(44100, 256);
             p.prepareToPlay(44100, 256);
             p.setCurrentProgram(program);
+            int note = 60;   // KEY is zero at C4, so a preset that patches it is played high enough to hear it
+            for (int c = 0; c < MillstoneProcessor::numCords; ++c) if (p.cordSource(c) == 7) note = 84;
             if (withoutCord >= 0) p.disconnectCord(withoutCord);
             juce::MidiBuffer m;
-            m.addEvent(juce::MidiMessage::noteOn(1, 60, (juce::uint8)100), 0);
+            m.addEvent(juce::MidiMessage::noteOn(1, note, (juce::uint8)100), 0);
             m.addEvent(juce::MidiMessage::controllerEvent(1, 1, 127), 0);        // wheel
             m.addEvent(juce::MidiMessage::channelPressureChange(1, 90), 0);      // pressure
             juce::AudioBuffer<float> b(2, 256);

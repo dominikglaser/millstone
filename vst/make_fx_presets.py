@@ -81,6 +81,33 @@ FX_PRESETS = [
       phaser(75, rate=64, depth=90, feedback=88), echo("1/16", 40, 18, low=40, high=72, wow=0)),
 ]
 
+FX_PRESETS += [
+    F("Melted Tape", "Slow repeats sagging in pitch, for pads and anything held", "Ambient Experimental",
+      echo("1/2", 42, 24, low=40, high=50, wow=70), plate(28, decay=60)),
+    F("Water Tank", "A spring thrown wide open: the tank is the sound", "Dub Experimental",
+      spring(55, decay=85, drip=90, damping=15)),
+    F("Hall Of Pings", "Bouncing echoes crossing a large, even room", "Cinematic Ambient",
+      echo("1/4 D", 60, 30, high=55, pong=True), plate(30, decay=70)),
+    F("Bent Room", "Phaser, swung repeats and a long room, all moving at once", "Experimental Cinematic",
+      phaser(50, rate=18, feedback=80), echo("1/4 T", 60, 30, wow=60, pong=True), plate(34, decay=78)),
+    F("Insect Scatter", "Very short ping-pong for sharp hits and small sounds", "Experimental Techno",
+      echo("1/16 D", 50, 24, pong=True), plate(24, decay=58)),
+    F("Lab Bench", "A dry room and a small spring: lets a patch speak for itself", "Experimental Classic",
+      spring(16, decay=35), plate(10, decay=30)),
+    F("Valve Delay", "Overdriven repeats that break up as they stack", "Rave Experimental",
+      echo("1/8 D", 40, 20, low=30, high=60, drive=70, wow=15)),
+    F("Sea Cave", "A slow phaser inside a dark, deep space", "Ambient Dub",
+      phaser(45, rate=10, depth=80, feedback=70), plate(34, decay=78, damping=60)),
+    F("Chorus Cloud", "Everything wide: full chorus into a soft hall", "Ambient Classic",
+      chorus("I+II", 100), plate(26, decay=62, damping=45)),
+    F("Sixteenth Machine", "Tight synced repeats that lock a sequence to the song", "Techno House",
+      echo("1/16", 40, 18, low=45, high=64, wow=4)),
+    F("Dying Transmitter", "Dark tape, spring and a narrow slow phase", "Experimental Dub",
+      echo("1/4 D", 55, 24, low=50, high=44, drive=40, wow=40), spring(20, decay=45), phaser(30, rate=24, feedback=50)),
+    F("Afterimage", "A tail with nothing up front: pushes a pluck far away", "Cinematic Ambient",
+      echo("1/8 D", 45, 22, low=35, high=58, pong=True, width=70), plate(42, decay=82, damping=35)),
+]
+
 def uses(values):
     used = []
     if values.get("fx_dl_mix", 0) > 0: used.append("Delay")

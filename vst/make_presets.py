@@ -10,7 +10,7 @@ from preset_tags import TAGS, TYPES, STYLES, CHARACTERS
 from preset_fx import FX
 from preset_helpers import *
 from preset_pitch import true_to_note, MOVE
-import pack_dub, pack_classic, pack_rave, pack_techno, pack_space, pack_elements, pack_drums, pack_patch
+import pack_dub, pack_classic, pack_rave, pack_techno, pack_space, pack_elements, pack_drums, pack_patch, pack_modular, pack_cross, pack_deep
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 MODELS = ["Virtual Analog", "Waveshaper", "FM 2-Op", "Grain Formant", "Additive", "Wavetable", "Chords", "Speech", "Swarm",
@@ -92,8 +92,8 @@ LIBRARY = {
     P("Harp String", "Physical string, rings by itself", o(1, "String", harm=40, timbre=50, morph=55), vca_mode="ON", cutoff=92, reso=0, keytrack=0, drive=20, release=50, vel_amp=60),
     P("Modal Bell", "Struck metal", o(1, "Modal", harm=45, timbre=65, morph=60), vca_mode="ON", cutoff=100, reso=0, keytrack=0, release=50, vel_amp=60),
     P("Nylon", "Soft, darker string", o(1, "String", harm=25, timbre=30, morph=45), o(2, "String", harm=25, timbre=30, morph=45, fine=3), vca_mode="ON", cutoff=80, reso=5, keytrack=70, drive=40, release=45, vel_filt=30, vel_amp=60),
-    P("Synth Pluck", "The classic, envelope snapping the filter shut", SAW(1), SAW(2, fine=7), decay=52, sustain=0, cutoff=30, reso=20, f_mod=60, m_decay=42, release=36),
-    P("FM Pluck", "Bright metallic transient", o(1, "FM 2-Op", harm=40, timbre=20, morph=10, timbre_mod=60, cv_src="ENV"), decay=50, sustain=0, m_decay=38, cutoff=82, release=32),
+    P("Synth Pluck", "The classic, envelope snapping the filter shut", SAW(1), SAW(2, fine=7), decay=62, sustain=0, cutoff=30, reso=20, f_mod=60, m_decay=54, release=46),
+    P("FM Pluck", "Bright metallic transient", o(1, "FM 2-Op", harm=40, timbre=20, morph=10, timbre_mod=60, cv_src="ENV"), decay=62, sustain=0, m_decay=46, cutoff=82, release=46),
     P("Kalimba", "Small tuned tines", o(1, "Modal", harm=25, timbre=30, morph=25), vca_mode="ON", cutoff=88, reso=0, keytrack=0, release=40, vel_amp=60),
     P("LPG Marimba", "Woody, through the low-pass gate", o(1, "Virtual Analog", timbre=50, morph=0), vca_mode="LPG", lpg_decay=40, lpg_colour=70, cutoff=86, release=30),
     P("LPG Pluck", "Gate-struck FM with a soft edge", o(1, "FM 2-Op", harm=45, timbre=35, morph=15), vca_mode="LPG", lpg_decay=34, lpg_colour=30, cutoff=90, release=30),
@@ -145,7 +145,7 @@ TESTING = [
     P("LFO Geometry", "Bowed, with the LFO moving the resonator's shape", dict(ELEMENTS), cords(("LFO", "E GEOM", 35)), lfo_rate=34, e_model="MODAL", e_strike=0, e_bow=70, e_geom=45, e_damp=70),
     P("Tides Swell", "Tides breathing the bow in and out", dict(ELEMENTS), cords(("TIDES 1", "E BOW", 80)), t_trig="FREE", t_mode="LOOP", t_rate=42, e_model="STRING", e_strike=0, e_bow=20, e_geom=15, e_damp=70),
     # Tides
-    P("Note Envelope", "Tides as a one-shot on each note, opening the filter", SAW(1), cords(("TIDES 1", "CUTOFF", 85)), t_trig="NOTE", t_mode="AD", t_rate=54, cutoff=30, reso=25, vca_mode="ON", release=30),
+    P("Note Envelope", "Tides as a one-shot on each note, opening the filter", SAW(1), cords(("TIDES 1", "CUTOFF", 85)), t_trig="NOTE", t_mode="AD", t_rate=54, cutoff=30, reso=25, attack=0, decay=66, sustain=0, release=50),
     P("Free Drift", "Four outputs moving a held chord, each voice drifting apart", SAW(1), o(2, "Wavetable", fine=6, level=80), cords(("TIDES 1", "CUTOFF", 40), ("TIDES 2", "O1 TIMB", 50), ("TIDES 3", "O2 MRPH", 50), ("TIDES 4", "O2 TIMB", 40)), t_trig="FREE", t_mode="LOOP", t_out="PHASE", t_rate=38, t_shift=70, cutoff=48, attack=55, release=65),
     P("Clock Filter", "Tides locked to the song's tempo in eighths", SAW(1), cords(("TIDES 1", "CUTOFF", 70)), t_trig="CLOCK", t_mode="LOOP", t_div="1/8", cutoff=38, reso=40, vca_mode="ON", release=25),
     P("Fired By Clock", "PATCH: only our clock fires Tides, a note does not", SAW(1), cords(("TIDES 1", "CUTOFF", 90), ("CLOCK 1", "T TRIG", 100)), clock(1, div="x2", shape="TRIG", steps=16, fill=9), t_trig="PATCH", t_mode="AD", t_rate=62, cutoff=26, reso=35, vca_mode="ON", release=25),
@@ -188,7 +188,7 @@ SONG = {
     P("Breathing Swarm", "A swarm that swells on the tide", o(1, "Swarm", harm=60, timbre=50, morph=50), cords(("TIDES 1", "O1 LEVEL", 35), ("TIDES 2", "O1 TIMB", 40)), t_trig="FREE", t_mode="LOOP", t_rate=34, t_shift=70, o1_level=60, cutoff=68, attack=55, release=74, vel_amp=15),
     P("Folded Lead", "Tides pushing the waveshaper", o(1, "Waveshaper", harm=30, timbre=40, morph=50), cords(("TIDES 1", "O1 TIMB", 55)), ON, voice_mode="LEGATO", voices=1, glide=8, t_trig="FREE", t_mode="LOOP", t_rate=54, t_smooth=70, cutoff=78, reso=15, release=30),
     P("Drift Organ", "An organ whose drawbars never quite settle", o(1, "Additive", harm=35, timbre=40, morph=60), cords(("TIDES 1", "O1 TIMB", 22), ("TIDES 2", "O1 HARM", 18)), t_trig="FREE", t_mode="LOOP", t_rate=32, t_shift=65, cutoff=80, release=25, vel_amp=0, vel_filt=0),
-    P("Tidal Pluck", "Tides shaping the strike of each note", SAW(1), SAW(2, fine=7), cords(("TIDES 1", "CUTOFF", 75), ("TIDES 1", "VCA", 70)), ON, t_trig="NOTE", t_mode="AD", t_rate=64, t_shape=25, cutoff=30, reso=25, release=25),
+    P("Tidal Pluck", "Tides shaping the strike of each note", SAW(1), SAW(2, fine=7), cords(("TIDES 1", "CUTOFF", 75), ("TIDES 1", "VCA", 70)), t_trig="NOTE", t_mode="AD", t_rate=54, t_shape=25, cutoff=30, reso=25, attack=0, decay=68, sustain=0, release=50),
     P("Eighths Motion", "Filter and wave moving in time with the song", o(1, "Wavetable", harm=45, timbre=60, morph=35), SAW(2, oct=-1, level=55), cords(("TIDES 1", "CUTOFF", 55), ("TIDES 2", "O1 MRPH", 35)), ON, t_trig="CLOCK", t_mode="LOOP", t_div="1/8", t_shift=60, cutoff=40, reso=35, release=30),
 ],
 "Clocked": [
@@ -216,7 +216,7 @@ SONG = {
 OFF_VALUES = ("OFF", 0)
 
 OUTPUT = json.load(open(os.path.join(HERE, "preset_output.json")))   # make-up gain, dB, for sounds that full VOLUME cannot bring up to level
-PACKS = [pack_dub, pack_classic, pack_rave, pack_techno, pack_space, pack_elements, pack_drums, pack_patch]   # later packs, one file each, in the order they arrived
+PACKS = [pack_dub, pack_classic, pack_rave, pack_techno, pack_space, pack_elements, pack_drums, pack_patch, pack_modular, pack_cross, pack_deep]   # later packs, one file each, in the order they arrived
 PACK_OF = {}
 UNMATCHED = {"Upright Dub", "Bowed Metal", "Bowed Glass", "Bowed Lead"}   # bowed and bouncing: their level swings by several dB with the shared noise generator
 for pack in PACKS:

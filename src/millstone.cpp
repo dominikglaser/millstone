@@ -198,6 +198,7 @@ struct Voice {
     int input_quiet_chunks = 0;   // released, and nothing going into the filter: a self-oscillating filter must not ring forever
     uint32_t serial = 0;      // allocation order (oldest first)
     float gain_z = 0.0f;      // VCA smoothing (de-click for ON mode)
+    float vel_gain_z = -1.0f;   // velocity into the envelope's gain, smoothed: a retriggered note must not step in level. Negative: a fresh note, which takes its level at once
     plaits::Voice::Frame frames[kChunk];
     float osc_audio[kOscs][kChunk];   // what each oscillator played this chunk, for cords that patch it
     float noise_audio[kChunk];
@@ -294,7 +295,7 @@ void start_voice(Instance *in, Voice *v, int note, float vel, bool retrigger) {
 #endif
         }
         if (v->active) v->trig_low_chunks = 2;   // already sounding: a new strike needs TRIG to drop first
-        if (!v->active) { v->filter.reset(); v->gain_z = 0.0f; }
+        if (!v->active) { v->filter.reset(); v->gain_z = 0.0f; v->vel_gain_z = -1.0f; }
         v->velocity = vel;                       // a legato note continues the phrase at its level
         in->dice ^= in->dice << 13; in->dice ^= in->dice >> 17; in->dice ^= in->dice << 5;
         v->note_random = (float)(in->dice & 0xffffff) / 8388608.0f - 1.0f;
@@ -891,7 +892,9 @@ void render_voice(Instance *in, Voice *v, int index, int frames, float lfo) {
         if (cords.fast_filter) v->filter.set(octaves_to_hz(base_oct + cutoff_mod * kCordCutoff), base_reso + reso_mod, highpass);
         float y = v->filter.tick(mix[i] * pre) * post;
         v->gain_z += (target_gain - v->gain_z) * 0.01f;   // ~2 ms de-click
-        float gain = vca_mode == VCA_ENV && !per_osc ? e * vel_gain : v->gain_z;
+        if (v->vel_gain_z < 0.0f) v->vel_gain_z = vel_gain;
+        v->vel_gain_z += (vel_gain - v->vel_gain_z) * 0.01f;
+        float gain = vca_mode == VCA_ENV && !per_osc ? e * v->vel_gain_z : v->gain_z;
         y *= gain * ring_gain * clampf(1.0f + vca_mod, 0.0f, 2.0f);
         in->out[i] += y;
         float a = fabsf(y);

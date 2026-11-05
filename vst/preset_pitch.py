@@ -15,15 +15,19 @@ MOVE = {
                      "Clock Pump Bass", "Deep Hoover", "Tide Step Bass",
                      "Roots Bass", "Rubber Dub", "Upright Dub", "Dread Growl", "Saw Bass", "Funk Slap", "Eighty One", "Neuro Reese",
                      "Jungle Sub", "Drive Bass", "Terrain Bass", "Struck Bass", "Wheel Wobble", "Ring Sub", "Pitch Drop Bass",
-                     "Sample Hold Bass", "Formant Bass", "Wavetable Sweep Bass", "Noise Ripped Bass", "Slow Tide Sub"], 12),
+                     "Sample Hold Bass", "Formant Bass", "Wavetable Sweep Bass", "Noise Ripped Bass", "Slow Tide Sub",
+                     "Sample Hold Sub", "Clocked Ladder Bass", "Tides Bass Pulse", "Probability Bass", "Key Bright Bass", "Six Op Tremolo"], 12),
     # drones and low pads
     **dict.fromkeys(["Dark Drone", "Deep Space", "Tide Drone", "Bowed Abyss", "Stone Choir", "Wave Monk", "Organ Pedal Drone"], 24),
     **dict.fromkeys(["Feedback Drone", "Warning Drone", "Feedback Choir", "Power Hum", "Ring Drone", "Clock Monolith", "Tape Drone",
                      "Scorched Earth", "Low Cello", "Submerged", "Solo Cello", "Hoover", "Braam", "DX Keys", "Six Op Tines",
                      "Six Op Wheel", "String Section"], 12),
     # sounding above the key
-    **dict.fromkeys(["Celeste", "Shimmer Wall", "Frozen Lake", "Machine Strings", "Chord Cloud", "Wave Sequence", "Chip Arp"], -12),
+    **dict.fromkeys(["Hard Sync Lead", "Folded Whistle", "Glass Crossfade", "Liquid Ceiling", "Crystal Vomit", "Tin Can Telephone", "Ice Cream Van",
+                     "Celeste", "Shimmer Wall", "Frozen Lake", "Machine Strings", "Chord Cloud", "Wave Sequence", "Chip Arp"], -12),
     "Glass Halo": -36,
+    "Elements Flute Solo": -24, "Elements Vibes": -24,
+    "Chip Solo": -7,
     "Rave Stab": -24,
     "Wave Solo": -19,
     "Chip Lead": -7,   # its arpeggio sat on G, F and D: this makes it C, Bb and G
@@ -35,8 +39,8 @@ MOVE = {
 # Cents, measured with the effects off, for models and patches that land a little off the note: feedback cords add an offset,
 # the bars above land between semitones, and Elements' strings run slightly sharp.
 FINE = {
-    "Osc FM": -52, "DX Keys": -18, "Six Op Wheel": -18, "Self Feedback": 16, "Feedback Drone": 10, "Note Envelope": 14,
-    "Tide Pluck Harp": 15, "Tidal Pluck": 8, "Tape Stop Pluck": -9, "Fired By Clock": 15, "Tide Step Bass": 13,
+    "Osc FM": -52, "DX Keys": -18, "Six Op Wheel": -18, "Self Feedback": 16, "Feedback Drone": 10,
+    "Tide Pluck Harp": 15, "Tape Stop Pluck": -9, "Fired By Clock": 15, "Tide Step Bass": 13,
     "Chord Strings": -6, "Plucked Harp": -6, "Glass Strum": -6, "String Section": -6, "Nylon": -6,
     "Music Box": -5, "Toy Piano": 22, "Vibes": 46, "Modal Bell": -27,
     "Euclid Melody": -26, "Speech Lead": 44,

@@ -8,7 +8,7 @@ filter** (low-pass or high-pass), **VCA and modulation ADSR envelopes**, and a *
 **two LFOs**, **Tides**, an **eight-output clock** and a **patch bay** with 12 cords, 26 outputs and 46 inputs. After them comes a rack
 of **tape echo, reverb, chorus and phaser**. There is no sequencer or arpeggiator: sequence it from your DAW or hardware.
 
-It comes with 457 synth presets and 28 FX presets, each in its own browser, so a voice and its effects can be chosen separately.
+It comes with 700 synth presets and 40 FX presets, each in its own browser, so a voice and its effects can be chosen separately.
 
 ## Signal flow
 

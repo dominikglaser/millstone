@@ -330,9 +330,9 @@ int main(int argc, char** argv) {
         {
             auto* lockKey = find(editor, "rack_fx_lock");
             auto* lockButton = dynamic_cast<juce::Button*>(lockKey);
-            check(lockButton != nullptr && lockButton->getToggleState(), "FX LOCK shows on");
+            check(lockButton != nullptr && !lockButton->getToggleState(), "FX LOCK shows off");
             click("rack_fx_lock"); editor.refreshFromProcessor();
-            check(!proc.fxLock && !lockButton->getToggleState(), "and turns off");
+            check(proc.fxLock && lockButton->getToggleState(), "and turns on");
             click("rack_fx_lock"); editor.refreshFromProcessor();
             auto* fx = find(editor, "fx_browser");
             check(fx != nullptr && !fx->isVisible(), "the FX browser starts closed");

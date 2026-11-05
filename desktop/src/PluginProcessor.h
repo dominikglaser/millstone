@@ -68,7 +68,7 @@ public:
     juce::String getCurrentPresetName() const { return currentPresetName; }
 
     // FX presets: the echo, reverb, chorus and phaser together, and nothing else. They live apart from the synth presets. With the
-    // lock on, which is the default, loading a synth preset leaves the effects as they are.
+    // lock on, loading a synth preset leaves the effects as they are. It is off by default, so a preset sounds as it was written.
     struct FxRack {
         juce::String name, note;
         juce::StringArray styles, uses;
@@ -84,8 +84,7 @@ public:
     juce::String fxRackName() const { return currentFxRack; }
     bool fxRackEdited() const;                                // moved since it was loaded
     juce::File fxRackDirectory() const;
-    static inline bool fxLockDefault = true;                  // the level tests measure presets as written, effects and all
-    bool fxLock = fxLockDefault;
+    bool fxLock = false;
 
     // One file each, with the name inside the file so it can hold what a filename cannot.
     juce::File userPresetDirectory() const;

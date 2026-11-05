@@ -696,6 +696,332 @@
     "fx_dl_width": 100,
     "fx_dl_heads": "1"
    }
+  },
+  {
+   "name": "Melted Tape",
+   "note": "Slow repeats sagging in pitch, for pads and anything held",
+   "styles": [
+    "Ambient",
+    "Experimental"
+   ],
+   "uses": [
+    "Delay",
+    "Reverb"
+   ],
+   "values": {
+    "fx_dl_sync": "SYNC",
+    "fx_dl_div": "1/2",
+    "fx_dl_fb": 42,
+    "fx_dl_mix": 24,
+    "fx_dl_low": 40,
+    "fx_dl_high": 50,
+    "fx_dl_drive": 25,
+    "fx_dl_wow": 70,
+    "fx_dl_duck": 0,
+    "fx_dl_pp": "OFF",
+    "fx_dl_width": 100,
+    "fx_dl_heads": "1",
+    "fx_rv_type": "NORMAL",
+    "fx_rv_mix": 28,
+    "fx_rv_decay": 60,
+    "fx_rv_diff": 65,
+    "fx_rv_damp": 35
+   }
+  },
+  {
+   "name": "Water Tank",
+   "note": "A spring thrown wide open: the tank is the sound",
+   "styles": [
+    "Dub",
+    "Experimental"
+   ],
+   "uses": [
+    "Reverb"
+   ],
+   "values": {
+    "fx_rv_type": "SPRING",
+    "fx_rv_mix": 55,
+    "fx_rv_decay": 85,
+    "fx_rv_diff": 90,
+    "fx_rv_damp": 15
+   }
+  },
+  {
+   "name": "Hall Of Pings",
+   "note": "Bouncing echoes crossing a large, even room",
+   "styles": [
+    "Cinematic",
+    "Ambient"
+   ],
+   "uses": [
+    "Delay",
+    "Reverb"
+   ],
+   "values": {
+    "fx_dl_sync": "SYNC",
+    "fx_dl_div": "1/4 D",
+    "fx_dl_fb": 60,
+    "fx_dl_mix": 30,
+    "fx_dl_low": 30,
+    "fx_dl_high": 55,
+    "fx_dl_drive": 25,
+    "fx_dl_wow": 15,
+    "fx_dl_duck": 0,
+    "fx_dl_pp": "ON",
+    "fx_dl_width": 100,
+    "fx_dl_heads": "1",
+    "fx_rv_type": "NORMAL",
+    "fx_rv_mix": 30,
+    "fx_rv_decay": 70,
+    "fx_rv_diff": 65,
+    "fx_rv_damp": 35
+   }
+  },
+  {
+   "name": "Bent Room",
+   "note": "Phaser, swung repeats and a long room, all moving at once",
+   "styles": [
+    "Experimental",
+    "Cinematic"
+   ],
+   "uses": [
+    "Delay",
+    "Reverb",
+    "Phaser"
+   ],
+   "values": {
+    "fx_ph_mix": 50,
+    "fx_ph_rate": 18,
+    "fx_ph_depth": 70,
+    "fx_ph_fb": 80,
+    "fx_dl_sync": "SYNC",
+    "fx_dl_div": "1/4 T",
+    "fx_dl_fb": 60,
+    "fx_dl_mix": 30,
+    "fx_dl_low": 30,
+    "fx_dl_high": 65,
+    "fx_dl_drive": 25,
+    "fx_dl_wow": 60,
+    "fx_dl_duck": 0,
+    "fx_dl_pp": "ON",
+    "fx_dl_width": 100,
+    "fx_dl_heads": "1",
+    "fx_rv_type": "NORMAL",
+    "fx_rv_mix": 34,
+    "fx_rv_decay": 78,
+    "fx_rv_diff": 65,
+    "fx_rv_damp": 35
+   }
+  },
+  {
+   "name": "Insect Scatter",
+   "note": "Very short ping-pong for sharp hits and small sounds",
+   "styles": [
+    "Experimental",
+    "Techno"
+   ],
+   "uses": [
+    "Delay",
+    "Reverb"
+   ],
+   "values": {
+    "fx_dl_sync": "SYNC",
+    "fx_dl_div": "1/16 D",
+    "fx_dl_fb": 50,
+    "fx_dl_mix": 24,
+    "fx_dl_low": 30,
+    "fx_dl_high": 65,
+    "fx_dl_drive": 25,
+    "fx_dl_wow": 15,
+    "fx_dl_duck": 0,
+    "fx_dl_pp": "ON",
+    "fx_dl_width": 100,
+    "fx_dl_heads": "1",
+    "fx_rv_type": "NORMAL",
+    "fx_rv_mix": 24,
+    "fx_rv_decay": 58,
+    "fx_rv_diff": 65,
+    "fx_rv_damp": 35
+   }
+  },
+  {
+   "name": "Lab Bench",
+   "note": "A dry room and a small spring: lets a patch speak for itself",
+   "styles": [
+    "Experimental",
+    "Classic"
+   ],
+   "uses": [
+    "Reverb"
+   ],
+   "values": {
+    "fx_rv_type": "NORMAL",
+    "fx_rv_mix": 10,
+    "fx_rv_decay": 30,
+    "fx_rv_diff": 65,
+    "fx_rv_damp": 35
+   }
+  },
+  {
+   "name": "Valve Delay",
+   "note": "Overdriven repeats that break up as they stack",
+   "styles": [
+    "Rave",
+    "Experimental"
+   ],
+   "uses": [
+    "Delay"
+   ],
+   "values": {
+    "fx_dl_sync": "SYNC",
+    "fx_dl_div": "1/8 D",
+    "fx_dl_fb": 40,
+    "fx_dl_mix": 20,
+    "fx_dl_low": 30,
+    "fx_dl_high": 60,
+    "fx_dl_drive": 70,
+    "fx_dl_wow": 15,
+    "fx_dl_duck": 0,
+    "fx_dl_pp": "OFF",
+    "fx_dl_width": 100,
+    "fx_dl_heads": "1"
+   }
+  },
+  {
+   "name": "Sea Cave",
+   "note": "A slow phaser inside a dark, deep space",
+   "styles": [
+    "Ambient",
+    "Dub"
+   ],
+   "uses": [
+    "Reverb",
+    "Phaser"
+   ],
+   "values": {
+    "fx_ph_mix": 45,
+    "fx_ph_rate": 10,
+    "fx_ph_depth": 80,
+    "fx_ph_fb": 70,
+    "fx_rv_type": "NORMAL",
+    "fx_rv_mix": 34,
+    "fx_rv_decay": 78,
+    "fx_rv_diff": 65,
+    "fx_rv_damp": 60
+   }
+  },
+  {
+   "name": "Chorus Cloud",
+   "note": "Everything wide: full chorus into a soft hall",
+   "styles": [
+    "Ambient",
+    "Classic"
+   ],
+   "uses": [
+    "Reverb",
+    "Chorus"
+   ],
+   "values": {
+    "fx_ch_mode": "I+II",
+    "fx_ch_mix": 100,
+    "fx_rv_type": "NORMAL",
+    "fx_rv_mix": 26,
+    "fx_rv_decay": 62,
+    "fx_rv_diff": 65,
+    "fx_rv_damp": 45
+   }
+  },
+  {
+   "name": "Sixteenth Machine",
+   "note": "Tight synced repeats that lock a sequence to the song",
+   "styles": [
+    "Techno",
+    "House"
+   ],
+   "uses": [
+    "Delay"
+   ],
+   "values": {
+    "fx_dl_sync": "SYNC",
+    "fx_dl_div": "1/16",
+    "fx_dl_fb": 40,
+    "fx_dl_mix": 18,
+    "fx_dl_low": 45,
+    "fx_dl_high": 64,
+    "fx_dl_drive": 25,
+    "fx_dl_wow": 4,
+    "fx_dl_duck": 0,
+    "fx_dl_pp": "OFF",
+    "fx_dl_width": 100,
+    "fx_dl_heads": "1"
+   }
+  },
+  {
+   "name": "Dying Transmitter",
+   "note": "Dark tape, spring and a narrow slow phase",
+   "styles": [
+    "Experimental",
+    "Dub"
+   ],
+   "uses": [
+    "Delay",
+    "Reverb",
+    "Phaser"
+   ],
+   "values": {
+    "fx_dl_sync": "SYNC",
+    "fx_dl_div": "1/4 D",
+    "fx_dl_fb": 55,
+    "fx_dl_mix": 24,
+    "fx_dl_low": 50,
+    "fx_dl_high": 44,
+    "fx_dl_drive": 40,
+    "fx_dl_wow": 40,
+    "fx_dl_duck": 0,
+    "fx_dl_pp": "OFF",
+    "fx_dl_width": 100,
+    "fx_dl_heads": "1",
+    "fx_rv_type": "SPRING",
+    "fx_rv_mix": 20,
+    "fx_rv_decay": 45,
+    "fx_rv_diff": 70,
+    "fx_rv_damp": 30,
+    "fx_ph_mix": 30,
+    "fx_ph_rate": 24,
+    "fx_ph_depth": 70,
+    "fx_ph_fb": 50
+   }
+  },
+  {
+   "name": "Afterimage",
+   "note": "A tail with nothing up front: pushes a pluck far away",
+   "styles": [
+    "Cinematic",
+    "Ambient"
+   ],
+   "uses": [
+    "Delay",
+    "Reverb"
+   ],
+   "values": {
+    "fx_dl_sync": "SYNC",
+    "fx_dl_div": "1/8 D",
+    "fx_dl_fb": 45,
+    "fx_dl_mix": 22,
+    "fx_dl_low": 35,
+    "fx_dl_high": 58,
+    "fx_dl_drive": 25,
+    "fx_dl_wow": 15,
+    "fx_dl_duck": 0,
+    "fx_dl_pp": "ON",
+    "fx_dl_width": 70,
+    "fx_dl_heads": "1",
+    "fx_rv_type": "NORMAL",
+    "fx_rv_mix": 42,
+    "fx_rv_decay": 82,
+    "fx_rv_diff": 65,
+    "fx_rv_damp": 35
+   }
   }
  ]
 }

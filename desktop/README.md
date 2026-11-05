@@ -112,6 +112,8 @@ The filter, both envelopes and the LFO each have a small screen showing the real
 
 Click the preset name in the display, or in the rack's top unit, to open the browser. Search looks through names, notes and tags. Within a group, several choices widen the list; between groups they narrow it, and a filter that would leave nothing is dimmed. Click a row to hear it, double-click to load and close. < > step through whatever the filter left.
 
+Three packs lean hardest on the patch bay and the effects, using both LFOs, RANDOM, Tides, the clock and oscillators as modulators. **Modular Classics** holds patches a modular player would know, **Cross Patch** playable sounds with something moving inside them, and **The Deep End** the ones that get away from you.
+
 Each preset has one Type, several Styles and Characters, and a Pack. The first library's are in `vst/preset_tags.py`; each later pack is one file, `vst/pack_*.py`, with its tags beside its sounds. Uses and Plays With are worked out from its values by `make_presets.py`, so they cannot be wrong. `vst/preset_fx.py` holds the effects on the first library, and `vst/preset_output.json` the make-up gain. On Plaits' Virtual Analog model MORPH 100 is not a saw: use `SAW()` in `vst/preset_helpers.py`, which uses VA VCF, and `millstone_preset_probe` to see what a setting really produces. New names can only be added, because a Live set finds its preset by name.
 
 The star marks a favourite. FLAG asks for a note. Both are plain text files beside your user presets, in `~/Library/Application Support/Glaser/Millstone/`: `favourites.txt` and `preset-flags.txt`, which OPEN FLAG FILE shows in the Finder, ready to hand back.
@@ -137,7 +139,7 @@ Values on the screens work like knobs: drag one up or down, double-click it for 
 
 **FX presets.** One FX preset sets the echo, reverb, chorus and phaser together, and nothing else: your voice, Tides, the clock and OUTPUT stay as they are. The strip at the top of the rack steps through them with its < > keys, and clicking the FX PRESET screen opens the browser. Search, filter by style and by the effects a preset uses, and click a row to hear it. Dry turns every effect off. SAVE keeps the effects as they are now, with a name and a style; your own are in `~/Library/Application Support/Glaser/Millstone/FX Presets/`, and DELETE only reaches those. A `*` means the rack has moved since the preset loaded. The factory ones are written in `vst/make_fx_presets.py`.
 
-**FX LOCK**, on by default, stops a synth preset changing the effects, so a voice and its effects can be chosen separately. With it off, a synth preset brings the effects it was written with, as they were before the lock existed. Each set remembers its own lock. Sets saved earlier keep the effects they were saved with.
+**FX LOCK** keeps your effects while you browse synth presets, for trying voices through one setup. It is off by default, so a synth preset loads with the effects it was written with. An FX preset never touches the voice, so you can always load a voice and then pick other effects for it, lock or no lock. Each set remembers its own lock, and sets saved earlier keep the effects they were saved with.
 
 The effects run after the voices, in this plugin and not the shared engine, in the order phaser, chorus, delay, reverb, and they cannot exceed -0.5 dB. With all of them off the signal is not touched. The code is in `src/fx/`; the chorus, phaser and plate wrapper come from the `plaits-synth` project. The page is in `src/RackPage.inc` and the `page=rack` items of `panel.conf`.
 

@@ -67,6 +67,26 @@ public:
     // Saved by name, not number, so reordering the library cannot point a Live set at the wrong sound.
     juce::String getCurrentPresetName() const { return currentPresetName; }
 
+    // FX presets: the echo, reverb, chorus and phaser together, and nothing else. They live apart from the synth presets. With the
+    // lock on, which is the default, loading a synth preset leaves the effects as they are.
+    struct FxRack {
+        juce::String name, note;
+        juce::StringArray styles, uses;
+        std::vector<std::pair<juce::String, float>> values;   // parameter id, value in its own units or option index
+        bool user = false;
+    };
+    static bool isFxKey(const juce::String& id) { return id.startsWith("fx_") && id != "fx_out"; }   // OUTPUT belongs to the synth preset's level match
+    static const std::vector<FxRack>& factoryFxRacks();       // from vst/fx_presets.json
+    std::vector<FxRack> allFxRacks() const;                   // the library, then yours
+    bool loadFxRack(const juce::String& name);
+    bool saveFxRack(const juce::String& name, const juce::String& style);
+    bool deleteFxRack(const juce::String& name);
+    juce::String fxRackName() const { return currentFxRack; }
+    bool fxRackEdited() const;                                // moved since it was loaded
+    juce::File fxRackDirectory() const;
+    static inline bool fxLockDefault = true;                  // the level tests measure presets as written, effects and all
+    bool fxLock = fxLockDefault;
+
     // One file each, with the name inside the file so it can hold what a filename cannot.
     juce::File userPresetDirectory() const;
     void setUserPresetDirectory(const juce::File& dir) { userDirectoryOverride = dir; }   // for tests
@@ -105,6 +125,8 @@ private:
 
     EngineHost engine;
     juce::String currentPresetName { "Init" };
+    juce::String currentFxRack;
+    std::map<juce::String, float> currentFxValues;   // what the FX preset loaded, to tell when it has been moved
     juce::File userDirectoryOverride;
     // One cached raw-value pointer per engine parameter we expose (nullptr for momentary ones we skip).
     std::vector<std::atomic<float>*> rawValues;

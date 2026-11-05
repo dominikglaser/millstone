@@ -1,0 +1,701 @@
+{
+ "presets": [
+  {
+   "name": "Dry",
+   "note": "Everything off: the voice on its own",
+   "styles": [
+    "Classic",
+    "Techno",
+    "Dub",
+    "House",
+    "Rave",
+    "Ambient",
+    "Cinematic",
+    "Experimental"
+   ],
+   "uses": [],
+   "values": {}
+  },
+  {
+   "name": "Echo Chamber",
+   "note": "Dark tape into a wet spring. The sound of the mixing desk as an instrument",
+   "styles": [
+    "Dub"
+   ],
+   "uses": [
+    "Delay",
+    "Reverb"
+   ],
+   "values": {
+    "fx_dl_sync": "SYNC",
+    "fx_dl_div": "1/8 D",
+    "fx_dl_fb": 62,
+    "fx_dl_mix": 30,
+    "fx_dl_low": 35,
+    "fx_dl_high": 56,
+    "fx_dl_drive": 35,
+    "fx_dl_wow": 25,
+    "fx_dl_duck": 0,
+    "fx_dl_pp": "OFF",
+    "fx_dl_width": 100,
+    "fx_dl_heads": "1",
+    "fx_rv_type": "SPRING",
+    "fx_rv_mix": 26,
+    "fx_rv_decay": 60,
+    "fx_rv_diff": 70,
+    "fx_rv_damp": 30
+   }
+  },
+  {
+   "name": "Steppers Tape",
+   "note": "Dotted eighths, tight and rolled off, for skanks and melodica",
+   "styles": [
+    "Dub"
+   ],
+   "uses": [
+    "Delay",
+    "Reverb"
+   ],
+   "values": {
+    "fx_dl_sync": "SYNC",
+    "fx_dl_div": "1/8 D",
+    "fx_dl_fb": 52,
+    "fx_dl_mix": 24,
+    "fx_dl_low": 38,
+    "fx_dl_high": 62,
+    "fx_dl_drive": 28,
+    "fx_dl_wow": 18,
+    "fx_dl_duck": 0,
+    "fx_dl_pp": "OFF",
+    "fx_dl_width": 100,
+    "fx_dl_heads": "1",
+    "fx_rv_type": "SPRING",
+    "fx_rv_mix": 12,
+    "fx_rv_decay": 35,
+    "fx_rv_diff": 70,
+    "fx_rv_damp": 30
+   }
+  },
+  {
+   "name": "Roots Spring",
+   "note": "Mostly spring: the drip behind a guitar or an organ",
+   "styles": [
+    "Dub"
+   ],
+   "uses": [
+    "Delay",
+    "Reverb"
+   ],
+   "values": {
+    "fx_rv_type": "SPRING",
+    "fx_rv_mix": 38,
+    "fx_rv_decay": 55,
+    "fx_rv_diff": 80,
+    "fx_rv_damp": 25,
+    "fx_dl_sync": "SYNC",
+    "fx_dl_div": "1/4",
+    "fx_dl_fb": 30,
+    "fx_dl_mix": 8,
+    "fx_dl_low": 40,
+    "fx_dl_high": 55,
+    "fx_dl_drive": 25,
+    "fx_dl_wow": 15,
+    "fx_dl_duck": 0,
+    "fx_dl_pp": "OFF",
+    "fx_dl_width": 100,
+    "fx_dl_heads": "1"
+   }
+  },
+  {
+   "name": "Long Tape Throw",
+   "note": "Long repeats that darken as they go. Ride the mix",
+   "styles": [
+    "Dub"
+   ],
+   "uses": [
+    "Delay"
+   ],
+   "values": {
+    "fx_dl_sync": "SYNC",
+    "fx_dl_div": "1/4 D",
+    "fx_dl_fb": 78,
+    "fx_dl_mix": 34,
+    "fx_dl_low": 40,
+    "fx_dl_high": 50,
+    "fx_dl_drive": 45,
+    "fx_dl_wow": 30,
+    "fx_dl_duck": 0,
+    "fx_dl_pp": "OFF",
+    "fx_dl_width": 100,
+    "fx_dl_heads": "1+3"
+   }
+  },
+  {
+   "name": "Swamp Phaser",
+   "note": "A slow, resonant phaser into worn tape, for drums and everything else on the desk",
+   "styles": [
+    "Dub"
+   ],
+   "uses": [
+    "Delay",
+    "Reverb",
+    "Phaser"
+   ],
+   "values": {
+    "fx_ph_mix": 55,
+    "fx_ph_rate": 26,
+    "fx_ph_depth": 80,
+    "fx_ph_fb": 58,
+    "fx_dl_sync": "SYNC",
+    "fx_dl_div": "1/8 D",
+    "fx_dl_fb": 50,
+    "fx_dl_mix": 20,
+    "fx_dl_low": 38,
+    "fx_dl_high": 54,
+    "fx_dl_drive": 35,
+    "fx_dl_wow": 28,
+    "fx_dl_duck": 0,
+    "fx_dl_pp": "OFF",
+    "fx_dl_width": 100,
+    "fx_dl_heads": "1",
+    "fx_rv_type": "SPRING",
+    "fx_rv_mix": 14,
+    "fx_rv_decay": 45,
+    "fx_rv_diff": 70,
+    "fx_rv_damp": 30
+   }
+  },
+  {
+   "name": "Dub Techno Chord",
+   "note": "Wide dotted repeats over a dark room, for one chord held forever",
+   "styles": [
+    "Techno",
+    "Dub"
+   ],
+   "uses": [
+    "Delay",
+    "Reverb",
+    "Chorus"
+   ],
+   "values": {
+    "fx_dl_sync": "SYNC",
+    "fx_dl_div": "1/4 D",
+    "fx_dl_fb": 70,
+    "fx_dl_mix": 32,
+    "fx_dl_low": 45,
+    "fx_dl_high": 58,
+    "fx_dl_drive": 30,
+    "fx_dl_wow": 12,
+    "fx_dl_duck": 0,
+    "fx_dl_pp": "ON",
+    "fx_dl_width": 60,
+    "fx_dl_heads": "1",
+    "fx_rv_type": "NORMAL",
+    "fx_rv_mix": 26,
+    "fx_rv_decay": 72,
+    "fx_rv_diff": 65,
+    "fx_rv_damp": 62,
+    "fx_ch_mode": "I",
+    "fx_ch_mix": 40
+   }
+  },
+  {
+   "name": "Warehouse",
+   "note": "Short, hard and dark: a concrete room with one bounce",
+   "styles": [
+    "Techno"
+   ],
+   "uses": [
+    "Delay",
+    "Reverb"
+   ],
+   "values": {
+    "fx_dl_sync": "SYNC",
+    "fx_dl_div": "1/8",
+    "fx_dl_fb": 35,
+    "fx_dl_mix": 14,
+    "fx_dl_low": 48,
+    "fx_dl_high": 60,
+    "fx_dl_drive": 30,
+    "fx_dl_wow": 6,
+    "fx_dl_duck": 0,
+    "fx_dl_pp": "OFF",
+    "fx_dl_width": 100,
+    "fx_dl_heads": "1",
+    "fx_rv_type": "NORMAL",
+    "fx_rv_mix": 20,
+    "fx_rv_decay": 38,
+    "fx_rv_diff": 50,
+    "fx_rv_damp": 68
+   }
+  },
+  {
+   "name": "Hypnotic Phase",
+   "note": "A slow sweep with repeats behind it, for a loop that must not stay still",
+   "styles": [
+    "Techno"
+   ],
+   "uses": [
+    "Delay",
+    "Phaser"
+   ],
+   "values": {
+    "fx_ph_mix": 55,
+    "fx_ph_rate": 22,
+    "fx_ph_depth": 75,
+    "fx_ph_fb": 55,
+    "fx_dl_sync": "SYNC",
+    "fx_dl_div": "1/8 D",
+    "fx_dl_fb": 42,
+    "fx_dl_mix": 16,
+    "fx_dl_low": 45,
+    "fx_dl_high": 62,
+    "fx_dl_drive": 25,
+    "fx_dl_wow": 8,
+    "fx_dl_duck": 0,
+    "fx_dl_pp": "OFF",
+    "fx_dl_width": 100,
+    "fx_dl_heads": "1"
+   }
+  },
+  {
+   "name": "Dry Room",
+   "note": "Barely there: a little air around a stab",
+   "styles": [
+    "Techno",
+    "House"
+   ],
+   "uses": [
+    "Reverb"
+   ],
+   "values": {
+    "fx_rv_type": "NORMAL",
+    "fx_rv_mix": 10,
+    "fx_rv_decay": 22,
+    "fx_rv_diff": 50,
+    "fx_rv_damp": 55
+   }
+  },
+  {
+   "name": "House Plate",
+   "note": "A bright, short plate that sits under chords and keys",
+   "styles": [
+    "House",
+    "Classic"
+   ],
+   "uses": [
+    "Reverb"
+   ],
+   "values": {
+    "fx_rv_type": "NORMAL",
+    "fx_rv_mix": 20,
+    "fx_rv_decay": 42,
+    "fx_rv_diff": 65,
+    "fx_rv_damp": 25
+   }
+  },
+  {
+   "name": "Deep House Keys",
+   "note": "Soft chorus, a ducked echo and a warm room",
+   "styles": [
+    "House"
+   ],
+   "uses": [
+    "Delay",
+    "Reverb",
+    "Chorus"
+   ],
+   "values": {
+    "fx_ch_mode": "II",
+    "fx_ch_mix": 65,
+    "fx_dl_sync": "SYNC",
+    "fx_dl_div": "1/8 D",
+    "fx_dl_fb": 38,
+    "fx_dl_mix": 16,
+    "fx_dl_low": 42,
+    "fx_dl_high": 64,
+    "fx_dl_drive": 25,
+    "fx_dl_wow": 15,
+    "fx_dl_duck": 35,
+    "fx_dl_pp": "OFF",
+    "fx_dl_width": 100,
+    "fx_dl_heads": "1",
+    "fx_rv_type": "NORMAL",
+    "fx_rv_mix": 14,
+    "fx_rv_decay": 45,
+    "fx_rv_diff": 65,
+    "fx_rv_damp": 50
+   }
+  },
+  {
+   "name": "Disco Phaser",
+   "note": "A quick shimmer, for a clav or a string line",
+   "styles": [
+    "House",
+    "Classic"
+   ],
+   "uses": [
+    "Reverb",
+    "Phaser"
+   ],
+   "values": {
+    "fx_ph_mix": 45,
+    "fx_ph_rate": 48,
+    "fx_ph_depth": 60,
+    "fx_ph_fb": 30,
+    "fx_rv_type": "NORMAL",
+    "fx_rv_mix": 10,
+    "fx_rv_decay": 30,
+    "fx_rv_diff": 65,
+    "fx_rv_damp": 35
+   }
+  },
+  {
+   "name": "Rave Hall",
+   "note": "Big, bright and obvious",
+   "styles": [
+    "Rave"
+   ],
+   "uses": [
+    "Reverb",
+    "Chorus"
+   ],
+   "values": {
+    "fx_rv_type": "NORMAL",
+    "fx_rv_mix": 34,
+    "fx_rv_decay": 70,
+    "fx_rv_diff": 75,
+    "fx_rv_damp": 20,
+    "fx_ch_mode": "I",
+    "fx_ch_mix": 50
+   }
+  },
+  {
+   "name": "Hoover Space",
+   "note": "Chorus at full width and a long hall, for anything that scoops",
+   "styles": [
+    "Rave",
+    "Cinematic"
+   ],
+   "uses": [
+    "Reverb",
+    "Chorus"
+   ],
+   "values": {
+    "fx_ch_mode": "I+II",
+    "fx_ch_mix": 100,
+    "fx_rv_type": "NORMAL",
+    "fx_rv_mix": 30,
+    "fx_rv_decay": 68,
+    "fx_rv_diff": 75,
+    "fx_rv_damp": 35
+   }
+  },
+  {
+   "name": "Jungle Echo",
+   "note": "Fast bright repeats that bounce across the room",
+   "styles": [
+    "Rave",
+    "Dub"
+   ],
+   "uses": [
+    "Delay",
+    "Reverb"
+   ],
+   "values": {
+    "fx_dl_sync": "SYNC",
+    "fx_dl_div": "1/8",
+    "fx_dl_fb": 48,
+    "fx_dl_mix": 22,
+    "fx_dl_low": 30,
+    "fx_dl_high": 74,
+    "fx_dl_drive": 20,
+    "fx_dl_wow": 8,
+    "fx_dl_duck": 0,
+    "fx_dl_pp": "ON",
+    "fx_dl_width": 85,
+    "fx_dl_heads": "1",
+    "fx_rv_type": "SPRING",
+    "fx_rv_mix": 12,
+    "fx_rv_decay": 30,
+    "fx_rv_diff": 70,
+    "fx_rv_damp": 30
+   }
+  },
+  {
+   "name": "Long Cloud",
+   "note": "A very long, soft tail with no edges",
+   "styles": [
+    "Ambient"
+   ],
+   "uses": [
+    "Reverb"
+   ],
+   "values": {
+    "fx_rv_type": "NORMAL",
+    "fx_rv_mix": 48,
+    "fx_rv_decay": 100,
+    "fx_rv_diff": 85,
+    "fx_rv_damp": 45
+   }
+  },
+  {
+   "name": "Slow Shimmer",
+   "note": "A slow phase moving inside a long hall",
+   "styles": [
+    "Ambient",
+    "Cinematic"
+   ],
+   "uses": [
+    "Reverb",
+    "Chorus",
+    "Phaser"
+   ],
+   "values": {
+    "fx_ph_mix": 40,
+    "fx_ph_rate": 12,
+    "fx_ph_depth": 70,
+    "fx_ph_fb": 35,
+    "fx_rv_type": "NORMAL",
+    "fx_rv_mix": 38,
+    "fx_rv_decay": 88,
+    "fx_rv_diff": 80,
+    "fx_rv_damp": 30,
+    "fx_ch_mode": "I",
+    "fx_ch_mix": 45
+   }
+  },
+  {
+   "name": "Tape Fog",
+   "note": "Worn repeats disappearing into the hall",
+   "styles": [
+    "Ambient",
+    "Experimental"
+   ],
+   "uses": [
+    "Delay",
+    "Reverb"
+   ],
+   "values": {
+    "fx_dl_sync": "SYNC",
+    "fx_dl_div": "1/2",
+    "fx_dl_fb": 64,
+    "fx_dl_mix": 28,
+    "fx_dl_low": 45,
+    "fx_dl_high": 48,
+    "fx_dl_drive": 40,
+    "fx_dl_wow": 45,
+    "fx_dl_duck": 0,
+    "fx_dl_pp": "OFF",
+    "fx_dl_width": 100,
+    "fx_dl_heads": "1",
+    "fx_rv_type": "NORMAL",
+    "fx_rv_mix": 32,
+    "fx_rv_decay": 82,
+    "fx_rv_diff": 65,
+    "fx_rv_damp": 60
+   }
+  },
+  {
+   "name": "Distant Hall",
+   "note": "Pushed well back: for a line that belongs behind the mix",
+   "styles": [
+    "Cinematic"
+   ],
+   "uses": [
+    "Delay",
+    "Reverb"
+   ],
+   "values": {
+    "fx_rv_type": "NORMAL",
+    "fx_rv_mix": 50,
+    "fx_rv_decay": 80,
+    "fx_rv_diff": 80,
+    "fx_rv_damp": 55,
+    "fx_dl_sync": "SYNC",
+    "fx_dl_div": "1/4",
+    "fx_dl_fb": 34,
+    "fx_dl_mix": 14,
+    "fx_dl_low": 48,
+    "fx_dl_high": 56,
+    "fx_dl_drive": 25,
+    "fx_dl_wow": 15,
+    "fx_dl_duck": 0,
+    "fx_dl_pp": "OFF",
+    "fx_dl_width": 100,
+    "fx_dl_heads": "1"
+   }
+  },
+  {
+   "name": "Trailer Room",
+   "note": "An enormous space with a hard top end",
+   "styles": [
+    "Cinematic",
+    "Rave"
+   ],
+   "uses": [
+    "Reverb",
+    "Chorus"
+   ],
+   "values": {
+    "fx_rv_type": "NORMAL",
+    "fx_rv_mix": 42,
+    "fx_rv_decay": 92,
+    "fx_rv_diff": 70,
+    "fx_rv_damp": 15,
+    "fx_ch_mode": "II",
+    "fx_ch_mix": 45
+   }
+  },
+  {
+   "name": "Studio Plate",
+   "note": "Clean and even, the plate on everything",
+   "styles": [
+    "Classic"
+   ],
+   "uses": [
+    "Reverb"
+   ],
+   "values": {
+    "fx_rv_type": "NORMAL",
+    "fx_rv_mix": 22,
+    "fx_rv_decay": 48,
+    "fx_rv_diff": 65,
+    "fx_rv_damp": 35
+   }
+  },
+  {
+   "name": "Polysynth Width",
+   "note": "The chorus an eighties polysynth came with, and a small room",
+   "styles": [
+    "Classic",
+    "House"
+   ],
+   "uses": [
+    "Reverb",
+    "Chorus"
+   ],
+   "values": {
+    "fx_ch_mode": "II",
+    "fx_ch_mix": 100,
+    "fx_rv_type": "NORMAL",
+    "fx_rv_mix": 12,
+    "fx_rv_decay": 30,
+    "fx_rv_diff": 65,
+    "fx_rv_damp": 45
+   }
+  },
+  {
+   "name": "Slapback",
+   "note": "One quick repeat",
+   "styles": [
+    "Classic",
+    "Dub"
+   ],
+   "uses": [
+    "Delay"
+   ],
+   "values": {
+    "fx_dl_sync": "FREE",
+    "fx_dl_time": 110,
+    "fx_dl_fb": 10,
+    "fx_dl_mix": 22,
+    "fx_dl_low": 25,
+    "fx_dl_high": 72,
+    "fx_dl_drive": 20,
+    "fx_dl_wow": 10
+   }
+  },
+  {
+   "name": "Stone Phaser",
+   "note": "A resonant seventies phaser, nothing else",
+   "styles": [
+    "Classic"
+   ],
+   "uses": [
+    "Phaser"
+   ],
+   "values": {
+    "fx_ph_mix": 60,
+    "fx_ph_rate": 40,
+    "fx_ph_depth": 70,
+    "fx_ph_fb": 60
+   }
+  },
+  {
+   "name": "Runaway Tape",
+   "note": "Repeats that feed themselves. Keep a hand on the mix",
+   "styles": [
+    "Experimental",
+    "Dub"
+   ],
+   "uses": [
+    "Delay"
+   ],
+   "values": {
+    "fx_dl_sync": "SYNC",
+    "fx_dl_div": "1/4 T",
+    "fx_dl_fb": 108,
+    "fx_dl_mix": 30,
+    "fx_dl_low": 30,
+    "fx_dl_high": 55,
+    "fx_dl_drive": 55,
+    "fx_dl_wow": 30,
+    "fx_dl_duck": 0,
+    "fx_dl_pp": "OFF",
+    "fx_dl_width": 100,
+    "fx_dl_heads": "1"
+   }
+  },
+  {
+   "name": "Broken Spring",
+   "note": "A spring kicked too hard, with a nervous chorus on it",
+   "styles": [
+    "Experimental"
+   ],
+   "uses": [
+    "Reverb",
+    "Chorus"
+   ],
+   "values": {
+    "fx_rv_type": "SPRING",
+    "fx_rv_mix": 45,
+    "fx_rv_decay": 85,
+    "fx_rv_diff": 100,
+    "fx_rv_damp": 10,
+    "fx_ch_mode": "I+II",
+    "fx_ch_mix": 70
+   }
+  },
+  {
+   "name": "Metal Phase",
+   "note": "Tight resonant sweeps feeding short repeats",
+   "styles": [
+    "Experimental",
+    "Techno"
+   ],
+   "uses": [
+    "Delay",
+    "Phaser"
+   ],
+   "values": {
+    "fx_ph_mix": 75,
+    "fx_ph_rate": 64,
+    "fx_ph_depth": 90,
+    "fx_ph_fb": 88,
+    "fx_dl_sync": "SYNC",
+    "fx_dl_div": "1/16",
+    "fx_dl_fb": 40,
+    "fx_dl_mix": 18,
+    "fx_dl_low": 40,
+    "fx_dl_high": 72,
+    "fx_dl_drive": 25,
+    "fx_dl_wow": 0,
+    "fx_dl_duck": 0,
+    "fx_dl_pp": "OFF",
+    "fx_dl_width": 100,
+    "fx_dl_heads": "1"
+   }
+  }
+ ]
+}

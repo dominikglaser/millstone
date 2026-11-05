@@ -165,6 +165,8 @@ void MillstoneProcessor::processBlockBypassed(juce::AudioBuffer<float>& buffer, 
 void MillstoneProcessor::getStateInformation(juce::MemoryBlock& dest) {
     auto state = apvts.copyState();
     state.setProperty("preset", currentPresetName, nullptr);
+    state.setProperty("fxPreset", currentFxRack, nullptr);
+    state.setProperty("fxLock", fxLock, nullptr);
     if (auto xml = state.createXml()) copyXmlToBinary(*xml, dest);
 }
 
@@ -172,6 +174,10 @@ void MillstoneProcessor::setStateInformation(const void* data, int sizeInBytes) 
     if (auto xml = getXmlFromBinary(data, sizeInBytes)) {
         auto state = juce::ValueTree::fromXml(*xml);
         currentPresetName = state.getProperty("preset").toString();   // empty for sets saved before presets existed
+        currentFxRack = state.getProperty("fxPreset").toString();
+        fxLock = (bool)state.getProperty("fxLock", true);
+        currentFxValues.clear();
+        for (const auto& rack : allFxRacks()) if (rack.name == currentFxRack) for (const auto& [key, value] : rack.values) currentFxValues[key] = value;
         apvts.replaceState(state);
     }
 }
@@ -212,6 +218,137 @@ void MillstoneProcessor::disconnectCord(int cord) {
 }
 
 // ---- presets ----------------------------------------------------------------------------------------------------
+// ---- FX presets ------------------------------------------------------------------------------------------------------
+namespace {
+const std::map<juce::String, const param_t*>& paramsByKey() {
+    static const auto map = [] { std::map<juce::String, const param_t*> m; for (int i = 0; i < NPARAMS; ++i) m[PARAMS[i].key] = &PARAMS[i]; return m; }();
+    return map;
+}
+juce::StringArray varWords(const juce::var& list) { juce::StringArray result; if (const auto* a = list.getArray()) for (const auto& v : *a) result.add(v.toString()); return result; }
+}
+
+const std::vector<MillstoneProcessor::FxRack>& MillstoneProcessor::factoryFxRacks() {
+    static const std::vector<FxRack> library = [] {
+        std::vector<FxRack> out;
+        const auto json = juce::JSON::parse(juce::String::fromUTF8(BinaryData::fx_presets_json, BinaryData::fx_presets_jsonSize));
+        if (const auto* list = json["presets"].getArray())
+            for (const auto& entry : *list) {
+                FxRack rack;
+                rack.name = entry["name"].toString();
+                rack.note = entry["note"].toString();
+                rack.styles = varWords(entry["styles"]);
+                rack.uses = varWords(entry["uses"]);
+                if (const auto* obj = entry["values"].getDynamicObject())
+                    for (const auto& property : obj->getProperties()) {
+                        const auto found = paramsByKey().find(property.name.toString());
+                        if (found == paramsByKey().end()) { jassertfalse; continue; }
+                        float value = (float)property.value;
+                        if (property.value.isString())
+                            for (int o = 0; o < found->second->nopts; ++o)
+                                if (property.value.toString() == found->second->opts[o]) value = (float)o;
+                        rack.values.emplace_back(found->first, value);
+                    }
+                out.push_back(std::move(rack));
+            }
+        return out;
+    }();
+    return library;
+}
+
+juce::File MillstoneProcessor::fxRackDirectory() const { return userPresetDirectory().getSiblingFile("FX Presets"); }
+
+std::vector<MillstoneProcessor::FxRack> MillstoneProcessor::allFxRacks() const {
+    auto all = factoryFxRacks();
+    auto files = fxRackDirectory().findChildFiles(juce::File::findFiles, false, "*.millstonefx");
+    files.sort();
+    for (const auto& file : files) {
+        auto xml = juce::XmlDocument::parse(file);
+        if (xml == nullptr || !xml->hasTagName("MillstoneFxPreset")) continue;
+        FxRack rack;
+        rack.name = xml->getStringAttribute("name", file.getFileNameWithoutExtension());
+        rack.note = "Your preset";
+        rack.user = true;
+        if (xml->getStringAttribute("style").isNotEmpty()) rack.styles.add(xml->getStringAttribute("style"));
+        for (auto* item : xml->getChildWithTagNameIterator("param")) {
+            const auto id = item->getStringAttribute("id");
+            const float value = (float)item->getDoubleAttribute("value");
+            rack.values.emplace_back(id, value);
+            if ((id == "fx_dl_mix" || id == "fx_rv_mix" || id == "fx_ph_mix" || id == "fx_ch_mode") && value > 0.0f)
+                rack.uses.add(id == "fx_dl_mix" ? "Delay" : id == "fx_rv_mix" ? "Reverb" : id == "fx_ph_mix" ? "Phaser" : "Chorus");
+        }
+        all.push_back(std::move(rack));
+    }
+    return all;
+}
+
+bool MillstoneProcessor::loadFxRack(const juce::String& name) {
+    for (const auto& rack : allFxRacks()) {
+        if (rack.name != name) continue;
+        std::map<juce::String, float> wanted;
+        for (const auto& [key, value] : rack.values) wanted[key] = value;
+        for (auto* base : getParameters()) {
+            auto* p = dynamic_cast<juce::RangedAudioParameter*>(base);
+            if (p == nullptr || !isFxKey(p->getParameterID())) continue;
+            const auto it = wanted.find(p->getParameterID());
+            const float target = it != wanted.end() ? p->convertTo0to1(it->second) : p->getDefaultValue();
+            if (std::abs(p->getValue() - target) > 1e-6f) { p->beginChangeGesture(); p->setValueNotifyingHost(target); p->endChangeGesture(); }
+        }
+        currentFxRack = name;
+        currentFxValues = wanted;
+        for (int unit = 0; unit < 4; ++unit) fxPreset[(size_t)unit] = -1;   // the effects' own screens no longer say what they last loaded (the fifth is Tides)
+        return true;
+    }
+    return false;
+}
+
+bool MillstoneProcessor::saveFxRack(const juce::String& name, const juce::String& style) {
+    const auto trimmed = name.trim();
+    if (trimmed.isEmpty()) return false;
+    for (const auto& factory : factoryFxRacks())
+        if (factory.name.equalsIgnoreCase(trimmed)) return false;   // the library keeps its names
+    if (!fxRackDirectory().createDirectory()) return false;
+    juce::XmlElement xml("MillstoneFxPreset");
+    xml.setAttribute("name", trimmed);
+    xml.setAttribute("style", style);
+    for (auto* base : getParameters())
+        if (auto* p = dynamic_cast<juce::RangedAudioParameter*>(base))
+            if (isFxKey(p->getParameterID()) && p->getParameterID() != "fx_dl_throw" && p->getParameterID() != "fx_rv_kick") {   // those two are held by hand, not set
+                auto* item = xml.createNewChildElement("param");
+                item->setAttribute("id", p->getParameterID());
+                item->setAttribute("value", (double)p->convertFrom0to1(p->getValue()));
+            }
+    if (!xml.writeTo(fxRackDirectory().getChildFile(juce::File::createLegalFileName(trimmed) + ".millstonefx"))) return false;
+    currentFxRack = trimmed;
+    currentFxValues.clear();
+    for (auto* item : xml.getChildWithTagNameIterator("param")) currentFxValues[item->getStringAttribute("id")] = (float)item->getDoubleAttribute("value");
+    return true;
+}
+
+bool MillstoneProcessor::deleteFxRack(const juce::String& name) {
+    for (const auto& file : fxRackDirectory().findChildFiles(juce::File::findFiles, false, "*.millstonefx")) {
+        auto xml = juce::XmlDocument::parse(file);
+        if (xml != nullptr && xml->getStringAttribute("name", file.getFileNameWithoutExtension()) == name) {
+            if (!file.deleteFile()) return false;
+            if (currentFxRack == name) currentFxRack.clear();   // the sound stays, it just no longer has that name
+            return true;
+        }
+    }
+    return false;
+}
+
+// Called by the screen on every tick, so it works from what was loaded, not from the files.
+bool MillstoneProcessor::fxRackEdited() const {
+    if (currentFxRack.isEmpty()) return false;
+    for (auto* base : getParameters()) {
+        auto* p = dynamic_cast<juce::RangedAudioParameter*>(base);
+        if (p == nullptr || !isFxKey(p->getParameterID()) || p->getParameterID() == "fx_dl_throw" || p->getParameterID() == "fx_rv_kick") continue;
+        const auto it = currentFxValues.find(p->getParameterID());
+        const float target = it != currentFxValues.end() ? p->convertTo0to1(it->second) : p->getDefaultValue();
+        if (std::abs(p->getValue() - target) > 0.002f) return true;
+    }
+    return false;
+}
+
 const std::vector<MillstoneProcessor::Preset>& MillstoneProcessor::factoryPresets() {
     static const std::vector<Preset> library = [] {
         std::vector<Preset> out;
@@ -263,6 +400,7 @@ void MillstoneProcessor::applyDefaultsThenValues(const std::vector<std::pair<juc
     for (auto* base : getParameters()) {
         auto* p = dynamic_cast<juce::RangedAudioParameter*>(base);
         if (p == nullptr) continue;
+        if (fxLock && isFxKey(p->getParameterID())) continue;     // the effects stay as they are
         const auto it = wanted.find(p->getParameterID());
         const float target = it != wanted.end() ? p->convertTo0to1(it->second) : p->getDefaultValue();   // not listed: its default
         if (std::abs(p->getValue() - target) > 1e-6f) p->setValueNotifyingHost(target);

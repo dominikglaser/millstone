@@ -25,6 +25,7 @@ static int noteFor(const juce::String& category) {
 
 int main(int argc, char** argv) {
     juce::ScopedJuceInitialiser_GUI gui;
+    MillstoneProcessor::fxLockDefault = false;
     const auto& library = MillstoneProcessor::factoryPresets();
     const juce::File trimFile = argc > 2 ? juce::File(juce::String(argv[2])) : juce::File();
     auto trims = std::make_unique<juce::DynamicObject>();

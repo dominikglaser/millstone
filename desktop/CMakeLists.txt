@@ -105,7 +105,7 @@ target_sources(Millstone PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src/PluginEditor.cpp)
 
 # Embedded so the plugin is self-contained. The panel layout is desktop-only; the presets are shared with the MPC build.
-juce_add_binary_data(MillstoneData SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/panel.conf ${REPO}/vst/presets.json)
+juce_add_binary_data(MillstoneData SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/panel.conf ${REPO}/vst/presets.json ${REPO}/vst/fx_presets.json)
 
 target_include_directories(Millstone PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src

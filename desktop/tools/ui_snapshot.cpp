@@ -326,6 +326,44 @@ int main(int argc, char** argv) {
             check(std::abs(ps.getRawParameterValue("fx_dl_drive")->load() - 61.0f) < 0.5f, "VALUE starts on DRIVE");
         }
 
+        // The FX browser, from the screen in the top strip.
+        {
+            auto* lockKey = find(editor, "rack_fx_lock");
+            auto* lockButton = dynamic_cast<juce::Button*>(lockKey);
+            check(lockButton != nullptr && lockButton->getToggleState(), "FX LOCK shows on");
+            click("rack_fx_lock"); editor.refreshFromProcessor();
+            check(!proc.fxLock && !lockButton->getToggleState(), "and turns off");
+            click("rack_fx_lock"); editor.refreshFromProcessor();
+            auto* fx = find(editor, "fx_browser");
+            check(fx != nullptr && !fx->isVisible(), "the FX browser starts closed");
+            click("rack_fx_browse");
+            check(fx->isVisible(), "the FX screen opens it");
+            auto* box = dynamic_cast<juce::ListBox*>(find(editor, "fx_browser_list"));
+            check(box != nullptr && box->getListBoxModel()->getNumRows() >= 20, "it lists the library");
+            const int all = box->getListBoxModel()->getNumRows();
+            click("fxchip:Dub");
+            const int dub = box->getListBoxModel()->getNumRows();
+            check(dub > 0 && dub < all, "a style narrows it, " + juce::String(all) + " to " + juce::String(dub));
+            click("fxchip:Phaser");
+            check(box->getListBoxModel()->getNumRows() > 0 && box->getListBoxModel()->getNumRows() < dub, "and an effect narrows it further");
+            check(find(editor, "fxchip:Chorus")->getAlpha() < 1.0f, "a filter that would leave nothing is dimmed");
+            render("panel_fx_browser");
+            click("fx_browser_clear");
+            check(box->getListBoxModel()->getNumRows() == all, "CLEAR brings them all back");
+            const float cut = ps.getRawParameterValue("cutoff")->load();
+            box->selectRow(2, false, true); editor.refreshFromProcessor();
+            check(proc.fxRackName().isNotEmpty() && find(editor, "rack_master") != nullptr, "picking a row loads it");
+            check(ps.getRawParameterValue("cutoff")->load() == cut, "and leaves the voice");
+            check(find(editor, "rack_master")->getProperties()["fxPreset"].toString() == proc.fxRackName(), "the strip says which, " + proc.fxRackName());
+            const auto was = proc.fxRackName();
+            click("rack_fx_next");
+            check(proc.fxRackName() != was, "the keys step through them");
+            click("fx_browser_close");
+            check(!fx->isVisible(), "CLOSE closes it");
+            click("rack_fx_next"); click("rack_fx_prev");
+            render("panel_rack_fx");
+        }
+
         // A value on a screen works like a knob: drag it, double click it, roll the wheel over it. A click alone moves nothing.
         {
             const auto mouse = [](juce::Component* on, juce::Point<float> at, juce::Point<float> from, int clicks = 1) { return juce::MouseEvent(juce::Desktop::getInstance().getMainMouseSource(), at, juce::ModifierKeys(juce::ModifierKeys::leftButtonModifier), 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, on, on, juce::Time::getCurrentTime(), from, juce::Time::getCurrentTime(), clicks, at != from); };

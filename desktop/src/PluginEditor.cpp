@@ -1488,6 +1488,7 @@ private:
 };
 
 #include "PresetBrowser.inc"
+#include "FxBrowser.inc"
 
 // The cables and the jacks' mouse handling. Drag between an output and an input to patch; pull a plug out of an input to
 // move or remove that cord; double-click an input to unplug everything in it.
@@ -1862,14 +1863,31 @@ private:
 struct MillstoneEditor::RackMaster : juce::Component {
     explicit RackMaster(MillstoneProcessor& p) : processor(p) {
         setBounds(0, 0, designW, 104);
-        for (auto* key : { &previous, &next, &panel }) { key->dark = true; key->lamp = false; addAndMakeVisible(*key); }
-        previous.setBounds((int)screen.getRight() + 16, 49, 40, 32);
-        next.setBounds((int)screen.getRight() + 60, 49, 40, 32);
+        setComponentID("rack_master");
+        for (auto* key : { &previous, &next, &panel, &fxPrevious, &fxNext }) { key->dark = true; key->lamp = false; addAndMakeVisible(*key); }
+        previous.setBounds((int)screen.getRight() + 8, 49, 40, 32);
+        next.setBounds((int)screen.getRight() + 52, 49, 40, 32);
+        fxPrevious.setBounds((int)fxScreen.getRight() + 8, 49, 36, 32);
+        fxNext.setBounds((int)fxScreen.getRight() + 48, 49, 36, 32);
+        lock.dark = true;
+        lock.lampOn = juce::Colour(0xfff5a623);
+        lock.setBounds(1100, 49, 84, 32);
+        lock.setComponentID("rack_fx_lock");
+        lock.onClick = [this] { processor.fxLock = !processor.fxLock; refresh(); };
+        addAndMakeVisible(lock);
         panel.setBounds(1270, 49, 90, 32);
-        browse.setBounds(screen.withWidth(280).toNearestInt());
+        browse.setBounds(screen.withWidth(nameW).toNearestInt());
         browse.setComponentID("rack_browse");
         browse.setAlpha(0.0f);
         addAndMakeVisible(browse);
+        fxBrowse.setBounds(fxScreen.toNearestInt());
+        fxBrowse.setComponentID("rack_fx_browse");
+        fxBrowse.setAlpha(0.0f);
+        addAndMakeVisible(fxBrowse);
+        fxPrevious.setComponentID("rack_fx_prev");
+        fxNext.setComponentID("rack_fx_next");
+        fxPrevious.onClick = [this] { stepFx(-1); };
+        fxNext.onClick = [this] { stepFx(1); };
         previous.setComponentID("rack_preset_prev");
         next.setComponentID("rack_preset_next");
         panel.setComponentID("rack_back");
@@ -1877,15 +1895,28 @@ struct MillstoneEditor::RackMaster : juce::Component {
     }
     void paint(juce::Graphics& g) override {
         paintRackScreen(g, screen);
-        const juce::Colour blue(0xff58a8ff), dim = blue.withMultipliedBrightness(0.7f);
+        paintRackScreen(g, fxScreen);
+        const juce::Colour blue(0xff58a8ff), dim = blue.withMultipliedBrightness(0.7f), green(0xff4fd07a);
+        g.setColour(juce::Colour(0xffe9e4d4).withAlpha(0.75f));
+        g.setFont(printFont(9.5f, true, 0.14f));
+        g.drawText("SYNTH PRESET", screen.withY(30.0f).withHeight(12.0f), juce::Justification::centredLeft);
+        g.drawText("FX PRESET", fxScreen.withY(30.0f).withHeight(12.0f), juce::Justification::centredLeft);
         g.setFont(displayFont(16.0f));
-        drawGlowIn(g, blue, processor.getCurrentPresetName().isEmpty() ? juce::String("Custom") : processor.getCurrentPresetName(), screen.withWidth(280).reduced(10.0f, 2.0f).toNearestInt(), juce::Justification::centredLeft);
+        drawGlowIn(g, blue, processor.getCurrentPresetName().isEmpty() ? juce::String("Custom") : processor.getCurrentPresetName(), screen.withWidth(nameW).reduced(10.0f, 2.0f).toNearestInt(), juce::Justification::centredLeft);
         g.setColour(dim);
-        g.setFont(displayFont(12.0f));
-        g.drawText(name, screen.withTrimmedLeft(280).withWidth(220).reduced(4.0f, 2.0f), juce::Justification::centredLeft);
+        g.setFont(displayFont(11.0f));
+        g.drawFittedText(name, screen.withTrimmedLeft(nameW).withTrimmedRight(valueW).reduced(2.0f, 2.0f).toNearestInt(), juce::Justification::centredLeft, 1, 0.7f);
         g.setFont(displayFont(16.0f));
-        drawGlowIn(g, blue, valueText, screen.withTrimmedLeft(500).reduced(10.0f, 2.0f).toNearestInt(), juce::Justification::centredRight);
+        drawGlowIn(g, blue, valueText, screen.withLeft(screen.getRight() - valueW).reduced(8.0f, 2.0f).toNearestInt(), juce::Justification::centredRight);
         paintRackGlass(g, screen);
+
+        g.setFont(displayFont(16.0f));
+        const auto fx = processor.fxRackName();
+        drawGlowIn(g, green, fx.isEmpty() ? juce::String("Custom") : fx + (processor.fxRackEdited() ? " *" : ""), fxScreen.withTrimmedRight(74.0f).reduced(10.0f, 2.0f).toNearestInt(), juce::Justification::centredLeft);
+        g.setColour(green.withMultipliedBrightness(0.72f));
+        g.setFont(displayFont(11.0f));
+        g.drawText("BROWSE", fxScreen.withLeft(fxScreen.getRight() - 72.0f).reduced(8.0f, 2.0f), juce::Justification::centredRight);
+        paintRackGlass(g, fxScreen);
     }
     void show(juce::Slider* s, juce::RangedAudioParameter* q) {
         shown = s; param = q;
@@ -1895,14 +1926,27 @@ struct MillstoneEditor::RackMaster : juce::Component {
     void refresh() {
         juce::String text;
         if (param != nullptr) text = dynamic_cast<juce::AudioParameterChoice*>(param) != nullptr ? param->getCurrentValueAsText() : juce::String(param->convertFrom0to1(param->getValue()), 1);
-        const auto stamp = text + name + processor.getCurrentPresetName();
+        const bool edited = processor.fxRackEdited();
+        const auto stamp = text + name + processor.getCurrentPresetName() + processor.fxRackName() + (edited ? "*" : "");
         valueText = text;
-        if (stamp != lastStamp) { lastStamp = stamp; repaint(screen.toNearestInt()); }
+        lock.setToggleState(processor.fxLock, juce::dontSendNotification);
+        getProperties().set("fxPreset", processor.fxRackName() + (edited ? " *" : ""));
+        if (stamp != lastStamp) { lastStamp = stamp; repaint(); }
     }
-    const juce::Rectangle<float> screen { 420, 44, 640, 42 };
+    void stepFx(int direction) {
+        const auto all = processor.allFxRacks();
+        if (all.empty()) return;
+        int now = -1;
+        for (int i = 0; i < (int)all.size(); ++i) if (all[(size_t)i].name == processor.fxRackName()) now = i;
+        const int count = (int)all.size();
+        processor.loadFxRack(all[(size_t)(((now < 0 ? (direction > 0 ? -1 : 0) : now) + direction + count) % count)].name);
+        refresh();
+    }
+    static constexpr float nameW = 190.0f, valueW = 76.0f;
+    const juce::Rectangle<float> screen { 232, 44, 380, 42 }, fxScreen { 714, 44, 298, 42 };
     MillstoneProcessor& processor;
-    Segment previous { "<" }, next { ">" }, panel { "PANEL" };
-    juce::TextButton browse;
+    Segment previous { "<" }, next { ">" }, panel { "PANEL" }, fxPrevious { "<" }, fxNext { ">" }, lock { "FX LOCK" };
+    juce::TextButton browse, fxBrowse;
     juce::Slider* shown = nullptr;
     juce::RangedAudioParameter* param = nullptr;
     juce::String name, valueText, lastStamp;
@@ -2002,6 +2046,9 @@ MillstoneEditor::MillstoneEditor(MillstoneProcessor& p)
     setSize(designW * 85 / 100, designH * 85 / 100);
     browser = std::make_unique<PresetBrowser>(processor, *presetBar, [this] { setBrowserOpen(false); });
     content.addChildComponent(*browser);
+    fxBrowser = std::make_unique<FxBrowser>(processor, [this] { setFxBrowserOpen(false); });
+    content.addChildComponent(*fxBrowser);
+    rack->master->fxBrowse.onClick = [this] { setFxBrowserOpen(true); };
 
     setPatchBayOpen(processor.patchBayOpen);
     setRackOpen(processor.rackOpen);
@@ -2017,8 +2064,19 @@ void MillstoneEditor::setBrowserOpen(bool open) {
     if (open) browser->grabKeyboardFocus();
 }
 
+void MillstoneEditor::setFxBrowserOpen(bool open) {
+    if (open) {
+        fxBrowser->setBounds(0, 0, designW, rackH);
+        fxBrowser->toFront(false);
+        fxBrowser->opened();
+    }
+    fxBrowser->setVisible(open);
+    if (open) fxBrowser->grabKeyboardFocus();
+}
+
 void MillstoneEditor::setRackOpen(bool open) {
     setBrowserOpen(false);
+    setFxBrowserOpen(false);
     processor.rackOpen = open;
     rack->setVisible(open);
     if (open) rack->toFront(false);
@@ -2077,6 +2135,7 @@ void MillstoneEditor::timerCallback() {
     }
     if (processor.rackOpen) rack->refresh();
     if (browser != nullptr && browser->isVisible()) browser->sync();
+    if (fxBrowser != nullptr && fxBrowser->isVisible()) fxBrowser->sync();
     clockLcd->refresh();
     presetBar->sync();
     patchBay->sync();

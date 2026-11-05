@@ -591,6 +591,53 @@ int main() {
         check(std::abs(b.p->apvts.getRawParameterValue("fx_dl_fb")->load() - 77.0f) < 0.01f && b.p->apvts.getRawParameterValue("fx_rv_type")->load() > 0.5f, "effect settings come back with the set");
     }
 
+    puts("--- FX presets and the lock");
+    {
+        const auto dir = juce::File::createTempFile("millstone_fx"); dir.deleteFile();
+        const auto userDir = dir.getChildFile("Presets");
+        const auto named = [](Synth& s) { for (int i = 0; i < s.p->getNumPrograms(); ++i) if (s.p->getProgramName(i) == "Dub Stabs") return i; return 0; };
+        { Synth s; check(s.p->fxLock, "the lock starts on");
+          s.set("fx_rv_mix", 33); s.p->setCurrentProgram(named(s));
+          check(std::abs(s.p->apvts.getRawParameterValue("fx_rv_mix")->load() - 33.0f) < 0.01f && std::abs(s.p->apvts.getRawParameterValue("fx_dl_mix")->load()) < 0.01f, "locked: a synth preset leaves the effects alone");
+          check(s.p->getCurrentPresetName() == "Dub Stabs", "and still loads its voice"); }
+        { Synth s; s.p->fxLock = false; s.set("fx_rv_mix", 33); s.p->setCurrentProgram(named(s));
+          check(s.p->apvts.getRawParameterValue("fx_dl_mix")->load() > 1.0f, "unlocked: a synth preset brings its own effects"); }
+        { Synth a; a.p->fxLock = false; juce::MemoryBlock mb; a.p->getStateInformation(mb); Synth b; b.p->setStateInformation(mb.getData(), (int)mb.getSize()); check(!b.p->fxLock, "the lock is saved with the set"); }
+        { // A set from before the lock: it restores whatever it held, and the lock is on from then on.
+          Synth a; a.set("fx_dl_mix", 40); juce::MemoryBlock mb; a.p->getStateInformation(mb); auto xml = juce::AudioProcessor::getXmlFromBinary(mb.getData(), (int)mb.getSize()); xml->removeAttribute("fxLock"); xml->removeAttribute("fxPreset"); juce::MemoryBlock old; juce::AudioProcessor::copyXmlToBinary(*xml, old);
+          Synth b; b.p->setStateInformation(old.getData(), (int)old.getSize());
+          check(b.p->fxLock && std::abs(b.p->apvts.getRawParameterValue("fx_dl_mix")->load() - 40.0f) < 0.01f, "an older set keeps its effects"); }
+        { Synth s; const auto& library = MillstoneProcessor::factoryFxRacks(); check(library.size() >= 20, "the FX library is there", juce::String((int)library.size()));
+          juce::StringArray styles; int outside = 0, wrong = 0, loud = 0, dead = 0;
+          std::vector<float> before; for (auto* q : s.p->getParameters()) before.push_back(q->getValue());
+          for (const auto& rack : library) {
+              for (const auto& w : rack.styles) styles.addIfNotAlreadyThere(w);
+              if (!s.p->loadFxRack(rack.name) || s.p->fxRackName() != rack.name || s.p->fxRackEdited()) ++wrong;
+              int n = 0; for (auto* q : s.p->getParameters()) { if (auto* r = dynamic_cast<juce::RangedAudioParameter*>(q)) if (!MillstoneProcessor::isFxKey(r->getParameterID()) && std::abs(q->getValue() - before[(size_t)n]) > 1e-6f) ++outside; ++n; }
+              Synth t; t.clean(60); t.p->loadFxRack(rack.name); t.on(60); auto x = t.run(0.8); t.off(60); auto y = t.run(1.2);
+              float peak = 0; bool bad = false; for (auto* v : { &x, &y }) for (float f : *v) { peak = juce::jmax(peak, std::abs(f)); bad = bad || !std::isfinite(f); }
+              if (bad || peak > 1.5f) { ++loud; printf("     %s peak %.2f\n", rack.name.toRawUTF8(), peak); }
+              if (rack.name != "Dry" && rms(y, 1000, 12000) < 1e-5f && !rack.uses.isEmpty() && (rack.uses.contains("Delay") || rack.uses.contains("Reverb"))) { ++dead; printf("     %s has no tail\n", rack.name.toRawUTF8()); }
+          }
+          check(wrong == 0, "every FX preset loads and reads back as itself", juce::String(wrong));
+          check(outside == 0, "and moves only the effects: no voice, Tides, clock or OUTPUT", juce::String(outside));
+          check(loud == 0, "and stays finite and under the ceiling on a held note", juce::String(loud));
+          check(dead == 0, "and an echo or reverb is actually heard after key up", juce::String(dead));
+          check(styles.size() == 8, "every style has something", juce::String(styles.size())); }
+        { Synth s; s.p->setUserPresetDirectory(userDir); s.opt("fx_ch_mode", "II"); s.set("fx_rv_mix", 21); s.set("fx_rv_decay", 77); s.set("cutoff", 44);
+          check(!s.p->saveFxRack("Dry", "Dub"), "the library keeps its names");
+          check(!s.p->saveFxRack("   ", "Dub"), "a preset needs a name");
+          check(s.p->saveFxRack("My Dub", "Dub") && s.p->fxRackName() == "My Dub" && !s.p->fxRackEdited(), "your own saves, and reads as loaded");
+          s.set("fx_rv_decay", 20); check(s.p->fxRackEdited(), "moving a setting marks it as edited");
+          s.set("cutoff", 60); s.p->loadFxRack("Dry"); check(std::abs(s.p->apvts.getRawParameterValue("fx_rv_mix")->load()) < 0.01f && std::abs(s.p->apvts.getRawParameterValue("cutoff")->load() - 60.0f) < 0.01f, "another replaces the whole rack, and leaves the voice");
+          bool listed = false; for (const auto& r : s.p->allFxRacks()) if (r.name == "My Dub") listed = r.user && r.styles.contains("Dub") && r.uses.contains("Reverb") && r.uses.contains("Chorus");
+          check(listed, "it is listed as yours, with its style and what it uses");
+          check(s.p->loadFxRack("My Dub") && std::abs(s.p->apvts.getRawParameterValue("fx_rv_decay")->load() - 77.0f) < 0.01f && s.p->apvts.getParameter("fx_ch_mode")->getCurrentValueAsText() == "II", "and comes back as it was saved");
+          check(s.p->deleteFxRack("My Dub") && s.p->fxRackName().isEmpty() && std::abs(s.p->apvts.getRawParameterValue("fx_rv_decay")->load() - 77.0f) < 0.01f, "deleting it leaves the effects as they are");
+          check(!s.p->deleteFxRack("Dry"), "the library cannot be deleted"); }
+        dir.deleteRecursively();
+    }
+
     printf("\n%s (%d failed)\n", failures == 0 ? "PASSED" : "FAILED", failures);
     return failures == 0 ? 0 : 1;
 }

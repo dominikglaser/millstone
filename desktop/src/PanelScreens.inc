@@ -19,17 +19,11 @@ public:
 
     void paint(juce::Graphics& g) override {
         const auto screen = getLocalBounds().toFloat().reduced(2.5f);
-        g.setColour(juce::Colours::white.withAlpha(0.20f));
-        g.fillRoundedRectangle(screen.expanded(2.5f).translated(0.3f, 0.9f), 3.5f);
-        g.setGradientFill(juce::ColourGradient(juce::Colour(0xff24231f), 0, screen.getY(), juce::Colour(0xff4d4b44), 0, screen.getBottom(), false));
-        g.fillRoundedRectangle(screen.expanded(1.8f), 3.5f);
-        g.setColour(screenFill);
-        g.fillRoundedRectangle(screen, 2.0f);
+        paintLcdWell(g, screen, 2.0f);
         if (mode == "env") paintEnvelope(g, screen);
         else if (mode == "filter") paintFilter(g, screen);
         else paintLfo(g, screen);
-        g.setGradientFill(juce::ColourGradient(juce::Colours::white.withAlpha(0.08f), 0, screen.getY(), juce::Colours::transparentWhite, 0, screen.getCentreY(), false));
-        g.fillRoundedRectangle(screen.withHeight(screen.getHeight() * 0.5f), 2.0f);
+        paintLcdGlass(g, screen, 2.0f);
     }
 
 private:

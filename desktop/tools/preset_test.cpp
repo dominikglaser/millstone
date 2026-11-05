@@ -79,6 +79,11 @@ int main(int argc, char** argv) {
         check(!get("Round Sub").uses.contains("Patch Bay"), "and an unpatched one does not");
     }
 
+    std::map<juce::String, int> moved;
+    const auto presetData = juce::JSON::parse(juce::String::fromUTF8(BinaryData::presets_json, BinaryData::presets_jsonSize));
+    if (auto* all = presetData["presets"].getArray())
+        for (const auto& q : *all) moved[q["name"].toString()] = (int)q["moved"];
+
     // Each one, played. Fresh processor: presets must not depend on what came before.
     printf("%-22s %-11s %9s %8s %8s %7s %6s\n", "preset", "category", "loudest", "peak", "treble", "volume", "tail");
     struct Signature { juce::String name; float loud, treble; std::vector<float> map; };
@@ -101,7 +106,8 @@ int main(int argc, char** argv) {
             check(q != nullptr && std::abs(q->convertFrom0to1(q->getValue()) - value) <= 0.5f + std::abs(value) * 0.001f, preset.name + " sets " + key);
         }
         juce::MidiBuffer m;
-        const int note = noteFor(preset.category);
+        // A preset moved to play the note pressed is still the same sound: test it at the same pitch, so its level match still holds.
+        const int note = noteFor(preset.category) - moved[preset.name];
         m.addEvent(juce::MidiMessage::noteOn(1, note, (juce::uint8)100), 0);
         juce::AudioBuffer<float> b(2, block);
         std::vector<float> x;

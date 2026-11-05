@@ -9,6 +9,7 @@ import json, os
 from preset_tags import TAGS, TYPES, STYLES, CHARACTERS
 from preset_fx import FX
 from preset_helpers import *
+from preset_pitch import true_to_note, MOVE
 import pack_dub, pack_classic, pack_rave, pack_techno, pack_space, pack_elements, pack_drums, pack_patch
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -216,7 +217,7 @@ OFF_VALUES = ("OFF", 0)
 OUTPUT = json.load(open(os.path.join(HERE, "preset_output.json")))   # make-up gain, dB, for sounds that full VOLUME cannot bring up to level
 PACKS = [pack_dub, pack_classic, pack_rave, pack_techno, pack_space, pack_elements, pack_drums, pack_patch]   # later packs, one file each, in the order they arrived
 PACK_OF = {}
-UNMATCHED = set()
+UNMATCHED = {"Upright Dub", "Bowed Metal", "Bowed Glass", "Bowed Lead"}   # bowed and bouncing: their level swings by several dB with the shared noise generator
 for pack in PACKS:
     UNMATCHED |= getattr(pack, "UNMATCHED", set())
     for name, note, delta, type_, styles, characters in pack.ENTRIES:
@@ -286,7 +287,8 @@ def main():
             values["fx_out"] = OUTPUT.get(name, 0)
             if name in trim:
                 values["volume"] = trim[name]
-            out.append(dict(filed(name, values, note), values={k: values[k] for k in keys}))
+            true_to_note(name, TAGS[name][0], values)
+            out.append(dict(filed(name, values, note), moved=MOVE.get(name, 0), values={k: values[k] for k in keys}))
             table.append((TAGS[name][0], name, note))
     options = {p["key"]: p.get("options") for p in params}
     ranges = {p["key"]: (p.get("min"), p.get("max")) for p in params}
@@ -309,7 +311,8 @@ def main():
         values["fx_out"] = OUTPUT.get(name, 0)
         if name in trim:
             values["volume"] = trim[name]
-        out.append(dict(filed(name, values, note, unmatched=category == "Testing" or name in UNMATCHED), values={k: values[k] for k in keys}))
+        true_to_note(name, TAGS[name][0], values)
+        out.append(dict(filed(name, values, note, unmatched=category == "Testing" or name in UNMATCHED), moved=MOVE.get(name, 0), values={k: values[k] for k in keys}))
         table.append((TAGS[name][0], name, note))
     with open(os.path.join(HERE, "presets.json"), "w") as f:
         json.dump({"presets": out}, f, indent=1)

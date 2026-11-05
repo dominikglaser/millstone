@@ -12,7 +12,7 @@ HOOVER = dict(voice_mode="LEGATO", voices=1, glide=36, cutoff=70, reso=8, keytra
 
 ENTRIES = [
     R("Hoover", "The one. Pulse and saw an octave apart, scooping up into every note", "Lead", "Rave", "Aggressive Bright", SAW(1), SQUARE(2, oct=-1, fine=8, level=80), SAW(3, oct=1, fine=-11, level=30), SCOOP, both(chorus("I+II", 100), plate(14)), **HOOVER),
-    R("Deep Hoover", "An octave down and darker, for the drop", "Bass", "Rave Techno", "Aggressive Dark", SAW(1, oct=-1), SQUARE(2, oct=-1, fine=9, level=85), SOFT(3, oct=-2, level=50), SCOOP, chorus("I+II", 80), dict(HOOVER, cutoff=52, reso=14)),
+    R("Deep Hoover", "Darker and heavier, for the drop. Play it low", "Bass", "Rave Techno", "Aggressive Dark", SAW(1, oct=-1), SQUARE(2, oct=-1, fine=9, level=85), SOFT(3, oct=-2, level=50), SCOOP, chorus("I+II", 80), dict(HOOVER, cutoff=52, reso=14)),
     R("Hoover Rise", "Hold it and it climbs for bars", "Riser/FX", "Rave Cinematic", "Aggressive Evolving", SAW(1), SQUARE(2, oct=-1, fine=7, level=80), cords(("MOD ENV", "ALL PITCH", 60)), both(chorus("I+II", 100), plate(18)), dict(HOOVER, m_attack=92, m_decay=80, m_sustain=100, m_release=60, glide=0)),
     R("Belgian Mental", "That chopped, droning stab that started it all", "Riser/FX", "Rave Techno", "Aggressive Metallic", SAW(1), SAW(2, semi=7, fine=6, level=80), SQUARE(3, oct=-1, level=55), chorus("I+II", 80), f_mod=30, m_decay=46, decay=52, sustain=20, cutoff=48, reso=30, drive=55, release=20),
     R("Rave Stab", "A big minor chord, one finger", "Keys", "Rave House", "Bright Aggressive", o(1, "Chords", harm=30, timbre=70, morph=60), both(echo("1/8 D", 30, 14), plate(16)), decay=44, sustain=0, release=18, cutoff=72, reso=18, drive=40, voices=4),

@@ -1,0 +1,17 @@
+MILLSTONE
+Copyright (c) 2026 Dominik Glaser
+
+This installer contains Millstone together with the JUCE framework and the Steinberg VST3 SDK.
+As a combined work it is free software, distributed under the GNU Affero General Public
+License, version 3 (AGPLv3), printed in full below.
+
+THERE IS NO WARRANTY: Millstone is provided "as is", without warranty of any kind, to the
+extent permitted by law. See sections 15 and 16 of the licence.
+
+Source code: the complete source for this version is available at
+https://github.com/dominikglaser/millstone/tree/v@VERSION@
+
+Millstone's own source code is also available under the MIT licence. The notices for the
+third-party software it contains are installed with each plugin, under
+Contents/Resources/Licenses, and are in the source as THIRD_PARTY_NOTICES.txt.
+

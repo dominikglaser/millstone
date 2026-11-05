@@ -21,13 +21,20 @@ BUILT=$(plutil -extract CFBundleShortVersionString raw "$ART/VST3/Millstone.vst3
 [ -z "$(git -C "$ROOT" status --porcelain)" ] || echo "WARNING: the working tree has uncommitted changes."
 
 rm -rf "$OUT"
-mkdir -p "$OUT/pkgs" "$OUT/scripts"
+mkdir -p "$OUT/pkgs" "$OUT/scripts" "$OUT/resources" "$OUT/licences"
+
+# The licence the installer shows, and the notices that travel inside each bundle.
+sed "s/@VERSION@/$VERSION/" "$ROOT/desktop/installer/notice.txt" > "$OUT/licences/NOTICE.txt"
+cp "$ROOT/LICENSES/AGPL-3.0.txt" "$ROOT/LICENSES/GPL-3.0.txt" "$ROOT/THIRD_PARTY_NOTICES.txt" "$OUT/licences/"
+cat "$OUT/licences/NOTICE.txt" "$ROOT/LICENSES/AGPL-3.0.txt" > "$OUT/resources/license.txt"
 
 # One staged root per format, each signed where it will be installed from.
 stage() {   # name, bundle, install location
     local name=$1 bundle=$2 location=$3 root=$OUT/root_$1
     mkdir -p "$root"
     ditto "$bundle" "$root/$(basename "$bundle")"
+    mkdir -p "$root/$(basename "$bundle")/Contents/Resources/Licenses"
+    cp "$OUT"/licences/* "$root/$(basename "$bundle")/Contents/Resources/Licenses/"
     codesign --force --timestamp --options runtime --sign "$APP_ID" "$root/$(basename "$bundle")"
     codesign --verify --strict --deep "$root/$(basename "$bundle")"
     # Not relocatable: otherwise the installer "updates" any copy with this bundle ID it finds elsewhere on the disk.
@@ -55,6 +62,7 @@ cat > "$OUT/distribution.xml" <<XML
 <?xml version="1.0" encoding="utf-8"?>
 <installer-gui-script minSpecVersion="2">
     <title>Millstone $VERSION</title>
+    <license file="license.txt" mime-type="text/plain"/>
     <options customize="allow" require-scripts="false" hostArchitectures="arm64,x86_64"/>
     <domains enable_localSystem="true" enable_anywhere="false" enable_currentUserHome="false"/>
     <choices-outline>
@@ -72,7 +80,7 @@ cat > "$OUT/distribution.xml" <<XML
 XML
 
 PKG=$OUT/Millstone-$VERSION.pkg
-productbuild --quiet --distribution "$OUT/distribution.xml" --package-path "$OUT/pkgs" --sign "$PKG_ID" --timestamp "$PKG"
+productbuild --quiet --distribution "$OUT/distribution.xml" --package-path "$OUT/pkgs" --resources "$OUT/resources" --sign "$PKG_ID" --timestamp "$PKG"
 pkgutil --check-signature "$PKG" | sed -n '1,3p'
 
 if [ "$NOTARIZE" = 1 ]; then

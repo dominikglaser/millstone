@@ -101,6 +101,25 @@ int main(int argc, char** argv) {
     click("lfo_sync");
     editor.refreshFromProcessor();
     check(phase != nullptr && !phase->getParentComponent()->isVisible(), "PHASE hides when SYNC is off");
+    {   // The LFO section's switch flips its controls, and its screen follows.
+        const auto shown = [&](const char* id) { auto* c = find(editor, id); return c != nullptr && c->isVisible() && c->getParentComponent()->isVisible(); };
+        editor.refreshFromProcessor();
+        check(shown("lfo_rate") && !shown("lfo2_rate"), "the section starts on LFO 1");
+        click("lfo_page:1");
+        editor.refreshFromProcessor();
+        check(shown("lfo2_rate") && !shown("lfo_rate"), "the switch brings up LFO 2's RATE");
+        check(!shown("wheel_lfo") && !shown("at_lfo"), "WHEEL and AT are LFO 1's, and go with it");
+        click("lfo2_shape:1");
+        check(text("lfo2_shape") == "SQR", "its controls set LFO 2");
+        click("lfo2_sync");
+        editor.refreshFromProcessor();
+        check(shown("lfo2_div") && !shown("lfo2_rate"), "and its SYNC swaps its RATE for DIVISION, on its own");
+        render("panel_lfo2");
+        click("lfo2_sync");
+        click("lfo_page:0");
+        editor.refreshFromProcessor();
+        check(find(editor, "lfo_rate")->isVisible() && !shown("lfo2_div") && !shown("lfo2_rate"), "and the switch goes back");
+    }
 
     // The screens say what the engine would do with the knobs.
     {
@@ -177,6 +196,12 @@ int main(int argc, char** argv) {
         for (int c = 0; c < MillstoneProcessor::numCords; ++c) proc.disconnectCord(c);
         const auto lfoOut = MillstoneEditor::jackPosition(true, 1), wheelOut = MillstoneEditor::jackPosition(true, 6), clockOut = MillstoneEditor::jackPosition(true, 17), cutoffIn = MillstoneEditor::jackPosition(false, 2), resoIn = MillstoneEditor::jackPosition(false, 3), tTrigIn = MillstoneEditor::jackPosition(false, 26);
         check(!lfoOut.isOrigin() && !clockOut.isOrigin() && !tTrigIn.isOrigin(), "jacks are where the layout says");
+        {   // Every option on a cord has its jack, or it could only be reached by hand.
+            int missing = 0;
+            for (int i = 1; i < ps.getParameter("c1_src")->getAllValueStrings().size(); ++i) if (MillstoneEditor::jackPosition(true, i).isOrigin()) ++missing;
+            for (int i = 1; i < ps.getParameter("c1_dst")->getAllValueStrings().size(); ++i) if (MillstoneEditor::jackPosition(false, i).isOrigin()) ++missing;
+            check(missing == 0, "every cord option has a jack, " + juce::String(missing) + " missing");
+        }
         check(bay->hitTest((int)lfoOut.x, (int)lfoOut.y) && !bay->hitTest((int)(lfoOut.x + 23), (int)(lfoOut.y + 29)), "only the jacks take the mouse, so knobs nearby still work");
         drag(lfoOut, cutoffIn);
         check(proc.cordSource(0) == 1 && proc.cordDest(0) == 2, "dragging an output to an input patches it");

@@ -265,3 +265,10 @@ fx_rv_damp
 fx_rv_kick
 fx_rv_mix
 fx_out
+lfo2_shape
+lfo2_rate
+lfo2_retrig
+lfo2_sync
+lfo2_div
+lfo2_lock
+lfo_page

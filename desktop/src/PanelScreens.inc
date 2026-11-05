@@ -13,7 +13,7 @@ public:
         juce::String stamp;
         if (mode == "env") stamp << raw("attack") << "/" << raw("decay") << "/" << raw("sustain") << "/" << raw("release");
         else if (mode == "filter") stamp << raw("cutoff") << "/" << raw("reso") << "/" << raw("f_mode") << "/" << raw("drive");
-        else stamp << raw("lfo_shape") << "/" << raw("lfo_rate") << "/" << raw("lfo_sync") << "/" << raw("lfo_div") << "/" << raw("lfo_lock") << "/" << raw("lfo_retrig");
+        else stamp << raw("lfo_page") << "/" << raw(lfoKey("shape")) << "/" << raw(lfoKey("rate")) << "/" << raw(lfoKey("sync")) << "/" << raw(lfoKey("div")) << "/" << raw(lfoKey("lock")) << "/" << raw(lfoKey("retrig"));
         if (stamp != lastStamp) { lastStamp = stamp; getProperties().set("text", caption()); repaint(); }
     }
 
@@ -33,8 +33,8 @@ public:
     }
 
 private:
-    float raw(const char* key) const { return processor.apvts.getRawParameterValue(prefix + key)->load(); }
-    juce::String text(const char* key) const { return processor.apvts.getParameter(key)->getCurrentValueAsText(); }
+    float raw(const juce::String& key) const { return processor.apvts.getRawParameterValue(prefix + key)->load(); }
+    juce::String text(const juce::String& key) const { return processor.apvts.getParameter(key)->getCurrentValueAsText(); }
 
     static juce::String timeText(float seconds) {
         if (seconds < 1.0f) return juce::String(juce::roundToInt(seconds * 1000.0f)) + " ms";
@@ -49,12 +49,13 @@ private:
     float decaySeconds() const { return 0.004f * std::pow(2500.0f, raw("decay") * 0.01f); }
     float releaseSeconds() const { return 0.004f * std::pow(2500.0f, raw("release") * 0.01f); }
     float cutoffHz() const { return 20.0f * std::pow(2.0f, 10.0f * raw("cutoff") * 0.01f); }
-    float lfoHz() const { return 0.01f * std::pow(35000.0f, raw("lfo_rate") * 0.01f); }
+    juce::String lfoKey(const char* suffix) const { return juce::String(raw("lfo_page") > 0.5f ? "lfo2_" : "lfo_") + suffix; }
+    float lfoHz() const { return 0.01f * std::pow(35000.0f, raw(lfoKey("rate")) * 0.01f); }
 
     juce::String caption() const {
         if (mode == "env") return timeText(attackSeconds()) + " / " + timeText(decaySeconds()) + " / " + juce::String(juce::roundToInt(raw("sustain"))) + "% / " + timeText(releaseSeconds());
         if (mode == "filter") return text("f_mode") + " " + hertzText(cutoffHz());
-        return raw("lfo_sync") > 0.5f ? text("lfo_div") : hertzText(lfoHz());
+        return raw(lfoKey("sync")) > 0.5f ? text(lfoKey("div")) : hertzText(lfoHz());
     }
 
     // Time is drawn compressed: a 2 ms attack and a 10 s release have to be readable on one small screen.
@@ -118,17 +119,17 @@ private:
     }
 
     void paintLfo(juce::Graphics& g, juce::Rectangle<float> s) const {
-        const bool sync = raw("lfo_sync") > 0.5f;
+        const bool sync = raw(lfoKey("sync")) > 0.5f;
         g.setFont(displayFont(10.5f));
         g.setColour(amberDim.brighter(0.5f));
         const auto head = s.reduced(8.0f, 4.0f).withHeight(14.0f);
-        g.drawText(text("lfo_shape"), head, juce::Justification::centredLeft);
-        g.drawText(sync ? "SONG" : (raw("lfo_retrig") > 0.5f ? "RETRIG" : "FREE"), head, juce::Justification::centredRight);
+        g.drawText(text(lfoKey("shape")), head, juce::Justification::centredLeft);
+        g.drawText(sync ? "SONG" : (raw(lfoKey("retrig")) > 0.5f ? "RETRIG" : "FREE"), head, juce::Justification::centredRight);
         g.setFont(displayFont(22.0f));
         drawGlowText(g, caption(), s.reduced(8.0f, 4.0f).withTrimmedTop(14.0f).withHeight(28.0f).toNearestInt(), juce::Justification::centredLeft);
 
         const auto r = s.withTrimmedTop(48.0f).reduced(8.0f, 6.0f);
-        const int shape = juce::roundToInt(raw("lfo_shape"));
+        const int shape = juce::roundToInt(raw(lfoKey("shape")));
         g.setColour(amberDim.withAlpha(0.55f));
         g.fillRect(r.getX(), r.getCentreY(), r.getWidth(), 1.0f);
         juce::Path p;

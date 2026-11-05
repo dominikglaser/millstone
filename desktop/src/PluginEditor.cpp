@@ -11,7 +11,7 @@
 namespace {
 
 constexpr int designW = 1480, designH = 864;      // the window scales from this
-constexpr int drawerH = 239, totalH = designH + drawerH;   // the patch bay drawer hangs below the panel
+constexpr int drawerH = 297, totalH = designH + drawerH;   // the patch bay drawer hangs below the panel
 constexpr int rackH = 1209;                       // the rack is taller again, and has its window to itself
 constexpr int woodW = 36;
 constexpr int artScale = 2;                       // the static art is rendered at twice the design size, for Retina
@@ -559,7 +559,7 @@ juce::Image makePanelArt(bool wear = true, WearCounts* counts = nullptr) {
             g.fillEllipse(round(6.6f));                                                      // the socket
             g.setColour(juce::Colours::white.withAlpha(0.18f));
             g.drawEllipse(round(6.6f), 0.6f);
-            g.setColour(cream);
+            g.setColour(item.str("ink").isNotEmpty() ? juce::Colour::fromString("ff" + item.str("ink")) : cream);
             g.setFont(printFont(9.5f, true, 0.04f));
             g.drawFittedText(item.str("label"), juce::Rectangle<float>(c.x - 21, c.y + 15, 42, 13).toNearestInt(), juce::Justification::centred, 1, 0.7f);
         } else if (item.kind == "fader") {
@@ -678,7 +678,8 @@ public:
 
 class Control : public juce::Component {
 public:
-    juce::String whenKey, whenValue;   // panel.conf's `when=key:VALUE`
+    juce::String whenKey, whenValue;   // panel.conf's `when=key:VALUE`, and `when2` as well when it takes two
+    juce::String when2Key, when2Value;
     juce::String page;                 // which drawer page it is on, if any
     int channel = -1;                  // which clock output, if any
     virtual void refresh() {}          // for what has to follow parameters by hand
@@ -1959,6 +1960,9 @@ MillstoneEditor::MillstoneEditor(MillstoneProcessor& p)
         const auto when = item.str("when");
         c->whenKey = when.upToFirstOccurrenceOf(":", false, false);
         c->whenValue = when.fromFirstOccurrenceOf(":", false, false);
+        const auto when2 = item.str("when2");
+        c->when2Key = when2.upToFirstOccurrenceOf(":", false, false);
+        c->when2Value = when2.fromFirstOccurrenceOf(":", false, false);
         c->page = item.str("page");
         c->channel = item.num("channel", -1);
         (c->page == "rack" ? static_cast<juce::Component&>(*rack) : content).addAndMakeVisible(*c);
@@ -2057,12 +2061,14 @@ void MillstoneEditor::timerCallback() {
         auto* c = static_cast<Control*>(base.get());
         bool show = c->page == "rack" || !processor.rackOpen;   // the panel and the drawer give way to the rack; the rack's own go with it
         if (c->channel >= 0 && c->channel != processor.clockChannel) show = false;
-        if (show && c->whenKey.isNotEmpty()) {
-            auto* p = processor.apvts.getParameter(c->whenKey);
-            const bool negate = c->whenValue.startsWithChar('!');   // when=key:!VALUE shows it for anything else
-            const bool same = p != nullptr && p->getCurrentValueAsText() == (negate ? c->whenValue.substring(1) : c->whenValue);
-            show = p != nullptr && same != negate;
-        }
+        const auto holds = [this](const juce::String& key, const juce::String& value) {
+            if (key.isEmpty()) return true;
+            auto* p = processor.apvts.getParameter(key);
+            const bool negate = value.startsWithChar('!');   // when=key:!VALUE shows it for anything else
+            const bool same = p != nullptr && p->getCurrentValueAsText() == (negate ? value.substring(1) : value);
+            return p != nullptr && same != negate;
+        };
+        show = show && holds(c->whenKey, c->whenValue) && holds(c->when2Key, c->when2Value);
         if (c->isVisible() != show) c->setVisible(show);
         if (show) c->refresh();
     }
@@ -2165,10 +2171,12 @@ juce::StringArray MillstoneEditor::layoutProblems() {
         if ((a.str("page") == "rack") != (b.str("page") == "rack")) return false;   // the rack replaces the panel
         if (a.str("page").isNotEmpty() && b.str("page").isNotEmpty() && a.str("page") != b.str("page")) return false;
         if (a.str("channel").isNotEmpty() && b.str("channel").isNotEmpty() && a.str("channel") != b.str("channel")) return false;
-        const auto wa = a.str("when"), wb = b.str("when");
-        if (wa.isNotEmpty() && wb.isNotEmpty() && wa.upToFirstOccurrenceOf(":", false, false) == wb.upToFirstOccurrenceOf(":", false, false)) {
-            const auto va = wa.fromFirstOccurrenceOf(":", false, false), vb = wb.fromFirstOccurrenceOf(":", false, false);
-            if (va != vb && !(va.startsWithChar('!') && va.substring(1) != vb) && !(vb.startsWithChar('!') && vb.substring(1) != va)) return false;
+        for (const auto* ka : { "when", "when2" }) for (const auto* kb : { "when", "when2" }) {
+            const auto wa = a.str(ka), wb = b.str(kb);
+            if (wa.isNotEmpty() && wb.isNotEmpty() && wa.upToFirstOccurrenceOf(":", false, false) == wb.upToFirstOccurrenceOf(":", false, false)) {
+                const auto va = wa.fromFirstOccurrenceOf(":", false, false), vb = wb.fromFirstOccurrenceOf(":", false, false);
+                if (va != vb && !(va.startsWithChar('!') && va.substring(1) != vb) && !(vb.startsWithChar('!') && vb.substring(1) != va)) return false;
+            }
         }
         return true;
     };

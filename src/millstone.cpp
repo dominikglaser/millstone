@@ -67,13 +67,14 @@ enum Global {
     G_CUTOFF, G_RESO, G_FMODE, G_FMOD, G_FSRC, G_KEYTRACK, G_DRIVE,
     G_ATTACK, G_DECAY, G_SUSTAIN, G_RELEASE, G_M_ATTACK, G_M_DECAY, G_M_SUSTAIN, G_M_RELEASE, G_VCA_MODE, G_VOLUME, G_VEL_AMP, G_VEL_FILT,
     G_LFO_SHAPE, G_LFO_RATE, G_LFO_RETRIG, G_LFO_SYNC, G_LFO_DIV, G_LFO_LOCK,
+    G_LFO2_SHAPE, G_LFO2_RATE, G_LFO2_RETRIG, G_LFO2_SYNC, G_LFO2_DIV, G_LFO2_LOCK,
     G_WHEEL_LFO, G_AT_CUTOFF, G_AT_MORPH, G_AT_LFO, G_BEND_RANGE,
     G_T_MODE, G_T_OUT, G_T_TRIG, G_T_DIV, G_T_RATE, G_T_SHAPE, G_T_SLOPE, G_T_SMOOTH, G_T_SHIFT, G_CK_SRC, G_CK_BPM,
     G_O1_TYPE, G_E_MODEL, G_E_CONTOUR, G_E_BOW, G_E_BOW_T, G_E_BLOW, G_E_FLOW, G_E_BLOW_T, G_E_STRIKE, G_E_MALLET, G_E_STRIKE_T, G_E_GEOM, G_E_BRIGHT, G_E_DAMP, G_E_POS, G_E_SPACE, G_COUNT
 };
 // Patch bay. These match the option order of cN_src and cN_dst in params.json.
-enum CordSource { S_OFF, S_LFO, S_VCA_ENV, S_MOD_ENV, S_VELOCITY, S_AFTERTOUCH, S_WHEEL, S_KEY, S_GATE, S_NOISE, S_OSC1, S_OSC2, S_OSC3, S_TIDES1, S_TIDES2, S_TIDES3, S_TIDES4, S_CLOCK1, S_CLOCK8 = S_CLOCK1 + 7 };
-enum CordDest { D_OFF, D_PITCH, D_CUTOFF, D_RESO, D_VCA, D_NOISE, D_OSC1, D_OSC_COUNT = 5, D_T_RATE = D_OSC1 + 3 * D_OSC_COUNT, D_T_SHAPE, D_T_SLOPE, D_T_SMOOTH, D_T_SHIFT, D_T_TRIG, D_LFO_RESET, D_ENV_TRIG, D_MOD_TRIG, D_O1_TRIG, D_O2_TRIG, D_O3_TRIG, D_E_GEOM, D_E_BRIGHT, D_E_DAMP, D_E_POS, D_E_SPACE, D_E_BOW, D_E_BLOW, D_E_STRIKE, D_E_STRIKE_IN, D_E_BLOW_IN, D_COUNT };
+enum CordSource { S_OFF, S_LFO, S_VCA_ENV, S_MOD_ENV, S_VELOCITY, S_AFTERTOUCH, S_WHEEL, S_KEY, S_GATE, S_NOISE, S_OSC1, S_OSC2, S_OSC3, S_TIDES1, S_TIDES2, S_TIDES3, S_TIDES4, S_CLOCK1, S_CLOCK8 = S_CLOCK1 + 7, S_LFO2, S_RANDOM };
+enum CordDest { D_OFF, D_PITCH, D_CUTOFF, D_RESO, D_VCA, D_NOISE, D_OSC1, D_OSC_COUNT = 5, D_T_RATE = D_OSC1 + 3 * D_OSC_COUNT, D_T_SHAPE, D_T_SLOPE, D_T_SMOOTH, D_T_SHIFT, D_T_TRIG, D_LFO_RESET, D_ENV_TRIG, D_MOD_TRIG, D_O1_TRIG, D_O2_TRIG, D_O3_TRIG, D_E_GEOM, D_E_BRIGHT, D_E_DAMP, D_E_POS, D_E_SPACE, D_E_BOW, D_E_BLOW, D_E_STRIKE, D_E_STRIKE_IN, D_E_BLOW_IN, D_DRIVE, D_LFO_RATE, D_LFO2_RATE, D_LFO2_RESET, D_COUNT };
 const float kTriggerThreshold = 0.25f;   // a trigger input fires as its cords rise past this
 enum OscDest { OD_PITCH, OD_HARM, OD_TIMBRE, OD_MORPH, OD_LEVEL };
 const float kCordPitch = 24.0f;    // semitones at full amount and full signal
@@ -85,6 +86,7 @@ const char *const kGlobalKey[G_COUNT] = {
     "cutoff", "reso", "f_mode", "f_mod", "f_src", "keytrack", "drive",
     "attack", "decay", "sustain", "release", "m_attack", "m_decay", "m_sustain", "m_release", "vca_mode", "volume", "vel_amp", "vel_filt",
     "lfo_shape", "lfo_rate", "lfo_retrig", "lfo_sync", "lfo_div", "lfo_lock",
+    "lfo2_shape", "lfo2_rate", "lfo2_retrig", "lfo2_sync", "lfo2_div", "lfo2_lock",
     "wheel_lfo", "at_cutoff", "at_morph", "at_lfo", "bend_range",
     "t_mode", "t_out", "t_trig", "t_div", "t_rate", "t_shape", "t_slope", "t_smooth", "t_shift", "ck_src", "ck_bpm",
     "o1_type", "e_model", "e_contour", "e_bow", "e_bow_t", "e_blow", "e_flow", "e_blow_t", "e_strike", "e_mallet", "e_strike_t", "e_geom", "e_bright", "e_damp", "e_pos", "e_space"};
@@ -180,6 +182,8 @@ struct Voice {
     bool gate = false;        // key (or pedal) holding the note
     bool sustained = false;   // released under the sustain pedal
     int note = 60;
+    float note_random = 0.0f;   // the RANDOM jack: drawn once per note
+    bool lfo2_reset_high = false;
     float velocity = 1.0f;
     float aftertouch = 0.0f;  // poly aftertouch for this note
     float pitch_cur = 60.0f, pitch_target = 60.0f;
@@ -217,6 +221,10 @@ struct Instance {
     Lfo lfo;
     float lfo_value = 0.0f;
     float lfo_raw = 0.0f;      // before the wheel and pressure scale it: the patch bay's LFO jack
+    Lfo lfo2;                  // reaches the sound only through the patch bay
+    float lfo2_raw = 0.0f;
+    float lfo_rate_cord[2] = {0.0f, 0.0f};   // the LFOs are shared, so the voice patching them hardest speaks for them, a block later
+    uint32_t dice = 0x2545f491u;   // for the RANDOM jack
     bool tides_on = false;     // something is patched from Tides, so it needs running
     float bpm = 120.0f;
     float clock_out[8] = {};       // the shared clock's outputs
@@ -288,7 +296,10 @@ void start_voice(Instance *in, Voice *v, int note, float vel, bool retrigger) {
         if (v->active) v->trig_low_chunks = 2;   // already sounding: a new strike needs TRIG to drop first
         if (!v->active) { v->filter.reset(); v->gain_z = 0.0f; }
         v->velocity = vel;                       // a legato note continues the phrase at its level
+        in->dice ^= in->dice << 13; in->dice ^= in->dice >> 17; in->dice ^= in->dice << 5;
+        v->note_random = (float)(in->dice & 0xffffff) / 8388608.0f - 1.0f;
         if (in->P(G_LFO_RETRIG) > 0.5f) in->lfo.retrigger();
+        if (in->P(G_LFO2_RETRIG) > 0.5f) in->lfo2.retrigger();
     } else if (glide <= 0.0f) {
         v->pitch_cur = (float)note;
     }
@@ -478,6 +489,8 @@ CordState read_cords(const Instance *in, const Voice *v, bool gated, float at) {
         float value = 0.0f;
         switch (source) {
             case S_LFO: value = in->lfo_raw; break;
+            case S_LFO2: value = in->lfo2_raw; break;
+            case S_RANDOM: value = v->note_random; break;
             case S_VCA_ENV: value = v->env.value; break;
             case S_MOD_ENV: value = v->menv.value; break;
             case S_VELOCITY: value = v->velocity; break;
@@ -694,6 +707,13 @@ void render_voice(Instance *in, Voice *v, int index, int frames, float lfo) {
         v->trigger_high[t] = high;
     }
     if (fired[D_LFO_RESET - D_T_TRIG]) in->lfo.retrigger();
+    const bool lfo2_reset = cords.amount[D_LFO2_RESET] > kTriggerThreshold;
+    if (lfo2_reset && !v->lfo2_reset_high) in->lfo2.retrigger();
+    v->lfo2_reset_high = lfo2_reset;
+    for (int l = 0; l < 2; l++) {
+        const float cord = cords.amount[l == 0 ? D_LFO_RATE : D_LFO2_RATE];
+        if (fabsf(cord) > fabsf(in->lfo_rate_cord[l])) in->lfo_rate_cord[l] = cord;
+    }
     if (gated && fired[D_ENV_TRIG - D_T_TRIG]) v->env.gate_on();
     if (gated && fired[D_MOD_TRIG - D_T_TRIG]) v->menv.gate_on();
     for (int n = 0; n < kOscs; n++) if (fired[D_O1_TRIG - D_T_TRIG + n]) v->osc_trigger_low[n] = 2;
@@ -824,7 +844,7 @@ void render_voice(Instance *in, Voice *v, int index, int frames, float lfo) {
     }
 
     // filter, envelope, VCA
-    float drive = in->P(G_DRIVE) * 0.01f;
+    float drive = clampf(in->P(G_DRIVE) * 0.01f + cords.amount[D_DRIVE], 0.0f, 1.0f);
     float pre = 1.0f + drive * 6.0f;
     float post = 1.0f / (1.0f + drive * 2.0f);
     const float base_oct = cutoff_octaves(in, v, env_now, lfo) + cords.amount[D_CUTOFF] * kCordCutoff;
@@ -889,6 +909,24 @@ void render_voice(Instance *in, Voice *v, int index, int frames, float lfo) {
     }
 }
 
+// One LFO, for a block. `base` is its SHAPE; RATE, RETRIG, SYNC, DIV and PHASE follow in that order in Global.
+float run_lfo(Instance *in, Lfo &lfo, int base, int frames, float rate_cord) {
+    float hz;
+    if (in->P(base + 3) > 0.5f) {
+        int div = clampi((int)in->P(base + 4), 0, 7);
+        hz = clampf(in->bpm, 20.0f, 300.0f) / (60.0f * kDivBeats[div]);
+        // BAR: take the phase from the song position, so the LFO lands the same way on every playback. A stopped
+        // transport sends no position, so it free-runs at the tempo between plays rather than freezing.
+        if (in->song_fresh && (int)in->P(base + 5) == 1) {
+            const double cycles = in->song_ppq / kDivBeats[div];
+            lfo.set_phase((float)(cycles - floor(cycles)));
+        }
+    } else {
+        hz = Lfo::rate_hz(in->P(base + 1) * 0.01f);
+    }
+    return lfo.step(hz * powf(2.0f, rate_cord * kCordCutoff), frames, (int)in->P(base));
+}
+
 void render_chunk(Instance *in, int16_t *out_lr, int frames) {
 #ifdef MILLSTONE_DESKTOP
     in->tides_on = source_patched(in, S_TIDES1, S_TIDES4);
@@ -906,22 +944,11 @@ void render_chunk(Instance *in, int16_t *out_lr, int frames) {
         }
     }
 #endif
-    // LFO
-    float hz;
-    if (in->P(G_LFO_SYNC) > 0.5f) {
-        int div = clampi((int)in->P(G_LFO_DIV), 0, 7);
-        hz = clampf(in->bpm, 20.0f, 300.0f) / (60.0f * kDivBeats[div]);
-        // BAR: take the phase from the song position, so the LFO lands the same way on every playback. A stopped
-        // transport sends no position, so it free-runs at the tempo between plays rather than freezing.
-        if (in->song_fresh && (int)in->P(G_LFO_LOCK) == 1) {
-            const double cycles = in->song_ppq / kDivBeats[div];
-            in->lfo.set_phase((float)(cycles - floor(cycles)));
-        }
-    } else {
-        hz = Lfo::rate_hz(in->P(G_LFO_RATE) * 0.01f);
-    }
+    // LFOs
+    float raw = run_lfo(in, in->lfo, G_LFO_SHAPE, frames, in->lfo_rate_cord[0]);
+    in->lfo2_raw = run_lfo(in, in->lfo2, G_LFO2_SHAPE, frames, in->lfo_rate_cord[1]);
+    in->lfo_rate_cord[0] = in->lfo_rate_cord[1] = 0.0f;
     in->song_fresh = false;
-    float raw = in->lfo.step(hz, frames, (int)in->P(G_LFO_SHAPE));
     float w = in->P(G_WHEEL_LFO) * 0.01f;
     float pressure = in->chan_at;   // the LFO is shared, so the hardest-pressed key speaks for it
     for (int i = 0; i < kVoices; i++)
@@ -984,6 +1011,8 @@ void *ms_create(const char *) {
 #endif
     }
     in->lfo.retrigger();
+    in->lfo2.rng = 0x51ed270bu;   // its own random steps
+    in->lfo2.retrigger();
     return in;
 }
 

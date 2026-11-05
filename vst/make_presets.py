@@ -25,6 +25,7 @@ BASE = {
     "lfo_shape": "TRI", "lfo_rate": 45, "lfo_retrig": "OFF", "lfo_sync": "OFF", "lfo_div": "1/4", "lfo_lock": "FREE",
     "wheel_lfo": 0, "at_cutoff": 0, "at_morph": 0, "at_lfo": 0, "bend_range": 2,
 }
+BASE.update(lfo2_shape="TRI", lfo2_rate=45, lfo2_retrig="OFF", lfo2_sync="OFF", lfo2_div="1/4", lfo2_lock="FREE", lfo_page="1")
 for n in (1, 2, 3):
     BASE.update({"o%d_%s" % (n, k): v for k, v in dict(
         on="ON" if n == 1 else "OFF", engine="Virtual Analog", harm=50, timbre=50, morph=50, fm=0, timbre_mod=0, morph_mod=0,

@@ -262,6 +262,41 @@ void paintRackGlass(juce::Graphics& g, juce::Rectangle<float> screen) {
     g.fillRoundedRectangle(screen.withHeight(screen.getHeight() * 0.5f), 2.5f);
 }
 
+// ---- a value on a screen, worked with the mouse like any knob -----------------------------------------------------------
+// Up and down over the same 220 pixels as a knob, double click for the default, and the wheel. A plain click changes nothing.
+struct LcdDrag {
+    static constexpr float fullTravel = 220.0f, wheelTravel = 0.15f;
+    juce::RangedAudioParameter* held = nullptr;
+    float start = 0.0f;
+
+    void down(juce::RangedAudioParameter* q) {
+        up();
+        held = q;
+        if (held == nullptr) return;
+        start = held->getValue();
+        held->beginChangeGesture();
+    }
+    void drag(const juce::MouseEvent& e) {
+        if (held != nullptr) held->setValueNotifyingHost(juce::jlimit(0.0f, 1.0f, start - (float)e.getDistanceFromDragStartY() / fullTravel));
+    }
+    void up() {
+        if (held != nullptr) held->endChangeGesture();
+        held = nullptr;
+    }
+    void reset(juce::RangedAudioParameter* q) {
+        if (q == nullptr) return;
+        if (held != q) q->beginChangeGesture();
+        q->setValueNotifyingHost(q->getDefaultValue());
+        if (held == q) start = q->getValue(); else q->endChangeGesture();
+    }
+    static void wheel(juce::RangedAudioParameter* q, const juce::MouseWheelDetails& w) {
+        q->beginChangeGesture();
+        const float delta = (w.deltaX != 0.0f ? -w.deltaX : w.deltaY) * (w.isReversed ? -wheelTravel : wheelTravel);
+        q->setValueNotifyingHost(juce::jlimit(0.0f, 1.0f, q->getValue() + delta));
+        q->endChangeGesture();
+    }
+};
+
 // ---- a unit's screen: its presets, and the deeper settings on a VALUE knob ----------------------------------------------
 class RackLcd : public juce::Component {
 public:
@@ -298,6 +333,15 @@ public:
     void mouseDown(const juce::MouseEvent& e) override {
         for (int i = 0; i < (int)spec.settings.size(); ++i)
             if (settingCell(i).contains(e.position)) selectSetting(i);
+        lcdDrag.down(paramAt(e.position));
+    }
+    void mouseDrag(const juce::MouseEvent& e) override { lcdDrag.drag(e); refresh(); }
+    void mouseUp(const juce::MouseEvent&) override { lcdDrag.up(); }
+    void mouseDoubleClick(const juce::MouseEvent& e) override { lcdDrag.reset(paramAt(e.position)); refresh(); }
+    void mouseMove(const juce::MouseEvent& e) override { setMouseCursor(paramAt(e.position) != nullptr ? juce::MouseCursor::UpDownResizeCursor : juce::MouseCursor::NormalCursor); }
+    void mouseWheelMove(const juce::MouseEvent& e, const juce::MouseWheelDetails& w) override {
+        if (auto* q = paramAt(e.position)) { LcdDrag::wheel(q, w); refresh(); }
+        else juce::Component::mouseWheelMove(e, w);
     }
 
     void selectSetting(int i) { selected = i; bindValue(); repaint(); }
@@ -349,6 +393,34 @@ private:
     juce::RangedAudioParameter* current() const {
         if (spec.settings.empty()) return nullptr;
         return processor.apvts.getParameter(spec.settings[(size_t)selected].key);
+    }
+
+    // The value drawn at a point on the screen, if there is one.
+    juce::RangedAudioParameter* paramAt(juce::Point<float> at) const {
+        const auto param = [this](const juce::String& key) { return processor.apvts.getParameter(key); };
+        for (int i = 0; i < (int)spec.settings.size(); ++i)
+            if (settingCell(i).contains(at)) return param(spec.settings[(size_t)i].key);
+        const juce::String id(spec.id);
+        const auto screen = spec.screen.toFloat();
+        if (id == "delay" && delayTimeArea(screen).contains(at)) return param(text("fx_dl_sync") == "SYNC" ? "fx_dl_div" : "fx_dl_time");
+        if (id == "reverb" && reverbTypeArea(screen).contains(at)) return param("fx_rv_type");
+        if (id == "reverb" && reverbTailArea(screen).contains(at)) return param("fx_rv_decay");
+        if (id == "tides") {
+            if (tidesHeaderArea(screen, 0).contains(at)) return param("t_mode");
+            if (tidesHeaderArea(screen, 1).contains(at)) return param("t_out");
+            if (tidesHeaderArea(screen, 2).contains(at)) return param(text("t_trig") == "CLOCK" ? "t_div" : "t_trig");
+        }
+        return nullptr;
+    }
+
+    static juce::Rectangle<float> delayTimeArea(juce::Rectangle<float> s) { return { s.getRight() - 170, s.getY() + 6, 160, 14 }; }
+    static juce::Rectangle<float> reverbTypeArea(juce::Rectangle<float> s) { return { s.getRight() - 180, s.getY() + 6, 170, 14 }; }
+    static juce::Rectangle<float> reverbTailArea(juce::Rectangle<float> s) { return s.withTrimmedTop(36).withWidth(170).reduced(10, 2); }
+    static juce::Rectangle<float> tidesHeaderArea(juce::Rectangle<float> s, int column) {   // MODE, OUTPUT, and TRIGGER or its division
+        static constexpr float widths[] = { 40, 56, 68 };
+        float right = s.getRight() - 10;
+        for (int i = 2; i > column; --i) right -= widths[i];
+        return { right - widths[column], s.getY() + 6, widths[column], 14 };
     }
 
     void bindValue() {
@@ -438,7 +510,7 @@ private:
         const juce::String time = text("fx_dl_sync") == "SYNC" ? text("fx_dl_div") : juce::String("FREE");
         g.setColour(dim);
         g.setFont(displayFont(11.0f));
-        g.drawText(time + "   " + juce::String(juce::roundToInt(processor.delaySecondsNow.load() * 1000.0f)) + " ms", juce::Rectangle<float>(screen.getRight() - 170, screen.getY() + 6, 160, 14), juce::Justification::centredRight);
+        g.drawText(time + "   " + juce::String(juce::roundToInt(processor.delaySecondsNow.load() * 1000.0f)) + " ms", delayTimeArea(screen), juce::Justification::centredRight);
 
         paintCells(g, dim);
 
@@ -482,8 +554,8 @@ private:
         const float seconds = spring ? springTailSeconds(decay) : reverbTailSeconds(decay);
         g.setColour(dim);
         g.setFont(displayFont(11.0f));
-        g.drawText(text("fx_rv_type"), juce::Rectangle<float>(screen.getRight() - 180, screen.getY() + 6, 170, 14), juce::Justification::centredRight);
-        const auto left = screen.withTrimmedTop(36).withWidth(170).reduced(10, 2);
+        g.drawText(text("fx_rv_type"), reverbTypeArea(screen), juce::Justification::centredRight);
+        const auto left = reverbTailArea(screen);
         g.setFont(displayFont(34.0f));
         drawGlowIn(g, accent, juce::String(seconds, 1) + " s", left.withHeight(46).toNearestInt(), juce::Justification::centredLeft);
         g.setColour(dim);
@@ -517,7 +589,9 @@ private:
         const bool clocked = text("t_trig") == "CLOCK";
         g.setColour(dim);
         g.setFont(displayFont(11.0f));
-        g.drawText(text("t_mode") + "  " + text("t_out") + "  " + (clocked ? text("t_div") : text("t_trig")), juce::Rectangle<float>(screen.getRight() - 200, screen.getY() + 6, 190, 14), juce::Justification::centredRight);
+        g.drawText(text("t_mode"), tidesHeaderArea(screen, 0), juce::Justification::centredRight);
+        g.drawText(text("t_out"), tidesHeaderArea(screen, 1), juce::Justification::centredRight);
+        g.drawText(clocked ? text("t_div") : text("t_trig"), tidesHeaderArea(screen, 2), juce::Justification::centredRight);
         paintCells(g, dim);
 
         const auto curve = screen.withTrimmedLeft(192).withTrimmedTop(32).reduced(8, 6);
@@ -556,6 +630,7 @@ private:
     juce::Colour accent;
     Segment previous, next;
     ParamSlider value;
+    LcdDrag lcdDrag;
     int selected = 0;
     bool binding = false;
     juce::String lastStamp;

@@ -1670,9 +1670,18 @@ struct MillstoneEditor::ClockLcd : juce::Component {
         bindValue();
     }
 
-    juce::RangedAudioParameter* current() const {
-        const juce::String suffix(settings()[processor.clockSetting].suffix);
+    juce::RangedAudioParameter* setting(int i) const {
+        const juce::String suffix(settings()[i].suffix);
         return processor.apvts.getParameter(suffix.startsWith("ck_") ? suffix : "k" + juce::String(processor.clockChannel + 1) + "_" + suffix);
+    }
+
+    juce::RangedAudioParameter* current() const { return setting(processor.clockSetting); }
+
+    // The value at a point on the screen: a setting's name stands for its value, and the big reading is the one selected.
+    juce::RangedAudioParameter* paramAt(juce::Point<float> at) const {
+        for (int i = 0; i < numSettings; ++i)
+            if (settingCell(i).contains(at)) return setting(i);
+        return screenBounds().reduced(10, 6).withWidth(186).withTrimmedTop(35).contains(at) ? current() : nullptr;
     }
 
     // Points the VALUE pot at whatever is selected.
@@ -1757,9 +1766,18 @@ struct MillstoneEditor::ClockLcd : juce::Component {
         }
     }
 
-    void mouseDown(const juce::MouseEvent& e) override {   // the settings on the screen can be picked directly
+    void mouseDown(const juce::MouseEvent& e) override {   // the settings on the screen can be picked directly, and dragged
         for (int i = 0; i < numSettings; ++i)
             if (settingCell(i).contains(e.position)) select.setValue(i, juce::sendNotificationSync);
+        lcdDrag.down(paramAt(e.position));
+    }
+    void mouseDrag(const juce::MouseEvent& e) override { lcdDrag.drag(e); refresh(); }
+    void mouseUp(const juce::MouseEvent&) override { lcdDrag.up(); }
+    void mouseDoubleClick(const juce::MouseEvent& e) override { lcdDrag.reset(paramAt(e.position)); refresh(); }
+    void mouseMove(const juce::MouseEvent& e) override { setMouseCursor(paramAt(e.position) != nullptr ? juce::MouseCursor::UpDownResizeCursor : juce::MouseCursor::NormalCursor); }
+    void mouseWheelMove(const juce::MouseEvent& e, const juce::MouseWheelDetails& w) override {
+        if (auto* q = paramAt(e.position)) { LcdDrag::wheel(q, w); refresh(); }
+        else juce::Component::mouseWheelMove(e, w);
     }
 
     bool hitTest(int x, int y) override {   // the screen and the pots: the rest of this area belongs to what is beneath it
@@ -1831,6 +1849,7 @@ private:
 
     MillstoneProcessor& processor;
     ParamSlider select, value;
+    LcdDrag lcdDrag;
     bool binding = false;
     juce::String lastStamp;
 };

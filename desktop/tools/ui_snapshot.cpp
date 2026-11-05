@@ -290,6 +290,50 @@ int main(int argc, char** argv) {
             check(std::abs(ps.getRawParameterValue("fx_dl_drive")->load() - 61.0f) < 0.5f, "VALUE starts on DRIVE");
         }
 
+        // A value on a screen works like a knob: drag it, double click it, roll the wheel over it. A click alone moves nothing.
+        {
+            const auto mouse = [](juce::Component* on, juce::Point<float> at, juce::Point<float> from, int clicks = 1) { return juce::MouseEvent(juce::Desktop::getInstance().getMainMouseSource(), at, juce::ModifierKeys(juce::ModifierKeys::leftButtonModifier), 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, on, on, juce::Time::getCurrentTime(), from, juce::Time::getCurrentTime(), clicks, at != from); };
+            const auto draggedTo = [&](const char* unit, const char* key, juce::Point<float> at, float set, float upBy) {
+                auto* screen = find(editor, juce::String("lcd_") + unit);
+                auto* q = ps.getParameter(key);
+                q->setValueNotifyingHost(set);
+                const auto press = mouse(screen, at, at);
+                screen->mouseDown(press);
+                check(std::abs(q->getValue() - set) < 0.01f, juce::String(key) + " does not move on a click");   // a stepped parameter rounds what it was set to
+                screen->mouseDrag(mouse(screen, at.translated(0.0f, -upBy), at));
+                const float reached = q->getValue();
+                screen->mouseUp(mouse(screen, at.translated(0.0f, -upBy), at));
+                return reached;
+            };
+            const float half = draggedTo("delay", "fx_dl_wow", { 930.0f, 492.0f }, 0.2f, 110.0f);   // second cell, top row
+            check(std::abs(half - 0.7f) < 0.01f, "dragging a value 110 pixels moves it half way, as a knob does, reached " + juce::String(half));
+            check(dynamic_cast<juce::Slider*>(find(editor, "lcd_value_delay"))->getValue() > 0.0, "and the VALUE knob stays with it");
+            auto* delay = find(editor, "lcd_delay");
+            const juce::Point<float> wow(930.0f, 492.0f);
+            delay->mouseDoubleClick(mouse(delay, wow, wow, 2));
+            check(std::abs(ps.getParameter("fx_dl_wow")->getValue() - ps.getParameter("fx_dl_wow")->getDefaultValue()) < 1e-4f, "double click returns a value to its default");
+            juce::MouseWheelDetails roll {}; roll.deltaY = 1.0f;
+            const float before = ps.getParameter("fx_dl_wow")->getValue();
+            delay->mouseWheelMove(mouse(delay, wow, wow), roll);
+            check(std::abs(ps.getParameter("fx_dl_wow")->getValue() - before - 0.15f) < 0.01f, "the wheel moves it");
+            check(std::abs(draggedTo("reverb", "fx_rv_decay", { 150.0f, 780.0f }, 0.2f, 44.0f) - 0.4f) < 0.01f, "the reverb's tail reading drags its DECAY, with no VALUE knob");
+            check(draggedTo("reverb", "fx_rv_type", { 650.0f, 735.0f }, 0.0f, 200.0f) > 0.9f, "its type drags between its choices");
+            check(draggedTo("tides", "t_mode", { 1116.0f, 281.0f }, 0.0f, 200.0f) > 0.9f, "the Tides mode on its screen drags");
+            check(draggedTo("tides", "t_smooth", { 880.0f, 330.0f }, 0.1f, 22.0f) > 0.15f, "and so does a Tides setting");
+            ps.getParameter("fx_dl_sync")->setValueNotifyingHost(1.0f);
+            check(draggedTo("delay", "fx_dl_div", { 1200.0f, 445.0f }, 0.0f, 110.0f) > 0.4f, "a synced delay's time drags through its divisions");
+            ps.getParameter("fx_dl_sync")->setValueNotifyingHost(0.0f);
+            check(draggedTo("delay", "fx_dl_time", { 1200.0f, 445.0f }, 0.1f, 44.0f) > 0.25f, "a free delay's time drags in time");
+            ps.getParameter("fx_dl_sync")->setValueNotifyingHost(1.0f);
+            auto* q = ps.getParameter("fx_dl_mix");
+            const float mix = q->getValue();
+            const juce::Point<float> blank(1200.0f, 560.0f);   // the echo pattern: a picture, not a value
+            delay->mouseDown(mouse(delay, blank, blank));
+            delay->mouseDrag(mouse(delay, blank.translated(0.0f, -80.0f), blank));
+            delay->mouseUp(mouse(delay, blank.translated(0.0f, -80.0f), blank));
+            check(q->getValue() == mix, "dragging a picture on the screen moves nothing");
+        }
+
         // Every unit's presets load, step round, say what they are, and bring a unit that is off up to where it can be heard.
         for (const juce::String unit : {"tides", "delay", "reverb", "chorus", "phaser"}) {
             auto* lcd = find(editor, "lcd_" + unit);
@@ -376,6 +420,21 @@ int main(int argc, char** argv) {
     const juce::Point<float> potMiddle(valuePot->getWidth() * 0.5f, valuePot->getHeight() * 0.5f);
     valuePot->mouseDoubleClick(juce::MouseEvent(juce::Desktop::getInstance().getMainMouseSource(), potMiddle, juce::ModifierKeys(juce::ModifierKeys::leftButtonModifier), 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, valuePot, valuePot, juce::Time::getCurrentTime(), potMiddle, juce::Time::getCurrentTime(), 2, false));
     check(std::abs(ps.getRawParameterValue("k4_steps")->load()) < 0.01f, "double-clicking VALUE resets that setting");
+    {   // The clock's screen works the same: a setting's name drags its value, and the big reading drags what is selected.
+        lcd->mouseUp(lcdEvent({}));
+        const auto dragFrom = [&](juce::Point<float> at, float up) {
+            const auto ev = [&](juce::Point<float> to) { return juce::MouseEvent(juce::Desktop::getInstance().getMainMouseSource(), to, juce::ModifierKeys(juce::ModifierKeys::leftButtonModifier), 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, lcd, lcd, juce::Time::getCurrentTime(), at, juce::Time::getCurrentTime(), 1, to != at); };
+            lcd->mouseDown(ev(at)); lcd->mouseDrag(ev(at.translated(0.0f, -up))); lcd->mouseUp(ev(at.translated(0.0f, -up)));
+        };
+        const juce::Point<float> fillCell(screen.getX() + 202.0f + 50.0f * 4 + 20.0f, screen.getY() + 9.0f + 22.0f + 10.0f);
+        auto* fill = ps.getParameter("k4_fill");
+        fill->setValueNotifyingHost(0.0f);
+        dragFrom(fillCell, 110.0f);
+        check(lcdSays("setting") == "FILL" && std::abs(fill->getValue() - 0.5f) < 0.04f, "dragging a setting's name selects it and moves it");
+        fill->setValueNotifyingHost(0.2f);
+        dragFrom({ screen.getX() + 60.0f, screen.getY() + 60.0f }, 66.0f);
+        check(std::abs(fill->getValue() - 0.5f) < 0.04f, "dragging the big reading moves what is selected");
+    }
     check(!find(editor, "clock_channel:7")->isVisible() == false, "the output switch stays beside it");
     ps.getParameter("k4_steps")->setValueNotifyingHost(ps.getParameter("k4_steps")->convertTo0to1(16.0f));
     ps.getParameter("k4_fill")->setValueNotifyingHost(ps.getParameter("k4_fill")->convertTo0to1(5.0f));

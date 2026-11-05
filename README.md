@@ -1,7 +1,9 @@
 # Millstone
 
-An 8-voice hybrid synth for macOS: VST3, Audio Unit and standalone. See [`desktop/README.md`](desktop/README.md), the manual, for how
-to build, install and use it.
+An 8-voice hybrid synth for macOS: VST3, Audio Unit and standalone. Version 1.0.0, for Apple Silicon and Intel, macOS 11 or later.
+
+To install it, run the signed, notarized `Millstone-<version>.pkg`: there is nothing to build. See [`desktop/README.md`](desktop/README.md),
+the manual, for how to use it, and for how to build it and make the installer.
 
 Each voice has **three Mutable Instruments Plaits macro-oscillators** (all 24 models; OSC 1 can also be **Elements**), a **24 dB ladder
 filter** (low-pass or high-pass), **VCA and modulation ADSR envelopes**, and a **VCA** with ENV / LPG / ON modes. Around the voices are

@@ -4,7 +4,7 @@ Millstone as a normal plugin and a standalone app: the engine in `../src/millsto
 
 ## What you get
 
-- `Millstone.vst3` — drop into your VST3 folder
+- `Millstone.vst3` — VST3, for Ableton Live and other VST3 hosts
 - `Millstone.component` — Audio Unit (macOS), for Logic/GarageBand and AU hosts
 - `Millstone.app` — standalone, pick an audio output and a MIDI input and play
 
@@ -22,8 +22,8 @@ cmake --build build --config Release
 ```
 
 Outputs land in `desktop/build/Millstone_artefacts/Release/{VST3,AU,Standalone}/`, as universal binaries (Apple
-Silicon + Intel, macOS 11 or later) with a verified ad-hoc signature. To sign with a real identity, add
-`-DMILLSTONE_SIGN_IDENTITY="Developer ID Application: ..."` when configuring; distribution also needs notarization.
+Silicon + Intel, macOS 11 or later) with a verified ad-hoc signature. To sign them for other Macs, see "Making the
+installer" below.
 
 If an older `build` folder predates these settings, reconfigure it once with `cmake --fresh -B build`.
 

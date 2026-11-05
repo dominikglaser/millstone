@@ -29,6 +29,12 @@ If an older `build` folder predates these settings, reconfigure it once with `cm
 
 ## Install
 
+The simplest way is the installer, `Millstone-<version>.pkg`. It is signed and notarized by Apple, so it opens without a
+security warning, and it lets you choose any of the VST3, the Audio Unit and the standalone app. It puts them in
+`/Library/Audio/Plug-Ins/VST3`, `/Library/Audio/Plug-Ins/Components` and `/Applications`, and asks for your Mac password.
+
+To install your own build instead, remove the installer's copies first, so that a host doesn't find two Millstones:
+
 ```
 # VST3 (per user)
 cp -R build/Millstone_artefacts/Release/VST3/Millstone.vst3 ~/Library/Audio/Plug-Ins/VST3/
@@ -38,10 +44,23 @@ cp -R build/Millstone_artefacts/Release/AU/Millstone.component ~/Library/Audio/P
 open build/Millstone_artefacts/Release/Standalone/Millstone.app
 ```
 
-The build is not notarized. If you ever move the artifacts to another Mac (download, AirDrop), macOS quarantines
-them; clear it with `xattr -dr com.apple.quarantine <path>`. Built locally, there's nothing to clear.
+A build made this way is not notarized. If you ever move it to another Mac (download, AirDrop), macOS quarantines it;
+clear it with `xattr -dr com.apple.quarantine <path>`. Built locally, there's nothing to clear.
 
 After a rebuild, quit Ableton completely (Cmd-Q) and reopen it: a running Live keeps the copy it already loaded.
+
+### Making the installer
+
+`desktop/tools/make_installer.sh` signs a finished Release build, packages it, sends it to Apple for notarization and
+staples the approval to `desktop/build/installer/Millstone-<version>.pkg`. Set the version in `CMakeLists.txt`, rebuild
+and run the tests first. Add `--no-notarize` to stop before the upload. It needs, once per Mac:
+
+- the "Developer ID Application" and "Developer ID Installer" certificates in the login keychain, each with its private key
+- notarization credentials, which ask for an app-specific password from account.apple.com:
+  `xcrun notarytool store-credentials "millstone-notary" --apple-id <email> --team-id <team>`
+
+Keep a backup of the private keys, and keep them and the password out of the repository. Signed and timestamped builds keep
+working after a certificate expires; a new certificate is only needed to sign new builds.
 
 In Ableton: rescan plugins (Preferences → Plug-Ins), add Millstone to a MIDI track, set the track's MIDI input
 to your keyboard, play. OSC 1 and OSC 2 (Virtual Analog, slightly detuned) are on by default; turn OSC 3 on for the

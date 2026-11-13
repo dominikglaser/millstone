@@ -148,7 +148,7 @@ a tall window of its own, with no patch bay below it. PANEL goes back, with the 
 - **CK-8 Clock:** the eight-output clock, with its LCD.
 - **TD-2 Tidal Modulator:** Tides. Its screen has presets, draws one cycle of the slope, and holds SMOOTH and SHIFT on VALUE.
 - **DE-1 Tape Echo:** a tape delay for dub. See below.
-- **RV-2 Digital Reverb:** NORMAL (the plate from Mutable Instruments Rings) and SPRING (three dispersive springs, whose chirp is DRIP). KICK bangs the tank. DECAY changes how long the tail lasts, not how loud held notes are.
+- **RV-2 Digital Reverb:** NORMAL (the plate from Mutable Instruments Rings, with a float tank so loud mixes no longer clip inside it) and SPRING (three dispersive springs, whose chirp is DRIP). KICK bangs the tank. DECAY changes how long the tail lasts, not how loud held notes are.
 - **DI-4 Ensemble:** the chorus, three settings.
 - **PH-6 Phaser:** six stages.
 

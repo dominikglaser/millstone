@@ -107,7 +107,8 @@ int main(int argc, char** argv) {
             const juce::String k = juce::String(osc) + "_cv_src:";
             check(top((k + "0").toRawUTF8()) < top((k + "2").toRawUTF8()) && top((k + "2").toRawUTF8()) < top((k + "1").toRawUTF8()), k + " reads LFO, LFO 2, ENV");
         }
-        check(top("f_src:1") < top("f_src:2") && top("f_src:2") < top("f_src:0"), "MOD SOURCE reads LFO, LFO 2, ENV");
+        // The filter's MOD SOURCE is a dropdown (seven sources since TIDES 1-4): one control, and it reads the value.
+        check(find(editor, "f_src") != nullptr && find(editor, "f_src:1") == nullptr && text("f_src") == "ENV", "MOD SOURCE is one dropdown, on ENV");
         click("o2_cv_src:1");
         check(text("o2_cv_src") == "ENV", "and the button marked ENV still sets ENV");
         click("o2_cv_src:0");

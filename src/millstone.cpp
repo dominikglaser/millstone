@@ -129,8 +129,10 @@ struct Index {
 const Index &IDX() { static Index idx; return idx; }
 
 enum { VM_POLY, VM_MONO, VM_LEGATO };
-enum { VCA_ENV, VCA_LPG, VCA_ON };
-enum { FS_ENV, FS_LFO, FS_LFO2 };
+// VCA_T1..T4 and FS_T1..T4 (appended, so saved values keep their meaning): the VCA, or the filter's modulation,
+// follows one of Tides' four outputs instead of an envelope or LFO.
+enum { VCA_ENV, VCA_LPG, VCA_ON, VCA_T1, VCA_T2, VCA_T3, VCA_T4 };
+enum { FS_ENV, FS_LFO, FS_LFO2, FS_T1, FS_T2, FS_T3, FS_T4 };
 
 const float kDivBeats[8] = {16, 8, 4, 2, 1, 0.5f, 0.25f, 0.125f};
 
@@ -205,6 +207,7 @@ struct Voice {
     float osc_last[kOscs];            // its last sample, for destinations that only change once per chunk
     float noise_last;
     float tides_out[4];               // Tides' four outputs, normalised: 0..1 or -1..1
+    float tides_vca = 0.0f;           // VCA MODE TIDES n: that output as a 0..1 level, smoothed per sample
     float tides_free_phase;           // FREE: what fires the one-shot modes
     bool trigger_high[7];             // trigger inputs, for spotting a rising edge
     int osc_trigger_low[kOscs];       // force an oscillator's TRIG low for a render or two, so a cord can strike it
@@ -439,7 +442,7 @@ inline float cutoff_octaves(const Instance *in, const Voice *v, float env, float
     float base_oct = 10.0f * in->P(G_CUTOFF) * 0.01f;               // 20 Hz .. 20.48 kHz
     float mod = in->P(G_FMOD) * 0.01f;
     const int fsrc = (int)in->P(G_FSRC);
-    float src = fsrc == FS_ENV ? env : fsrc == FS_LFO2 ? in->lfo2_raw : lfo;
+    float src = fsrc == FS_ENV ? env : fsrc == FS_LFO2 ? in->lfo2_raw : fsrc >= FS_T1 ? v->tides_out[clampi(fsrc - FS_T1, 0, 3)] : lfo;
     float oct = base_oct + mod * src * 6.0f;
     oct += in->P(G_KEYTRACK) * 0.01f * (v->pitch_cur - 60.0f) / 12.0f;
     oct += in->P(G_VEL_FILT) * 0.01f * (v->velocity * 2.0f - 1.0f) * 3.0f;
@@ -663,7 +666,16 @@ void render_elements(Instance *in, Voice *v, const CordState &cords, float note,
 #endif
 
 void render_voice(Instance *in, Voice *v, int index, int frames, float lfo) {
-    const int vca_mode = (int)in->P(G_VCA_MODE);
+    // TIDES n: everything up to the VCA treats it as ON (no amp envelope, the key gates); the VCA stage then
+    // follows Tides output n on top (vca_tides >= 0).
+    const int vca_raw = (int)in->P(G_VCA_MODE);
+    const int vca_tides = vca_raw >= VCA_T1 ? clampi(vca_raw - VCA_T1, 0, 3) : -1;
+    const int vca_mode = vca_tides >= 0 ? VCA_ON : vca_raw;
+#ifdef MILLSTONE_DESKTOP
+    const bool tides_loops = (int)in->P(G_T_MODE) == tides::RAMP_MODE_LOOPING;
+#else
+    const bool tides_loops = false;   // no Tides in this build: its outputs stay at 0
+#endif
     const float at = fmaxf(in->chan_at, v->aftertouch);
     const float bend = in->bend * in->P(G_BEND_RANGE);
     const float vib = in->P(G_VIBRATO) * 0.01f;
@@ -875,6 +887,14 @@ void render_voice(Instance *in, Voice *v, int index, int frames, float lfo) {
         default:      target_gain = vel_gain; break;
     }
     if (per_osc) target_gain = (gated || !input_gone) ? vel_gain : 0.0f;   // the VCA only finishes what is left of the voice
+    // TIDES n: an AD/AR output ends by itself, so after key up the VCA stays open and lets it fall to silence (the voice
+    // then ends on silence, or at the ring limit); a LOOP output never ends, so that closes with the key, like ON.
+    float tides_level = 0.0f;
+    if (vca_tides >= 0) {
+        const float t = v->tides_out[vca_tides];
+        tides_level = tides_loops ? (t + 1.0f) * 0.5f : clampf(t, 0.0f, 1.0f);   // LOOP swings -1..1, AD/AR 0..1
+        if (!tides_loops && !per_osc) target_gain = !input_gone ? vel_gain : 0.0f;
+    }
     float peak = 0.0f;
     for (int i = 0; i < frames; i++) {
         float e = per_osc ? env_curve[i] : v->env.tick();
@@ -895,6 +915,10 @@ void render_voice(Instance *in, Voice *v, int index, int frames, float lfo) {
         if (v->vel_gain_z < 0.0f) v->vel_gain_z = vel_gain;
         v->vel_gain_z += (vel_gain - v->vel_gain_z) * 0.01f;
         float gain = vca_mode == VCA_ENV && !per_osc ? e * v->vel_gain_z : v->gain_z;
+        if (vca_tides >= 0) {   // Tides updates once a chunk: glide between, so its steps do not click
+            v->tides_vca += (tides_level - v->tides_vca) * 0.05f;
+            gain *= v->tides_vca;
+        }
         y *= gain * ring_gain * clampf(1.0f + vca_mod, 0.0f, 2.0f);
         in->out[i] += y;
         float a = fabsf(y);
@@ -934,7 +958,8 @@ float run_lfo(Instance *in, Lfo &lfo, int base, int frames, float rate_cord) {
 
 void render_chunk(Instance *in, int16_t *out_lr, int frames) {
 #ifdef MILLSTONE_DESKTOP
-    in->tides_on = source_patched(in, S_TIDES1, S_TIDES4);
+    in->tides_on = source_patched(in, S_TIDES1, S_TIDES4)   // a cord, or the VCA / the filter following an output
+                   || (int)in->P(G_VCA_MODE) >= VCA_T1 || (int)in->P(G_FSRC) >= FS_T1;
     clock_step(in, frames);
     if (in->tides_on && (int)in->P(G_T_TRIG) == TT_CLOCK) {
         static const float beats[12] = {32, 16, 8, 4, 2, 1, 0.5f, 0.25f, 0.125f, 2.0f / 3.0f, 1.0f / 3.0f, 1.0f / 6.0f};

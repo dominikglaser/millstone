@@ -55,7 +55,7 @@
     {"key": "reso", "name": "RESONANCE", "min": 0, "max": 100, "default": 15},
     {"key": "f_mode", "name": "VCF MODE", "options": ["LP", "HP"], "default": "LP"},
     {"key": "f_mod", "name": "VCF MOD DEPTH", "min": -100, "max": 100, "default": 50},
-    {"key": "f_src", "name": "VCF MOD SRC", "options": ["ENV", "LFO", "LFO 2"], "default": "ENV"},
+    {"key": "f_src", "name": "VCF MOD SRC", "options": ["ENV", "LFO", "LFO 2", "TIDES 1", "TIDES 2", "TIDES 3", "TIDES 4"], "default": "ENV"},
     {"key": "keytrack", "name": "KEY TRACK", "min": 0, "max": 100, "default": 50},
     {"key": "drive", "name": "DRIVE", "min": 0, "max": 100, "default": 10},
 
@@ -63,7 +63,7 @@
     {"key": "decay", "name": "DECAY", "min": 0, "max": 100, "default": 60},
     {"key": "sustain", "name": "SUSTAIN", "min": 0, "max": 100, "default": 80},
 
-    {"key": "vca_mode", "name": "VCA MODE", "options": ["ENV", "LPG", "ON"], "default": "ENV"},
+    {"key": "vca_mode", "name": "VCA MODE", "options": ["ENV", "LPG", "ON", "TIDES 1", "TIDES 2", "TIDES 3", "TIDES 4"], "default": "ENV"},
     {"key": "volume", "name": "VOLUME", "min": 0, "max": 100, "default": 65},
     {"key": "vel_amp", "name": "VEL > AMP", "min": 0, "max": 100, "default": 50},
     {"key": "vel_filt", "name": "VEL > VCF", "min": 0, "max": 100, "default": 20},

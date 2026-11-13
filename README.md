@@ -1,16 +1,16 @@
 # Millstone
 
-An 8-voice hybrid synth for macOS: VST3, Audio Unit and standalone. Version 1.0.0, for Apple Silicon and Intel, macOS 11 or later.
+An 8-voice hybrid synth for macOS: VST3, Audio Unit and standalone. Version 1.1.0, for Apple Silicon and Intel, macOS 11 or later.
 
 **[Download the installer](https://github.com/dominikglaser/millstone/releases/latest)**: a signed, notarized `.pkg`, with nothing to build. See [`desktop/README.md`](desktop/README.md),
 the manual, for how to use it, and for how to build it and make the installer.
 
 Each voice has **three Mutable Instruments Plaits macro-oscillators** (all 24 models; OSC 1 can also be **Elements**), a **24 dB ladder
-filter** (low-pass or high-pass), **VCA and modulation ADSR envelopes**, and a **VCA** with ENV / LPG / ON modes. Around the voices are
+filter** (low-pass or high-pass), **VCA and modulation ADSR envelopes**, and a **VCA** with ENV / LPG / ON / TIDES 1-4 modes. Around the voices are
 **two LFOs**, **Tides**, an **eight-output clock** and a **patch bay** with 12 cords, 26 outputs and 46 inputs. After them comes a rack
 of **tape echo, reverb, chorus and phaser**. There is no sequencer or arpeggiator: sequence it from your DAW or hardware.
 
-It comes with 700 synth presets and 40 FX presets, each in its own browser, so a voice and its effects can be chosen separately.
+It comes with 750 synth presets (including the 50-sound Cinematic pack) and 40 FX presets, each in its own browser, so a voice and its effects can be chosen separately.
 
 ## Signal flow
 
@@ -33,6 +33,9 @@ VCA modes: **ENV** shapes every note with the VCA ADSR. **LPG** patches TRIG int
 (LPG DECAY / COLOUR), like a hardware trigger input: pings, plucks, drums. **ON** opens the VCA for as long as the
 key is held (self-enveloped models such as drums, plucks and 6-op FM ring out). In every mode the self-enveloped
 models (6-op FM, string, modal, bass drum, snare, hi-hat) receive a gate from the keys.
+**TIDES 1-4** let one Tides output be the VCA, with no amp envelope: an AD/AR output plays its tail out after key up,
+a LOOP output closes with the key. The filter's MOD SOURCE takes TIDES 1-4 as well. Use Tides OUTPUT PHASE or GATES
+for this (in AMP, SHIFT decides which outputs carry the signal).
 
 MIDI: notes with velocity, mod wheel (CC 1, scaled by WHEEL > LFO), sustain pedal (CC 64), channel and polyphonic
 aftertouch, pitch bend (BEND RANGE), all notes off.

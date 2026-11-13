@@ -16,6 +16,8 @@ step stress "$B/millstone_stress_test"
 step engine env MPC_VST="$B/_deps/mpcvst-src" bash "$ROOT/tests/run.sh" fast
 clang++ -std=gnu++14 -O2 -w -I"$ROOT/src" -I"$ROOT/vst/build" -I"$B/_deps/mpcvst-src/wrapper" "$ROOT/desktop/tools/engine_fuzz.cpp" "$B/libmillstone_engine.a" -o "$OUT/engine_fuzz"
 step fuzz "$OUT/engine_fuzz" 300
+clang++ -std=gnu++14 -O2 -w -I"$ROOT/src" -I"$ROOT/vst/build" -I"$B/_deps/mpcvst-src/wrapper" "$ROOT/desktop/tools/tides_vca_test.cpp" "$B/libmillstone_engine.a" -o "$OUT/tides_vca_test"
+step tides "$OUT/tides_vca_test"
 if [ "${1:-}" = "--sanitize" ]; then step sanitized "$ROOT/desktop/tools/sanitized_fuzz.sh" 40; fi
 [ $FAILED = 0 ] && echo "ALL PASSED" || echo "SOME FAILED"
 exit $FAILED

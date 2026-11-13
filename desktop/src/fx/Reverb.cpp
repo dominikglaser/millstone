@@ -1,6 +1,6 @@
 #include "Reverb.h"
 
-#include "rings/dsp/fx/reverb.h"
+#include "RingsReverbFloat.h"   // the Rings reverb with a float tank (see that file)
 
 #include <algorithm>
 #include <cmath>
@@ -10,7 +10,8 @@
 namespace
 {
 // The tank. Rings reserves about 21,600 words of this and declares exactly
-// this size, so it is the figure to use.
+// this size, so it is the figure to use. Floats, not Rings' 16-bit words: those
+// saturate at +-1, and a loud mix clipped inside the loop and rang on.
 constexpr std::size_t kTankWords = 32768;
 
 // Short of 1, where the loop would stop decaying.
@@ -29,8 +30,8 @@ constexpr float kInputGain = 0.5f;
 
 struct Reverb::Impl
 {
-    rings::Reverb reverb;
-    std::uint16_t tank[kTankWords] {};
+    rings::ReverbFloat reverb;
+    float tank[kTankWords] {};
 };
 
 Reverb::Reverb() : impl(std::make_unique<Impl>()) {}
